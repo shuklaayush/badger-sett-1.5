@@ -38,7 +38,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     uint256 public performanceFeeStrategist;
     uint256 public withdrawalFee;
 
-    uint256 public constant MAX_FEE = 10000;
+    uint256 public constant MAX_FEE = 10_000;
 
     address public vault;
     address public guardian;
