@@ -81,7 +81,7 @@ def test_strategy_action_permissions(deployer, vault, strategy, want):
             strategy.tend({"from": actor})
 
     actorsToCheck = [
-        randomUser,
+        randomUser.address,
         strategy.governance(),
         strategy.strategist(),
         strategy.keeper(),
@@ -89,8 +89,11 @@ def test_strategy_action_permissions(deployer, vault, strategy, want):
 
     # withdrawToVault onlyVault
     for actor in actorsToCheck:
-        with brownie.reverts("onlyGovernanceOrStrategist"):
+        if actor == strategy.governance() or actor == strategy.strategist():
             vault.withdrawToVault({"from": actor})
+        else:
+            with brownie.reverts("onlyGovernanceOrStrategist"):
+                vault.withdrawToVault({"from": actor})
 
     # withdraw onlyVault
     for actor in actorsToCheck:
@@ -99,8 +102,11 @@ def test_strategy_action_permissions(deployer, vault, strategy, want):
 
     # withdrawOther _onlyNotProtectedTokens
     for actor in actorsToCheck:
-        with brownie.reverts("onlyVault"):
+        if actor == strategy.governance() or actor == strategy.strategist():
             vault.withdrawOther(vault, {"from": actor})
+        else:
+            with brownie.reverts("onlyGovernanceOrStrategist"):
+                vault.withdrawOther(vault, {"from": actor})
 
 
 def test_strategy_config_permissions(strategy):
@@ -283,8 +289,15 @@ def test_sett_config_permissions(deployer, vault, strategy, want):
     with brownie.reverts("onlyGovernance"):
         vault.setStrategy(AddressZero, {"from": randomUser})
 
-    vault.setStrategy(AddressZero, {"from": validActor})
-    assert vault.setStrategy() == AddressZero
+    if strategy.balanceOf() == 0 :
+        vault.setStrategy(AddressZero, {"from": validActor})
+    else:
+        with brownie.reverts():
+            vault.setStrategy(AddressZero, {"from": validActor})
+        vault.withdrawAll({"from": deployer})
+        vault.setStrategy(AddressZero, {"from": validActor})
+
+    assert vault.strategy() == AddressZero
 
     # setStrategist
     with brownie.reverts("onlyGovernance"):

@@ -196,8 +196,7 @@ def test_migrate_single_user(
 def test_withdraw_other(deployer, vault, strategy, want):
     """
     - Vault should be able to withdraw other tokens
-    - Vault should not be able to withdraw core tokens
-    - Non-controller shouldn't be able to do either
+    - Vault should not be able to withdraw core/protected tokens
     """
     # Setup
     randomUser = accounts[6]
@@ -234,19 +233,21 @@ def test_withdraw_other(deployer, vault, strategy, want):
 
     # Should not be able to withdraw protected tokens
     protectedTokens = strategy.getProtectedTokens()
+
     for token in protectedTokens:
         with brownie.reverts():
-            controller.inCaseStrategyTokenGetStuck(strategy, token, {"from": deployer})
+            vault.inCaseStrategyTokenGetStuck(strategy, token, {"from": deployer})
 
     # Should send balance of non-protected token to sender
-    controller.inCaseStrategyTokenGetStuck(strategy, mockToken, {"from": deployer})
+    vault.inCaseStrategyTokenGetStuck(strategy, mockToken, {"from": deployer})
 
+    # Only Strategist/Goverance should be able to withdraw other tokens
     with brownie.reverts():
-        controller.inCaseStrategyTokenGetStuck(
+        vault.inCaseStrategyTokenGetStuck(
             strategy, mockToken, {"from": randomUser}
         )
 
-    assert mockToken.balanceOf(controller) == mockAmount
+    assert mockToken.balanceOf(vault) == mockAmount
 
 
 def test_single_user_harvest_flow_remove_fees(
@@ -284,7 +285,7 @@ def test_single_user_harvest_flow_remove_fees(
     snap.settHarvest({"from": deployer})
 
     ## NOTE: Some strats do not do this, change accordingly
-    assert want.balanceOf(controller.rewards()) > 0
+    # assert want.balanceOf(vault.rewards()) > 0
 
     chain.sleep(days(1))
     chain.mine()

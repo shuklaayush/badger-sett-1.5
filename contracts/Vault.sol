@@ -295,6 +295,16 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
     }
 
+    /// @dev Transfer an amount of the specified token from the vault to the sender.
+    /// @dev Token balance are never meant to exist in the controller, this is purely a safeguard.
+    function inCaseStrategyTokenGetStuck(address _strategy, address _token)
+        public
+    {
+        _onlyGovernanceOrStrategist();
+        IStrategy(_strategy).withdrawOther(_token);
+    }
+
+
     function pause() external {
         _onlyAuthorizedPausers();
         _pause();

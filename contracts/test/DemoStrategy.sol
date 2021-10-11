@@ -49,6 +49,7 @@ contract DemoStrategy is BaseStrategy {
   function getProtectedTokens() public virtual view override returns (address[] memory) {
     address[] memory protectedTokens = new address[](1);
     protectedTokens[0] = want;
+    return protectedTokens;
   }
 
   function _deposit(uint256 _want) internal override {
@@ -63,7 +64,7 @@ contract DemoStrategy is BaseStrategy {
     return balanceOfWant();
   }
 
-  function harvest() external override returns (uint256 harvested) {
+  function harvest() external override whenNotPaused returns (uint256 harvested) {
     _onlyAuthorizedActors();
     // No-op as we don't do anything with funds
   }
