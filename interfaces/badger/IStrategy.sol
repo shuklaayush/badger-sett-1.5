@@ -7,6 +7,8 @@ interface IStrategy {
   function balanceOfPool() external view returns (uint256 balance);
   function balanceOfWant() external view returns (uint256 balance);
 
-  function earn(uint256 amount) external;
+  function earn() external;
   function withdraw(uint256 amount) external;
+  function withdrawToVault() external returns (uint256 balance);
+  function withdrawOther(address _asset) external returns (uint256 balance);
 }

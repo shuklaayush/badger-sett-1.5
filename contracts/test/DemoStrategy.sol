@@ -6,6 +6,42 @@ import {BaseStrategy} from "../BaseStrategy.sol";
 
 contract DemoStrategy is BaseStrategy {
 
+  // address public want; // Inherited from BaseStrategy
+  // address public lpComponent; // Token that represents ownership in a pool, not always used
+  // address public reward; // Token we farm
+
+
+  /// @dev Initialize the Strategy with security settings as well as tokens
+  /// @notice Proxies will set any non constant variable you declare as default value
+  /// @dev add any extra changeable variable at end of initializer as shown
+  /// @notice Dev must implement
+  function initialize(
+        address _governance,
+        address _strategist,
+        address _vault,
+        address _keeper,
+        address _guardian,
+        address[1] memory _wantConfig,
+        uint256[3] memory _feeConfig
+    ) public initializer {
+        __BaseStrategy_init(
+            _governance,
+            _strategist,
+            _vault,
+            _keeper,
+            _guardian
+        );
+        /// @dev Add config here
+        want = _wantConfig[0];
+
+        performanceFeeGovernance = _feeConfig[0];
+        performanceFeeStrategist = _feeConfig[1];
+        withdrawalFee = _feeConfig[2];
+
+        // If you need to set new values that are not constants, set them like so
+        // stakingContract = 0x79ba8b76F61Db3e7D994f7E384ba8f7870A043b7;
+    }
+
   function getName() external pure override returns (string memory) {
     return "DemoStrategy";
   }
@@ -28,15 +64,12 @@ contract DemoStrategy is BaseStrategy {
   }
 
   function harvest() external override returns (uint256 harvested) {
+    _onlyAuthorizedActors();
     // No-op as we don't do anything with funds
   }
 
 
   function balanceOfPool() public view override returns (uint256) {
     return 0;
-  }
-
-  function earn(uint256 _want) external override {
-    // No-op
   }
 }

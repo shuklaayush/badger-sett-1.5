@@ -47,7 +47,7 @@ import {BadgerGuestListAPI} from "interfaces/yearn/BadgerGuestlistApi.sol";
         - 
 */
 
-contract SettV4 is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableUpgradeable {
+contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
@@ -73,7 +73,6 @@ contract SettV4 is IVault, ERC20Upgradeable, SettAccessControlDefended, Pausable
 
     function initialize(
         address _token,
-        address _strategy,
         address _governance,
         address _keeper,
         address _guardian,
@@ -102,16 +101,12 @@ contract SettV4 is IVault, ERC20Upgradeable, SettAccessControlDefended, Pausable
         governance = _governance;
         rewards = _governance;
         strategist = address(0);
-        strategy = _strategy;
         keeper = _keeper;
         guardian = _guardian;
 
         min = 9500;
 
         emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
-
-        // Paused on launch
-        _pause();
     }
 
     /// ===== Modifiers ====
@@ -241,6 +236,10 @@ contract SettV4 is IVault, ERC20Upgradeable, SettAccessControlDefended, Pausable
 
     function setStrategy(address _strategy) external whenNotPaused {
         _onlyGovernance();
+        // TODO: Migrate funds if settings strategy when already existing one
+        if(strategy != address(0)){
+            require(IStrategy(strategy).balanceOf() == 0, "Please withdrawAll before changing strat");
+        }
         strategy = _strategy;
     }
 
@@ -265,6 +264,20 @@ contract SettV4 is IVault, ERC20Upgradeable, SettAccessControlDefended, Pausable
 
     /// ===== Permissioned Functions: Trusted Actors =====
 
+    /// @dev Withdraws all funds from Strategy and deposits into vault
+    /// @notice can only be done by governance or strategist
+    function withdrawToVault() public {
+        _onlyGovernanceOrStrategist();
+        IStrategy(strategy).withdrawToVault();
+    }
+
+    function withdrawOther(address _token) public {
+        _onlyGovernanceOrStrategist();
+        uint256 balance = IStrategy(strategy).withdrawOther(_token);
+
+        IERC20Upgradeable(_token).safeTransfer(governance, balance);
+    }
+
     /// @notice Transfer the underlying available to be claimed to the strategy
     /// @notice The strategy will use for yield-generating activities
     function earn() public whenNotPaused {
@@ -272,7 +285,7 @@ contract SettV4 is IVault, ERC20Upgradeable, SettAccessControlDefended, Pausable
 
         uint256 _bal = available();
         token.safeTransfer(strategy, _bal);
-        IStrategy(strategy).earn(_bal);
+        IStrategy(strategy).earn();
     }
 
     /// @dev Emit event tracking current full price per share

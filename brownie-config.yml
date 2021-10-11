@@ -1,7 +1,7 @@
 # use Ganache's forked mainnet mode as the default network
 # NOTE: You don't *have* to do this, but it is often helpful for testing
 networks:
-  default: hardhat-arbitrum-fork
+  default: mainnet-fork
 
 # automatically fetch contract sources from Etherscan
 autofetch_sources: True
@@ -9,6 +9,8 @@ autofetch_sources: True
 # require OpenZepplin Contracts
 dependencies:
   - OpenZeppelin/openzeppelin-contracts-upgradeable@3.4.0
+  - OpenZeppelin/openzeppelin-contracts@3.2.0
+
 
 # path remapping to support imports from GitHub/NPM
 compiler:
@@ -16,6 +18,7 @@ compiler:
     version: 0.6.12
     remappings:
       - "@openzeppelin-contracts-upgradeable=OpenZeppelin/openzeppelin-contracts-upgradeable@3.4.0/contracts/"
+      - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@3.2.0"
 
 reports:
   exclude_contracts:

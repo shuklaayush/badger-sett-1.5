@@ -60,7 +60,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         guardian = _guardian;
         withdrawalMaxDeviationThreshold = 50;
     }
-
+    
     // ===== Modifiers =====
 
     function _onlyVault() internal view {
@@ -77,7 +77,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     /// ===== View Functions =====
     function baseStrategyVersion() public view returns (string memory) {
-        return "1.2";
+        return "1.5";
     }
 
     /// @notice Get the balance of want held idle in the Strategy
@@ -140,6 +140,10 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         withdrawalMaxDeviationThreshold = _threshold;
     }
 
+    function earn() public override whenNotPaused {
+        deposit();
+    }
+
     function deposit() public virtual whenNotPaused {
         _onlyAuthorizedActorsOrVault();
         uint256 _want = IERC20Upgradeable(want).balanceOf(address(this));
@@ -152,7 +156,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     // ===== Permissioned Actions: Vault =====
 
     /// @notice Vault-only function to Withdraw partial funds, normally used with a vault withdrawal
-    function withdrawAll() external virtual whenNotPaused returns (uint256 balance) {
+    function withdrawToVault() external override whenNotPaused returns (uint256 balance) {
         _onlyVault();
 
         _withdrawAll();
@@ -191,7 +195,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     // NOTE: must exclude any tokens used in the yield
     // Vault role - withdraw should return to Vault
-    function withdrawOther(address _asset) external virtual whenNotPaused returns (uint256 balance) {
+    function withdrawOther(address _asset) external override whenNotPaused returns (uint256 balance) {
         _onlyVault();
         _onlyNotProtectedTokens(_asset);
 
