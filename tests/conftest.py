@@ -5,7 +5,7 @@ from brownie import (
     Vault,
     MockToken,
     AdminUpgradeabilityProxy,
-    TestVipCappedGuestListWrapperUpgradeable,
+    TestVipCappedGuestListBbtcUpgradeable,
     accounts
 )
 
@@ -65,7 +65,7 @@ def deployed():
 @pytest.fixture
 def deployed_gueslist(deployed):
     """
-    Deploys TestVipCappedGuestListWrapperUpgradeable.sol for testing
+    Deploys TestVipCappedGuestListBbtcUpgradeable.sol for testing Guest List functionality
     """
     
     # NOTE: Change accordingly
@@ -95,9 +95,6 @@ def deployed_gueslist(deployed):
     guestlist.setTotalDepositCap(totalCap, {"from": dev})
     assert guestlist.totalDepositCap() == totalCap
 
-    guestlist.setGuestRoot(merkleRoot, {"from": dev})
-    assert guestlist.guestRoot() == merkleRoot
-
     # Transfers ownership of guestlist to Badger Governance
     guestlist.transferOwnership(governance, {"from": dev})
     assert guestlist.owner() == governance
@@ -108,7 +105,7 @@ def deployed_gueslist(deployed):
 
 def deploy_guestlist(dev, proxyAdmin, vaultAddr):
 
-    guestlist_logic = TestVipCappedGuestListWrapperUpgradeable.deploy({"from": dev})
+    guestlist_logic = TestVipCappedGuestListBbtcUpgradeable.deploy({"from": dev})
 
     # Initializing arguments
     args = [vaultAddr]
@@ -123,7 +120,7 @@ def deploy_guestlist(dev, proxyAdmin, vaultAddr):
 
     ## We delete from deploy and then fetch again so we can interact
     AdminUpgradeabilityProxy.remove(guestlist_proxy)
-    guestlist_proxy = TestVipCappedGuestListWrapperUpgradeable.at(guestlist_proxy.address)
+    guestlist_proxy = TestVipCappedGuestListBbtcUpgradeable.at(guestlist_proxy.address)
 
     console.print("[green]Guestlist was deployed at: [/green]", guestlist_proxy.address)
 
