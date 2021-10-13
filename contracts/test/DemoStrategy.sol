@@ -73,4 +73,8 @@ contract DemoStrategy is BaseStrategy {
   function balanceOfPool() public view override returns (uint256) {
     return 0;
   }
+
+  function balanceOfRewards() public view override returns (uint256) {
+    return 0;
+  }
 }

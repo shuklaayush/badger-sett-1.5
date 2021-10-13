@@ -299,5 +299,10 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     /// @return balance of want held in strategy positions
     function balanceOfPool() public virtual view override returns (uint256);
 
+    /// @dev Calculate the total amount of rewards accured. 
+    /// @notice if there are multiple reward tokens this function should take all of them into account
+    /// @return the amount of rewards accured
+    function balanceOfRewards() public virtual view override returns (uint256);
+
     uint256[49] private __gap;
 }

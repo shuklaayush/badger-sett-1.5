@@ -12,6 +12,8 @@ interface IStrategy {
   function withdrawToVault() external returns (uint256 balance);
   function withdrawOther(address _asset) external returns (uint256 balance);
 
+  function balanceOfRewards() external view returns (uint256);
+
   /// @notice balanceofRewards and autocompound ratio 
   /// track harvest and everytime a harvest is bad 
   /// - eth_call geth node vs oracle 
