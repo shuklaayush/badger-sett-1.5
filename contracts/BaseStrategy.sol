@@ -259,6 +259,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     // ===== Abstract Functions: To be implemented by specific Strategies =====
 
     /// @dev Internal deposit logic to be implemented by Stratgies
+    /// @param _want: the amount of want token to be deposited into the strategy
     function _deposit(uint256 _want) internal virtual;
 
     function _postDeposit() internal virtual {
@@ -266,10 +267,13 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     }
 
     /// @notice Specify tokens used in yield process, should not be available to withdraw via withdrawOther()
+    /// @param _asset: address of asset
     function _onlyNotProtectedTokens(address _asset) internal {
         require(!isProtectedToken(_asset), "_onlyNotProtectedTokens");
     }
 
+    /// @dev Gives the list of protected tokens
+    /// @return array of protected tokens
     function getProtectedTokens() public virtual view returns (address[] memory);
 
     /// @dev Internal logic for strategy migration. Should exit positions as efficiently as possible
@@ -277,17 +281,22 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     /// @dev Internal logic for partial withdrawals. Should exit positions as efficiently as possible.
     /// @dev The withdraw() function shell automatically uses idle want in the strategy before attempting to withdraw more using this
+    /// @param _amount: the amount of want token to be withdrawm from the strategy
+    /// @return withdrawn amount from the strategy
     function _withdrawSome(uint256 _amount) internal virtual returns (uint256);
 
     /// @dev Realize returns from positions
     /// @dev Returns can be reinvested into positions, or distributed in another fashion
     /// @dev Performance fees should also be implemented in this function
+    /// @return total amount harvested
     function harvest() external virtual returns (uint256 harvested);
 
     /// @dev User-friendly name for this strategy for purposes of convenient reading
+    /// @return Name of the strategy
     function getName() external virtual pure returns (string memory);
 
     /// @dev Balance of want currently held in strategy positions
+    /// @return balance of want held in strategy positions
     function balanceOfPool() public virtual view override returns (uint256);
 
     uint256[49] private __gap;
