@@ -22,6 +22,7 @@ import "interfaces/yearn/BadgerWrapperApi.sol";
  * This can only be made more permissive over time. If decreased, existing TVL is maintained and no deposits are possible until the TVL has gone below the threshold
  * A variant of the yearn AffiliateToken that supports guest list control of deposits
  * A guest list that gates access by merkle root and a TVL cap
+ * @notice authorized function to ignore merkle proof for testing, inspiration from yearn's approach to testing guestlist https://github.com/yearn/yearn-devdocs/blob/4664fdef7d10f3a767fa651975059c44cf1cdb37/docs/developers/v2/smart-contracts/test/TestGuestList.md
  */
 contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
     using SafeMathUpgradeable for uint256;
@@ -114,8 +115,6 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
     /**
      * @notice Check if a guest with a bag of a certain size is allowed into
      * the party.
-     * @dev Note that `_amount` isn't checked to keep test setup simple, since
-     * from the wrapper tests' perspective this is a pass/fail call anyway.
      * @param _guest The guest's address to check.
      */
     function authorized(
@@ -124,20 +123,9 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         bytes32[] calldata _merkleProof
     ) external view returns (bool) {
         // Yes: If the user is on the list, and under the cap
-        // Yes: If the user is not on the list, supplies a valid proof (thereby being added to the list), and is under the cap
-        // No: If the user is not on the list, does not supply a valid proof, or is over the cap
+        // Yes: If the user is not on the list, and is under the cap
+        // No: If the user is not on the list, or is over the cap
         bool invited = guests[_guest];
-
-        // // If there is no guest root, all users are invited
-        // if (!invited && guestRoot == bytes32(0)) {
-        //     invited = true;
-        // }
-
-        // // If the user is not already invited and there is an active guestList, require verification of merkle proof to grant temporary invitation (does not set storage variable)
-        // if (!invited && guestRoot != bytes32(0)) {
-        //     // Will revert on invalid proof
-        //     invited = _verifyInvitationProof(_guest, _merkleProof);
-        // }
 
         // If the user was previously invited, or proved invitiation via list, verify if the amount to deposit keeps them under the cap
         if (invited && remainingUserDepositAllowed(_guest) >= _amount && remainingTotalDepositAllowed() >= _amount) {
@@ -145,6 +133,7 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         } else {
             return false;
         }
+
     }
 
     function _setGuests(address[] memory _guests, bool[] memory _invited) internal {
@@ -161,4 +150,5 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         bytes32 node = keccak256(abi.encodePacked(account));
         return MerkleProofUpgradeable.verify(merkleProof, guestRoot, node);
     }
+
 }
