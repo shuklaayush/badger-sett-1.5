@@ -59,15 +59,16 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
 
     mapping(address => uint256) public blockLock;
 
-    address public strategy;
+    address public strategy; // address of the strategy connected to the vault
+    address public guardian;
+    
     address public override rewards;
 
+    /// @dev name and symbol prefixes for lpcomponent token of vault
     string internal constant _defaultNamePrefix = "Badger Sett ";
     string internal constant _symbolSymbolPrefix = "b";
 
-    address public guardian;
-
-    BadgerGuestListAPI public guestList;
+    BadgerGuestListAPI public guestList; // guestlist when vault is in experiment/ guarded state
 
     event FullPricePerShareUpdated(uint256 value, uint256 indexed timestamp, uint256 indexed blockNumber);
 
@@ -80,6 +81,9 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         string memory _namePrefix,
         string memory _symbolPrefix
     ) public initializer whenNotPaused {
+
+        require(_token != address(0), "Token address should not be 0x0");
+
         IERC20Detailed namedToken = IERC20Detailed(_token);
         string memory tokenName = namedToken.name();
         string memory tokenSymbol = namedToken.symbol();
@@ -95,6 +99,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
             symbol = string(abi.encodePacked(_symbolSymbolPrefix, tokenSymbol));
         }
 
+        // Initializing the lpcomponent token
         __ERC20_init(name, symbol);
 
         token = IERC20Upgradeable(_token);
@@ -252,6 +257,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     /// @notice Can only be changed by governance
     function setMin(uint256 _min) external whenNotPaused {
         _onlyGovernance();
+        require(_min <= max, "min should be <= max");
         min = _min;
     }
 
@@ -259,6 +265,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     /// @notice Can only be changed by governance
     function setGuardian(address _guardian) external whenNotPaused {
         _onlyGovernance();
+        require(_guardian != address(0), "Address cannot be 0x0");
         guardian = _guardian;
     }
 
