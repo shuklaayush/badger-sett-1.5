@@ -59,7 +59,7 @@ def rando():
 
 ###########################################
 
-################# Contracts #################
+################# Deploy #################
 @pytest.fixture
 def deployed_vault(deployer, governance, keeper, guardian, token):
     vault = Vault.deploy({"from": deployer})
@@ -67,6 +67,43 @@ def deployed_vault(deployer, governance, keeper, guardian, token):
       token, governance, keeper, guardian, False, "", ""
     )
     return vault
+
+@pytest.fixture
+def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxyAdmin):
+    
+    strategist = deployer
+
+    token = MockToken.deploy({"from": deployer})
+    token.initialize([deployer.address, rando.address], [100*10**18, 100*10**18])
+    want = token
+
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
+      token, governance, keeper, guardian, False, "", ""
+    )
+    vault.setStrategist(deployer, {"from": governance})
+    # NOTE: Vault starts unpaused
+
+    performanceFeeGovernance = 1000
+    performanceFeeStrategist = 1000
+    withdrawalFee = 50
+
+    strategy = DemoStrategy.deploy({"from": deployer})
+    strategy.initialize(
+      governance, strategist, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
+    )
+    # NOTE: Strategy starts unpaused
+
+    vault.setStrategy(strategy, {"from": governance})
+
+    return DotMap(
+      vault=vault,
+      strategy=strategy,
+      want=want,
+      performanceFeeGovernance=performanceFeeGovernance,
+      performanceFeeStrategist=performanceFeeStrategist,
+      withdrawalFee=withdrawalFee
+    )
 
 @pytest.fixture
 def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin):
