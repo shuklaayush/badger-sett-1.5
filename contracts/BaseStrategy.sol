@@ -195,12 +195,14 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     // NOTE: must exclude any tokens used in the yield
     // Vault role - withdraw should return to Vault
+    /// @return balance - balance of asset withdrawn
     function withdrawOther(address _asset) external override whenNotPaused returns (uint256 balance) {
         _onlyVault();
         _onlyNotProtectedTokens(_asset);
 
         balance = IERC20Upgradeable(_asset).balanceOf(address(this));
         IERC20Upgradeable(_asset).safeTransfer(vault, balance);
+        return balance;
     }
 
     /// ===== Permissioned Actions: Authoized Contract Pausers =====
@@ -288,7 +290,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     /// @dev Realize returns from positions
     /// @dev Returns can be reinvested into positions, or distributed in another fashion
     /// @dev Performance fees should also be implemented in this function
-    /// @return total amount harvested
+    /// @return harvested : total amount harvested
     function harvest() external virtual returns (uint256 harvested);
 
     /// @dev User-friendly name for this strategy for purposes of convenient reading
