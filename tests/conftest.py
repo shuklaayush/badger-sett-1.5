@@ -16,7 +16,6 @@ console = Console()
 from dotmap import DotMap
 import pytest
 
-
 @pytest.fixture
 def deployed():
     """
@@ -44,9 +43,13 @@ def deployed():
     vault.setStrategist(deployer, {"from": governance})
     # NOTE: Vault starts unpaused
 
+    performanceFeeGovernance = 1000
+    performanceFeeStrategist = 1000
+    withdrawalFee = 50
+
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token], [1000, 1000, 50]
+      governance, strategist, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
     )
     # NOTE: Strategy starts unpaused
 
@@ -59,7 +62,10 @@ def deployed():
       want=want,
       governance=governance,
       proxyAdmin=proxyAdmin,
-      randomUser=randomUser
+      randomUser=randomUser,
+      performanceFeeGovernance=performanceFeeGovernance,
+      performanceFeeStrategist=performanceFeeStrategist,
+      withdrawalFee=withdrawalFee
     )
 
 @pytest.fixture
@@ -187,3 +193,16 @@ def randomUser(deployed):
 @pytest.fixture(autouse=True)
 def isolation(fn_isolation):
     pass
+
+### Fees ###
+@pytest.fixture
+def performanceFeeGovernance(deployed):
+    return deployed.performanceFeeGovernance
+
+@pytest.fixture
+def performanceFeeStrategist(deployed):
+    return deployed.performanceFeeStrategist
+
+@pytest.fixture
+def withdrawalFee(deployed):
+    return deployed.withdrawalFee

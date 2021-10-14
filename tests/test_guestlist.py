@@ -4,7 +4,7 @@ from helpers.constants import MaxUint256, AddressZero
 from helpers.SnapshotManager import SnapshotManager
 from helpers.time import days
 
-## Test where you add a guestlist, use proof for deposit
+## Test where you add a guestlist
 def test_add_guestlist(deployer, governance, randomUser, vault, guestlist, want):    
     # Adding deployer to guestlist
     guestlist.setGuests([deployer], [True], {"from": governance})
