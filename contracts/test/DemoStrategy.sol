@@ -61,7 +61,7 @@ contract DemoStrategy is BaseStrategy {
   }
 
   function _withdrawSome(uint256 _want) internal override returns (uint256) {
-    return balanceOfWant();
+    return _want;
   }
 
   function harvest() external override whenNotPaused returns (uint256 harvested) {
