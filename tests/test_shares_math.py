@@ -1,11 +1,30 @@
 import brownie
 from brownie import *
 from helpers.constants import MaxUint256
-from helpers.SnapshotManager import SnapshotManager
-from helpers.time import days
+
+from dotmap import DotMap
+
+import pytest
+
+MAX_BPS = 10_000
+
+@pytest.fixture
+def setup_share_math(deployer, vault, want, governance):
+
+    depositAmount = int(want.balanceOf(deployer) * 0.5)
+    assert depositAmount > 0
+    want.approve(vault.address, MaxUint256, {"from": deployer})
+    vault.deposit(depositAmount, {"from": deployer})
+
+    vault.earn({"from": governance})
+
+    return DotMap(
+        depositAmount=depositAmount
+    )
+
 
 ## Test for deposit with no initial shares
-def test_deposit_no_initial_shares(deployer, vault, strategy, want):
+def test_deposit_no_initial_shares(deployer, vault, want):
     # Deposit
     assert want.balanceOf(deployer) > 0
 
@@ -27,7 +46,7 @@ def test_deposit_no_initial_shares(deployer, vault, strategy, want):
     assert shares == depositAmount
 
 ## Test for deposit with some initial shares
-def test_deposit_some_initial_shares(deployer, vault, strategy, want):
+def test_deposit_some_initial_shares(deployer, vault, want):
     # Deposit
     assert want.balanceOf(deployer) > 0
 
@@ -112,18 +131,9 @@ def test_deposit_earn_harvest(deployer, governance, vault, strategy, want):
 
 
 ## Test for withdrawal all
-def test_withdrawalAll(deployer, governance, vault, strategy, want, withdrawalFee):
+def test_withdrawalAll(setup_share_math, deployer, governance, vault, strategy, want, withdrawalFee):
 
-    # Setup #
-
-    depositAmount = int(want.balanceOf(deployer) * 0.5)
-    assert depositAmount > 0
-    want.approve(vault.address, MaxUint256, {"from": deployer})
-    vault.deposit(depositAmount, {"from": deployer})
-
-    vault.earn({"from": governance})
-
-    # ----- #
+    depositAmount = setup_share_math.depositAmount
 
     withdraw_amount = depositAmount
 
@@ -135,7 +145,6 @@ def test_withdrawalAll(deployer, governance, vault, strategy, want, withdrawalFe
     vault_balance_after_withdraw = vault.balance()
     user_balance_after_withdraw = want.balanceOf(deployer)
 
-    MAX_BPS = 10_000
     min_expected_withdrawn_amount = ((withdraw_amount) * strategy.withdrawalMaxDeviationThreshold()) / MAX_BPS
     min_expected_withdrawn_amount_after_withdrawalFee = min_expected_withdrawn_amount - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
 
@@ -146,18 +155,9 @@ def test_withdrawalAll(deployer, governance, vault, strategy, want, withdrawalFe
     assert vault_balance_before_withdraw - vault_balance_after_withdraw == withdraw_amount
 
 ## Test for withdrawing more shares than deposited
-def test_withdrawalSome_more_than_deposited(deployer, governance, vault, strategy, want):
+def test_withdrawalSome_more_than_deposited(setup_share_math, deployer, governance, vault, strategy, want):
 
-    # Setup #
-
-    depositAmount = int(want.balanceOf(deployer) * 0.5)
-    assert depositAmount > 0
-    want.approve(vault.address, MaxUint256, {"from": deployer})
-    vault.deposit(depositAmount, {"from": deployer})
-
-    vault.earn({"from": governance})
-
-    # ----- #
+    depositAmount = setup_share_math.depositAmount
 
     withdraw_amount = depositAmount * 2
 
@@ -165,18 +165,9 @@ def test_withdrawalSome_more_than_deposited(deployer, governance, vault, strateg
         vault.withdraw(withdraw_amount, {"from": deployer})
 
 ## Test for withdrawal of a given amount of shares
-def test_withdrawSome(deployer, governance, vault, strategy, want, withdrawalFee):
+def test_withdrawSome(setup_share_math, deployer, governance, vault, strategy, want, withdrawalFee):
 
-    # Setup #
-
-    depositAmount = int(want.balanceOf(deployer) * 0.5)
-    assert depositAmount > 0
-    want.approve(vault.address, MaxUint256, {"from": deployer})
-    vault.deposit(depositAmount, {"from": deployer})
-
-    vault.earn({"from": governance})
-
-    # ----- #
+    depositAmount = setup_share_math.depositAmount
 
     withdraw_amount = depositAmount // 10
 
@@ -188,7 +179,6 @@ def test_withdrawSome(deployer, governance, vault, strategy, want, withdrawalFee
     vault_balance_after_withdraw = vault.balance()
     user_balance_after_withdraw = want.balanceOf(deployer)
 
-    MAX_BPS = 10_000
     min_expected_withdrawn_amount = ((withdraw_amount) * strategy.withdrawalMaxDeviationThreshold()) / MAX_BPS
     min_expected_withdrawn_amount_after_withdrawalFee = min_expected_withdrawn_amount - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
 
@@ -199,16 +189,11 @@ def test_withdrawSome(deployer, governance, vault, strategy, want, withdrawalFee
     assert vault_balance_before_withdraw - vault_balance_after_withdraw == withdraw_amount
 
 ## Test for withdrawal after harvest
-def test_withdrawalAll_after_harvest(deployer, governance, vault, strategy, want, withdrawalFee):
+def test_withdrawalAll_after_harvest(setup_share_math, deployer, governance, vault, strategy, want, withdrawalFee):
 
     # Setup #
 
-    depositAmount = int(want.balanceOf(deployer) * 0.5)
-    assert depositAmount > 0
-    want.approve(vault.address, MaxUint256, {"from": deployer})
-    vault.deposit(depositAmount, {"from": deployer})
-
-    vault.earn({"from": governance})
+    depositAmount = setup_share_math.depositAmount
 
     ## Transfer some want to strategy which will represent harvest
     before_mint = vault.balance()
@@ -229,7 +214,6 @@ def test_withdrawalAll_after_harvest(deployer, governance, vault, strategy, want
     vault_balance_after_withdraw = vault.balance()
     user_balance_after_withdraw = want.balanceOf(deployer)
 
-    MAX_BPS = 10_000
     min_expected_withdrawn_amount = ((withdraw_amount + mint_amount) * strategy.withdrawalMaxDeviationThreshold()) / MAX_BPS
     min_expected_withdrawn_amount_after_withdrawalFee = min_expected_withdrawn_amount - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
 
@@ -240,18 +224,9 @@ def test_withdrawalAll_after_harvest(deployer, governance, vault, strategy, want
     assert vault_balance_before_withdraw - vault_balance_after_withdraw == withdraw_amount + mint_amount
 
 ## Test for multiple withdrawals
-def test_multiple_withdrawals(deployer, governance, vault, strategy, want, withdrawalFee):
+def test_multiple_withdrawals(setup_share_math, deployer, governance, vault, strategy, want, withdrawalFee):
 
-    # Setup #
-
-    depositAmount = int(want.balanceOf(deployer) * 0.5)
-    assert depositAmount > 0
-    want.approve(vault.address, MaxUint256, {"from": deployer})
-    vault.deposit(depositAmount, {"from": deployer})
-
-    vault.earn({"from": governance})
-
-    # ----- #
+    depositAmount = setup_share_math.depositAmount
 
     for i in range(2):
         withdraw_amount = depositAmount // 10
@@ -264,7 +239,6 @@ def test_multiple_withdrawals(deployer, governance, vault, strategy, want, withd
         vault_balance_after_withdraw = vault.balance()
         user_balance_after_withdraw = want.balanceOf(deployer)
       
-        MAX_BPS = 10_000
         min_expected_withdrawn_amount = ((withdraw_amount) * strategy.withdrawalMaxDeviationThreshold()) / MAX_BPS
         min_expected_withdrawn_amount_after_withdrawalFee = min_expected_withdrawn_amount - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
 
