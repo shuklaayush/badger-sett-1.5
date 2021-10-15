@@ -60,3 +60,33 @@ def test_setMin(deployed_vault, governance, rando):
   # setting min from random user should fail
   with brownie.reverts():
     deployed_vault.setMin(1_000, {"from": rando})
+
+
+def test_config_pause_unpause(deployed_vault, governance, rando):
+
+    # Pause Vault
+    deployed_vault.pause({"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setRewards(rando, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setStrategy(rando, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setGuestList(rando, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setMin(100, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setGuardian(rando, {"from": governance})
+
+    # unpause Vault, now we should be able to set everything
+    deployed_vault.unpause({"from": governance})
+
+    deployed_vault.setRewards(rando, {"from": governance})
+    deployed_vault.setStrategy(rando, {"from": governance})
+    deployed_vault.setGuestList(rando, {"from": governance})
+    deployed_vault.setMin(100, {"from": governance})
+    deployed_vault.setGuardian(rando, {"from": governance})

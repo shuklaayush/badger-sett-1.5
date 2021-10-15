@@ -90,7 +90,7 @@ def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxy
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
+      governance, deployer, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
     )
     # NOTE: Strategy starts unpaused
 
@@ -106,7 +106,7 @@ def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxy
     )
 
 @pytest.fixture
-def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin):
+def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, guardian, token):
     """
     Deploys TestVipCappedGuestListBbtcUpgradeable.sol for testing Guest List functionality
     """
@@ -142,9 +142,27 @@ def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin):
     guestlist.transferOwnership(governance, {"from": dev})
     assert guestlist.owner() == governance
 
+    vault = deployed_vault
+
+    vault.setStrategist(deployer, {"from": governance})
+    # NOTE: Vault starts unpaused
+
+    performanceFeeGovernance = 1000
+    performanceFeeStrategist = 1000
+    withdrawalFee = 50
+
+    strategy = DemoStrategy.deploy({"from": deployer})
+    strategy.initialize(
+      governance, deployer, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
+    )
+    # NOTE: Strategy starts unpaused
+
+    vault.setStrategy(strategy, {"from": governance})
+
     return DotMap(
-        vault = deployed_vault,
-        guestlist = guestlist
+        vault = vault,
+        guestlist = guestlist,
+        strategy = strategy
     )
 
 def deploy_guestlist(dev, proxyAdmin, vaultAddr):
