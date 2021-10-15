@@ -28,6 +28,14 @@ Allows to withdraw
 ### Breaking Changes
 - `withdrawToVault` in stead of `withdrawAll()`
 
+## Tests
+<img width="1339" alt="Screenshot 2021-10-15 at 8 25 07 PM" src="https://user-images.githubusercontent.com/31198893/137511387-e667fe81-c368-4b61-a7e2-5c1b15c03dd7.png">
+
+
+#### Test Coverage
+<img width="681" alt="Screenshot 2021-10-15 at 8 30 14 PM" src="https://user-images.githubusercontent.com/31198893/137511398-a07b7431-920a-4d90-a8b4-317b7c5ddd4b.png">
+
+
 ## TODO
 
 ### Tests - Vault
