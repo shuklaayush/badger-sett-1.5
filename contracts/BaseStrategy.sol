@@ -201,7 +201,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         uint256 _toWithdraw = MathUpgradeable.min(_postWithdraw, _amount);
 
         // Process withdrawal fee
-        uint256 _fee = _processWithdrawalFee(_toWithdraw);
+        uint256 _fee = _processFee(want, _toWithdraw, withdrawalFee, IVault(vault).rewards());
 
         // Transfer remaining to Vault to handle withdrawal
         _transferToVault(_toWithdraw.sub(_fee));
@@ -233,18 +233,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     /// ===== Internal Helper Functions =====
 
-    /// @notice If withdrawal fee is active, take the appropriate amount from the given value and transfer to rewards recipient
-    /// @return The withdrawal fee that was taken
-    function _processWithdrawalFee(uint256 _amount) internal returns (uint256) {
-        if (withdrawalFee == 0) {
-            return 0;
-        }
-
-        uint256 fee = _amount.mul(withdrawalFee).div(MAX_FEE);
-        IERC20Upgradeable(want).safeTransfer(IVault(vault).rewards(), fee);
-        return fee;
-    }
-
     /// @dev Helper function to process an arbitrary fee
     /// @dev If the fee is active, transfers a given portion in basis points of the specified value to the recipient
     /// @return The fee that was taken
@@ -262,8 +250,39 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         return fee;
     }
 
+    /// @dev used to manage the governance and strategist fee, make sure to use it to get paid!
+    function _processPerformanceFees(uint256 _amount)
+        internal
+        returns (
+            uint256 governancePerformanceFee,
+            uint256 strategistPerformanceFee
+        )
+    {
+        governancePerformanceFee = _processFee(
+            want,
+            _amount,
+            performanceFeeGovernance,
+            vault
+        );
+
+        strategistPerformanceFee = _processFee(
+            want,
+            _amount,
+            performanceFeeStrategist,
+            vault
+        );
+
+        return (governancePerformanceFee, strategistPerformanceFee);
+    }    
+
     function _transferToVault(uint256 _amount) internal {
         IERC20Upgradeable(want).safeTransfer(vault, _amount);
+    }
+
+    /// @notice Vault-only function to Withdraw partial funds, normally used with a vault withdrawal
+    function _reportToVault(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest) internal whenNotPaused {
+        (uint256 feeStrategist, uint256 feeGovernance) = _processPerformanceFees(_harvestedAmount);
+        IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest, feeStrategist, feeGovernance);
     }
 
     /// @notice Utility function to diff two numbers, expects higher value in first position

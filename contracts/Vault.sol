@@ -72,6 +72,12 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
 
     event FullPricePerShareUpdated(uint256 value, uint256 indexed timestamp, uint256 indexed blockNumber);
 
+    uint256 public lifeTimeEarned; // keeps track of total earnings
+    uint256 public lastHarvestedAt; // timestamp of the last harvest
+
+    uint256 public lastHarvestAmount; // amount harvested during last harvest
+    uint256 public assetsAtLastHarvest; // assets for which the harvest took place.
+
     function initialize(
         address _token,
         address _governance,
@@ -230,6 +236,34 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
 
         _lockForBlock(msg.sender);
         _withdraw(balanceOf(msg.sender));
+    }
+
+    /// ===== Permissioned Actions: Strategy =====
+
+    function report(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest, uint256 feeStrategist, uint256 feeGovernance) external override whenNotPaused {
+        require(msg.sender == strategy, "onlyStrategy");
+
+        lastHarvestedAt = _harvestTime;
+        lastHarvestAmount = _harvestedAmount;
+        
+        // if we withdrawnAll from strategy and then harvest _assetsAtLastHarvest == 0 therefore dont change assetsAtLastHarvest
+        if (_assetsAtLastHarvest !=0) {
+            assetsAtLastHarvest = _assetsAtLastHarvest;
+        } else if (_assetsAtLastHarvest == 0 && lastHarvestAmount == 0) {
+            assetsAtLastHarvest = 0;
+        }
+        
+        lifeTimeEarned += lastHarvestAmount;
+
+        if (feeGovernance != 0) {
+            _mint(governance, feeGovernance);
+        }
+
+        // NOTE: strategist should be same of both vault and strategy
+        // NOTE: if strategist on vault changes, strategist on strategy should change and vice-versa
+        if (feeStrategist != 0) {
+            _mint(strategist, feeStrategist);
+        }
     }
 
     /// ===== Permissioned Actions: Governance =====

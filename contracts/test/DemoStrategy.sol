@@ -70,8 +70,29 @@ contract DemoStrategy is BaseStrategy {
   function harvest() external override whenNotPaused returns (uint256 harvested) {
     _onlyAuthorizedActors();
     // No-op as we don't do anything with funds
+    // use autoCompoundRatio here to convert rewards to want ...
+    // keep this to get paid!
+    // _reportToVault(earned, block.timestamp, balanceOfPool());
+    return 0;
   }
 
+  /// @dev function to test harvest -
+  // NOTE: want of 1 ether would be minted directly to DemoStrategy and this function would be called
+  function test_harvest() external whenNotPaused returns (uint256 harvested) {
+    _onlyAuthorizedActors();
+
+    // Amount of want earned after harvest
+    uint256 harvestAmount = 1 ether;
+
+    // keep this to get paid!
+    _reportToVault(
+      harvestAmount,
+      block.timestamp,
+      balanceOfWant() // keeping _assetsAtLastHarvest = balanceOfWant as we are not depositing anything into the pool
+    ); 
+    
+    return harvestAmount;
+  }
 
   function balanceOfPool() public view override returns (uint256) {
     return 0;
