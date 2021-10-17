@@ -45,6 +45,14 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     uint256 public withdrawalMaxDeviationThreshold;
 
+    /// @notice percentage of rewards converted to want
+    /// @dev converting of rewards to want during harvest should take place in this ratio
+    /// @dev change this ratio if rewards are converted in a different percentage
+    /// value ranges from 0 to 10_000
+    /// 0: keeping 100% harvest in reward tokens
+    /// 10_000: converting all rewards tokens to want token
+    uint256 public autoCompoundRatio = 10_000;
+
     function __BaseStrategy_init(
         address _governance,
         address _strategist,
@@ -138,6 +146,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         _onlyGovernance();
         require(_threshold <= MAX_FEE, "base-strategy/excessive-max-deviation-threshold");
         withdrawalMaxDeviationThreshold = _threshold;
+    }
+
+    function setAutoCompoundRatio(uint256 _ratio) internal {
+        // _onlyGovernance(); TODO: see what permissions this has to get
+        require(_ratio <= MAX_FEE, "base-strategy/excessive-auto-compound-ratio");
+        autoCompoundRatio = _ratio;
     }
 
     function earn() public override whenNotPaused {

@@ -10,6 +10,9 @@ contract DemoStrategy is BaseStrategy {
   // address public lpComponent; // Token that represents ownership in a pool, not always used
   // address public reward; // Token we farm
 
+  /// @notice set using setAutoCompoundRatio()
+  // uint256 public autoCompoundRatio = 10_000; // Inherited from BaseStrategy - percentage of rewards converted to want
+
 
   /// @dev Initialize the Strategy with security settings as well as tokens
   /// @notice Proxies will set any non constant variable you declare as default value
