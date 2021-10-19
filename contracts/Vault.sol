@@ -57,6 +57,8 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     uint256 public min;
     uint256 public constant max = 10000;
 
+    uint256 public constant SECS_PER_YEAR  = 31_556_952;  // 365.2425 days
+
     mapping(address => uint256) public blockLock;
 
     address public strategy; // address of the strategy connected to the vault
@@ -77,6 +79,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
 
     uint256 public lastHarvestAmount; // amount harvested during last harvest
     uint256 public assetsAtLastHarvest; // assets for which the harvest took place.
+    uint256 public managementFee;
 
     function initialize(
         address _token,
@@ -115,7 +118,9 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         keeper = _keeper;
         guardian = _guardian;
 
-        min = 9500;
+        min = 10_000;
+        managementFee = 100; // setting management fees by default to 1%
+        lastHarvestedAt = block.timestamp; // setting lastHarvestedAt initial value to the time when the vault was deployed
 
         emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
     }
@@ -240,10 +245,11 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
 
     /// ===== Permissioned Actions: Strategy =====
 
+    /// @dev assigns harvest's variable and mints shares to governance and strategist for fees
     function report(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest, uint256 feeStrategist, uint256 feeGovernance) external override whenNotPaused {
         require(msg.sender == strategy, "onlyStrategy");
 
-        lastHarvestedAt = _harvestTime;
+        
         lastHarvestAmount = _harvestedAmount;
         
         // if we withdrawnAll from strategy and then harvest _assetsAtLastHarvest == 0 therefore dont change assetsAtLastHarvest
@@ -255,15 +261,29 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         
         lifeTimeEarned += lastHarvestAmount;
 
-        if (feeGovernance != 0) {
-            _mint(governance, feeGovernance);
+        // subtracting feeGovernance and feeStrategist from pool as they are already present in vault
+
+        uint256 duration = _harvestTime.sub(lastHarvestedAt);
+
+        uint256 management_fee = managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(max);
+
+        lastHarvestedAt = _harvestTime;
+
+        uint256 totalGovernanceFee = feeGovernance + management_fee;
+
+        uint256 _pool = balance().sub(totalGovernanceFee).sub(feeStrategist);
+
+        if (totalGovernanceFee != 0) {
+            _mintPerformanceFeeSharesFor(governance, totalGovernanceFee, _pool);
         }
 
-        // NOTE: strategist should be same of both vault and strategy
-        // NOTE: if strategist on vault changes, strategist on strategy should change and vice-versa
-        if (feeStrategist != 0) {
-            _mint(strategist, feeStrategist);
+        /// NOTE: adding feeGovernance backed to _pool as shares would have been issued for it.
+        if (feeStrategist != 0 && strategist != address(0)) {
+            _mintPerformanceFeeSharesFor(strategist, feeStrategist, _pool.add(totalGovernanceFee));
         }
+
+        // call earn on fees to complete the loop?
+        // earn(); // NOTE we would have to change the permission for earn to be called by vault ...
     }
 
     /// ===== Permissioned Actions: Governance =====
@@ -274,8 +294,8 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     }
 
     function setStrategy(address _strategy) external whenNotPaused {
-        _onlyGovernance();
-        // TODO: Migrate funds if settings strategy when already existing one
+        _onlyGovernance(); 
+        /// NOTE: Migrate funds if settings strategy when already existing one
         if(strategy != address(0)){
             require(IStrategy(strategy).balanceOf() == 0, "Please withdrawAll before changing strat");
         }
@@ -283,7 +303,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     }
 
     function setGuestList(address _guestList) external whenNotPaused {
-        _onlyGovernance();
+        _onlyGovernanceOrStrategist();
         guestList = BadgerGuestListAPI(_guestList);
     }
 
@@ -293,6 +313,14 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         _onlyGovernance();
         require(_min <= max, "min should be <= max");
         min = _min;
+    }
+
+    /// @notice Set management fees
+    /// @notice Can only be changed by governance
+    function setManagementFees(uint256 _fees) external whenNotPaused {
+        _onlyGovernance();
+        require(_fees <= max, "vault/excessive-management-fee");
+        managementFee = _fees;
     }
 
     /// @notice Change guardian address
@@ -371,6 +399,17 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         token.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 _after = token.balanceOf(address(this));
         _amount = _after.sub(_before); // Additional check for deflationary tokens
+        uint256 shares = 0;
+        if (totalSupply() == 0) {
+            shares = _amount;
+        } else {
+            shares = (_amount.mul(totalSupply())).div(_pool);
+        }
+        _mint(recipient, shares);
+    }
+
+    /// @dev mints performance fees shares for governance and strategists
+    function _mintPerformanceFeeSharesFor(address recipient, uint256 _amount, uint256 _pool) internal {
         uint256 shares = 0;
         if (totalSupply() == 0) {
             shares = _amount;

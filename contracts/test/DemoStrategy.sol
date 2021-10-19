@@ -81,14 +81,14 @@ contract DemoStrategy is BaseStrategy {
   function test_harvest() external whenNotPaused returns (uint256 harvested) {
     _onlyAuthorizedActors();
 
-    // Amount of want earned after harvest
+    // Amount of want earned after harvest in terms of want
     uint256 harvestAmount = 1 ether;
 
     // keep this to get paid!
     _reportToVault(
       harvestAmount,
       block.timestamp,
-      balanceOfWant() // keeping _assetsAtLastHarvest = balanceOfWant as we are not depositing anything into the pool
+      balanceOfPool()
     ); 
     
     return harvestAmount;
