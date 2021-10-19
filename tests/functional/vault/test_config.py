@@ -61,6 +61,20 @@ def test_setMin(deployed_vault, governance, rando):
   with brownie.reverts():
     deployed_vault.setMin(1_000, {"from": rando})
 
+def test_setManagementFees(deployed_vault, governance, rando):
+  
+  # setting min > max should revert
+  with brownie.reverts("excessive-management-fee"):
+    deployed_vault.setManagementFees(deployed_vault.max() + 1000, {"from": governance})
+  
+  # setting managementFee
+  deployed_vault.setManagementFees(1_000, {"from": governance})
+
+  assert deployed_vault.managementFee() == 1_000
+
+  # setting managementFee from random user should fail
+  with brownie.reverts("onlyGovernance"):
+    deployed_vault.setManagementFees(5_000, {"from": rando})
 
 def test_config_pause_unpause(deployed_vault, governance, rando):
 

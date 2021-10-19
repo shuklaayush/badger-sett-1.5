@@ -319,7 +319,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     /// @notice Can only be changed by governance
     function setManagementFees(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= max, "vault/excessive-management-fee");
+        require(_fees <= max, "excessive-management-fee");
         managementFee = _fees;
     }
 
