@@ -4,8 +4,10 @@ from helpers.constants import MaxUint256
 
 from dotmap import DotMap
 import pytest
+import math
 
 MAX_BPS = 10_000
+SECS_PER_YEAR  = 31_556_952
 
 @pytest.fixture
 def setup_report(deploy_complete, deployer, governance):
@@ -32,15 +34,6 @@ def setup_report(deploy_complete, deployer, governance):
     vault.deposit(depositAmount, {"from": deployer})
     vault.earn({"from": governance})
 
-    ## Transfer some want to strategy which will represent harvest
-    before_mint = strategy.balanceOf()
-    mint_amount = 1e18
-    want.mint(strategy, mint_amount)
-    after_mint = strategy.balanceOf()
-    assert after_mint - before_mint == mint_amount
-
-    # ----- #
-
     return DotMap(
         vault = vault,
         strategy = strategy,
@@ -48,11 +41,32 @@ def setup_report(deploy_complete, deployer, governance):
         depositAmount = depositAmount
     )
 
-def test_report_failed(setup_report, governance, rando, keeper):
-    
-    vault = setup_report.vault
-    strategy = setup_report.strategy
+@pytest.fixture
+def vault(setup_report):
+    return setup_report.vault
 
+@pytest.fixture
+def strategy(setup_report):
+    return setup_report.strategy
+
+@pytest.fixture
+def want(setup_report):
+    return setup_report.want
+
+@pytest.fixture
+def depositAmount(setup_report):
+    return setup_report.depositAmount
+
+def setup_mint(strategy, want):
+    ## Transfer some want to strategy which will represent harvest
+    before_mint = strategy.balanceOf()
+    mint_amount = 1e18
+    want.mint(strategy, mint_amount)
+    after_mint = strategy.balanceOf()
+    assert after_mint - before_mint == mint_amount
+
+def test_report_failed(vault, strategy, governance, rando, keeper):
+    
     ## report should fail when vault is paused
     # Pausing vault
     vault.pause({"from": governance})
@@ -84,68 +98,102 @@ def test_report_failed(setup_report, governance, rando, keeper):
         strategy.test_harvest({"from": rando})
 
 
-def test_report(setup_report, deployer, governance):
+def test_report(vault, strategy, want, deployer, governance, depositAmount):
     
-    vault = setup_report.vault
-    strategy = setup_report.strategy
-
-    balanceOfWantStrategy = strategy.balanceOfWant()
-    
-    feeGovernance = (1e18 * strategy.performanceFeeGovernance()) / MAX_BPS
-    feeStrategist = (1e18 * strategy.performanceFeeStrategist()) / MAX_BPS
-
     total_supply_before_harvest = vault.totalSupply()
-    pricePerFullShare_before_harvest = vault.getPricePerFullShare()
+    balanceOfPool_before_harvest = strategy.balanceOfPool()
 
-    # harvesting
-    strategy.test_harvest({"from": governance})
+    ### Harvesting and reporting    
+
+    # Sent 1 ether as want to strategy to represent harvest
+    mintAmount = 1e18
+    
+    last_harvest_time = vault.lastHarvestedAt()
+
+    feeGovernance = (mintAmount * strategy.performanceFeeGovernance()) / MAX_BPS
+    feeStrategist = (mintAmount * strategy.performanceFeeStrategist()) / MAX_BPS
+
+    setup_mint(strategy, want)
+
+    pricePerFullShare_before_fees = vault.getPricePerFullShare()
+
+    strategy.test_harvest({"from": governance}) # test_harvest to report harvest value to vault which will take respective fees
+
+    management_fee = (vault.balance() * vault.managementFee() * (vault.lastHarvestedAt() - last_harvest_time)) / MAX_BPS / SECS_PER_YEAR
 
     total_supply_after_harvest = vault.totalSupply()
-    pricePerFullShare_after_harvest = vault.getPricePerFullShare()
+    pricePerFullShare_after_fees = vault.getPricePerFullShare()
 
-    assert vault.lastHarvestAmount() == 1e18
-    assert vault.assetsAtLastHarvest() == balanceOfWantStrategy
-    assert vault.lifeTimeEarned() == 1e18
-    print("Harvest time: ", vault.lastHarvestedAt)
+    assert vault.lastHarvestAmount() == mintAmount
+    assert vault.assetsAtLastHarvest() == balanceOfPool_before_harvest
+    assert vault.lifeTimeEarned() == mintAmount
+    print("Harvest time: ", vault.lastHarvestedAt())
 
     # Total supply should increase as we are minting shares to strategist and governance, if their respective fees are set
-    assert total_supply_after_harvest - total_supply_before_harvest == feeGovernance + feeStrategist
+    assert total_supply_after_harvest >= total_supply_before_harvest
 
-    # pricePerFullShare should be dilluted if fees are set
-    assert pricePerFullShare_before_harvest >= pricePerFullShare_after_harvest
+    earned_to_deposit_ratio = mintAmount / depositAmount
 
-def test_multiple_reports(setup_report, deployer, governance):
+    # pricePerFullShare should be dilluted if fees are set, comparing with relative tolerance = 10^-9
+    assert math.isclose((pricePerFullShare_before_fees - pricePerFullShare_after_fees), (feeGovernance + feeStrategist + management_fee) * earned_to_deposit_ratio)
 
-    vault = setup_report.vault
-    strategy = setup_report.strategy
-    want = setup_report.want
+def test_multiple_reports(vault, strategy, want, deployer, governance, depositAmount):
 
-    feeGovernance = (1e18 * strategy.performanceFeeGovernance()) / MAX_BPS
-    feeStrategist = (1e18 * strategy.performanceFeeStrategist()) / MAX_BPS
-    balanceOfWantStrategy = strategy.balanceOfWant()
     total_supply_before_harvest = vault.totalSupply()
+    balanceOfPool_before_harvest = strategy.balanceOfPool()
+
+    ### Harvesting and reporting    
+
+    # Sent 1 ether as want to strategy to represent harvest
+    mintAmount = 1e18
+    
+    last_harvest_time = vault.lastHarvestedAt()
+
+    feeGovernance = (mintAmount * strategy.performanceFeeGovernance()) / MAX_BPS
+    feeStrategist = (mintAmount * strategy.performanceFeeStrategist()) / MAX_BPS
+    last_harvest_time = vault.lastHarvestedAt()
+
+    setup_mint(strategy, want)
+
+    # -- 
+
+    pricePerFullShare_before_fees = vault.getPricePerFullShare()
 
     strategy.test_harvest({"from": governance})
 
-    assert vault.lastHarvestAmount() == 1e18
-    assert vault.assetsAtLastHarvest() == balanceOfWantStrategy
-    assert vault.lifeTimeEarned() == 1e18
-    print("Harvest time: ", vault.lastHarvestedAt)
+    management_fee = (vault.balance() * vault.managementFee() * (vault.lastHarvestedAt() - last_harvest_time)) / MAX_BPS / SECS_PER_YEAR
+
+    pricePerFullShare_after_fees = vault.getPricePerFullShare()
+
+    assert vault.lastHarvestAmount() == mintAmount
+    assert vault.assetsAtLastHarvest() == balanceOfPool_before_harvest
+    assert vault.lifeTimeEarned() == mintAmount
+    print("Harvest time: ", vault.lastHarvestedAt())
+
+    earned_to_deposit_ratio = mintAmount / depositAmount
+
+    # pricePerFullShare should be dilluted if fees are set, comparing with relative tolerance = 10^-9
+    assert math.isclose((pricePerFullShare_before_fees - pricePerFullShare_after_fees), (feeGovernance + feeStrategist + management_fee) * earned_to_deposit_ratio)
 
     # Mint some more want to the strategy to represent 2nd harvest
-    mint_amount = 1e18
-    want.mint(strategy, mint_amount)
+    
+    setup_mint(strategy, want)
 
-    balanceOfWantStrategy = strategy.balanceOfWant()
+    # -- 
 
+    pricePerFullShare_before_fees = vault.getPricePerFullShare()
     strategy.test_harvest({"from": governance})
 
     total_supply_after_harvest = vault.totalSupply()
+    pricePerFullShare_after_fees = vault.getPricePerFullShare()
 
-    assert vault.lastHarvestAmount() == 1e18
-    assert vault.assetsAtLastHarvest() == balanceOfWantStrategy
-    assert vault.lifeTimeEarned() == 2e18
-    print("Harvest time: ", vault.lastHarvestedAt)
+    assert vault.lastHarvestAmount() == mintAmount
+    assert vault.assetsAtLastHarvest() == balanceOfPool_before_harvest
+    assert vault.lifeTimeEarned() == mintAmount * 2
+    print("Harvest time: ", vault.lastHarvestedAt())
 
-    # Difference should be twice the fees as we have harvested twice
-    assert total_supply_after_harvest - total_supply_before_harvest == 2 * (feeGovernance + feeStrategist)
+    # Total supply should increase as we are minting shares to strategist and governance, if their respective fees are set
+    assert total_supply_after_harvest >= total_supply_before_harvest
+
+    # pricePerFullShare should be dilluted if fees are set
+    assert pricePerFullShare_before_fees > pricePerFullShare_after_fees

@@ -21,7 +21,7 @@ def test_vault_deployment(deployer, governance, keeper, guardian, token):
     # NOTE: when rewards contract check rewards address is set properly
 
     # Params 
-    assert vault.min() == 9500
+    assert vault.min() == 10_000
 
 def test_vault_deployment_badTokenAddress(deployer, governance, keeper, guardian):
     vault = Vault.deploy({"from": deployer})
