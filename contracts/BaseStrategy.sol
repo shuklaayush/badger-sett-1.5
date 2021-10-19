@@ -120,19 +120,19 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     }
 
     function setWithdrawalFee(uint256 _withdrawalFee) external {
-        _onlyGovernance();
+        _onlyGovernanceOrStrategist();
         require(_withdrawalFee <= MAX_FEE, "base-strategy/excessive-withdrawal-fee");
         withdrawalFee = _withdrawalFee;
     }
 
     function setPerformanceFeeStrategist(uint256 _performanceFeeStrategist) external {
-        _onlyGovernance();
+        _onlyGovernanceOrStrategist();
         require(_performanceFeeStrategist <= MAX_FEE, "base-strategy/excessive-strategist-performance-fee");
         performanceFeeStrategist = _performanceFeeStrategist;
     }
 
     function setPerformanceFeeGovernance(uint256 _performanceFeeGovernance) external {
-        _onlyGovernance();
+        _onlyGovernanceOrStrategist();
         require(_performanceFeeGovernance <= MAX_FEE, "base-strategy/excessive-governance-performance-fee");
         performanceFeeGovernance = _performanceFeeGovernance;
     }
@@ -273,7 +273,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         );
 
         return (governancePerformanceFee, strategistPerformanceFee);
-    }    
+    }
 
     function _transferToVault(uint256 _amount) internal {
         IERC20Upgradeable(want).safeTransfer(vault, _amount);

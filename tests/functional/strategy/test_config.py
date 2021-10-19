@@ -23,7 +23,7 @@ def test_setWithdrawalFee(deploy_complete, governance, rando):
     withdrawalFee = 100
 
     # withdrawalFee from random user should fail
-    with brownie.reverts("onlyGovernance"): 
+    with brownie.reverts("onlyGovernanceOrStrategist"): 
         strategy.setWithdrawalFee(withdrawalFee, {"from": rando})
 
     # setting withdrawalFee
@@ -41,7 +41,7 @@ def test_setPerformanceFeeStrategist(deploy_complete, governance, rando):
     performanceFeeStrategist = 2000 # Good Strategist become have more rare therefore to compensate them more
 
     # setPerformanceFeeStrategist from random user should fail
-    with brownie.reverts("onlyGovernance"): 
+    with brownie.reverts("onlyGovernanceOrStrategist"): 
         strategy.setPerformanceFeeStrategist(performanceFeeStrategist, {"from": rando})
 
     # setting setPerformanceFeeStrategist
@@ -59,7 +59,7 @@ def test_setPerformanceFeeGovernance(deploy_complete, governance, rando):
     performanceFeeGovernance = 2000 # Good Strategist become have more rare therefore to compensate them more
 
     # setPerformanceFeeGovernance from random user should fail
-    with brownie.reverts("onlyGovernance"): 
+    with brownie.reverts("onlyGovernanceOrStrategist"): 
         strategy.setPerformanceFeeGovernance(performanceFeeGovernance, {"from": rando})
 
     # setting setPerformanceFeeGovernance

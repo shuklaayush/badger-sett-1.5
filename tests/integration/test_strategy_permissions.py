@@ -137,13 +137,13 @@ def test_strategy_config_permissions(strategy):
     with brownie.reverts("onlyGovernance"):
         strategy.setGuardian(AddressZero, {"from": randomUser})
 
-    with brownie.reverts("onlyGovernance"):
+    with brownie.reverts("onlyGovernanceOrStrategist"):
         strategy.setWithdrawalFee(0, {"from": randomUser})
 
-    with brownie.reverts("onlyGovernance"):
+    with brownie.reverts("onlyGovernanceOrStrategist"):
         strategy.setPerformanceFeeStrategist(0, {"from": randomUser})
 
-    with brownie.reverts("onlyGovernance"):
+    with brownie.reverts("onlyGovernanceOrStrategist"):
         strategy.setPerformanceFeeGovernance(0, {"from": randomUser})
 
     with brownie.reverts("onlyGovernance"):
@@ -156,10 +156,10 @@ def test_strategy_config_permissions(strategy):
     strategy.setPerformanceFeeStrategist(0, {"from": governance})
     assert strategy.performanceFeeStrategist() == 0
 
-    with brownie.reverts("onlyGovernance"):
+    with brownie.reverts("onlyGovernanceOrStrategist"):
         strategy.setPerformanceFeeGovernance(0, {"from": randomUser})
 
-    with brownie.reverts("onlyGovernance"):
+    with brownie.reverts("onlyGovernanceOrStrategist"):
         strategy.setPerformanceFeeStrategist(0, {"from": randomUser})
 
 
