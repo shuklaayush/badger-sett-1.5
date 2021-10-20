@@ -5,27 +5,38 @@ from brownie import (
 
 from helpers.constants import AddressZero
 
+performanceFeeGovernance = 1000
+performanceFeeStrategist = 1000
+withdrawalFee = 50
+managementFee = 50
+
 # Test's vault deployment
-def test_vault_deployment(deployer, governance, keeper, guardian, token):
+def test_vault_deployment(deployer, governance, keeper, guardian, strategist, token):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, False, "", ""
+      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
-    vault.setStrategist(deployer, {"from": governance})
     
     # Addresses
     assert vault.governance() == governance
     assert vault.keeper() == keeper
     assert vault.guardian() == guardian
     assert vault.token() == token
-    # NOTE: when rewards contract check rewards address is set properly
+    assert vault.rewards() == governance
 
     # Params 
     assert vault.min() == 10_000
+    assert vault.performanceFeeGovernance() == performanceFeeGovernance
+    assert vault.performanceFeeStrategist() == performanceFeeStrategist
+    assert vault.withdrawalFee() == withdrawalFee
+    assert vault.managementFee() == managementFee
+    assert vault.MAX() == 10_000
+    assert vault.maxPerformanceFee() == 5_000
+    assert vault.maxWithdrawalFee() == 100
 
-def test_vault_deployment_badTokenAddress(deployer, governance, keeper, guardian):
+def test_vault_deployment_badTokenAddress(deployer, governance, keeper, guardian, strategist):
     vault = Vault.deploy({"from": deployer})
-    with brownie.reverts("Token address should not be 0x0"):
+    with brownie.reverts("dev: _token address should not be zero"):
       vault.initialize(
-        AddressZero, governance, keeper, guardian, False, "", ""
+        AddressZero, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
       )

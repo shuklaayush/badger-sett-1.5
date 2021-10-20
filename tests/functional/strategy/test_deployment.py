@@ -6,26 +6,26 @@ from brownie import (
 
 from helpers.constants import AddressZero
 
+performanceFeeGovernance = 1000
+performanceFeeStrategist = 1000
+withdrawalFee = 50
+managementFee = 50
+
 # Test's strategy's deployment
-def test_strategy_deployment(deployer, governance, keeper, guardian, token):
+def test_strategy_deployment(deployer, governance, keeper, guardian, strategist, token):
     
-    strategist = deployer
     want = token
 
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, False, "", ""
+      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
-    vault.setStrategist(deployer, {"from": governance})
+    vault.setStrategist(strategist, {"from": governance})
     # NOTE: Vault starts unpaused
-
-    performanceFeeGovernance = 1000
-    performanceFeeStrategist = 1000
-    withdrawalFee = 50
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
+      governance, strategist, vault, keeper, guardian, [token]
     )
     # NOTE: Strategy starts unpaused
 
@@ -40,7 +40,4 @@ def test_strategy_deployment(deployer, governance, keeper, guardian, token):
     # Params
 
     assert strategy.withdrawalMaxDeviationThreshold() == 50
-    assert strategy.performanceFeeGovernance() == performanceFeeGovernance
-    assert strategy.performanceFeeStrategist() == performanceFeeStrategist
-    assert strategy.withdrawalFee() == withdrawalFee
-    assert strategy.MAX_FEE() == 10_000
+    assert strategy.MAX() == 10_000

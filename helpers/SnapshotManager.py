@@ -53,7 +53,6 @@ class SnapshotManager:
                 entities[key] = user
 
         calls = self.add_snap_calls(entities)
-
         multi = Multicall(calls)
         # multi.printCalls()
 

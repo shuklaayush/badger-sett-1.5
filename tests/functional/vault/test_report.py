@@ -91,7 +91,7 @@ def test_report_failed(vault, strategy, governance, rando, keeper):
 
     # report should fail report function is not called from strategy
     with brownie.reverts("onlyStrategy"):
-        vault.report(1e18, 0, 0, 0, 0, {"from": rando})
+        vault.report(1e18, 0, 0, {"from": rando})
 
     # harvest should fail when called by rando
     with brownie.reverts("onlyAuthorizedActors"):
@@ -110,8 +110,8 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount):
     
     last_harvest_time = vault.lastHarvestedAt()
 
-    feeGovernance = (mintAmount * strategy.performanceFeeGovernance()) / MAX_BPS
-    feeStrategist = (mintAmount * strategy.performanceFeeStrategist()) / MAX_BPS
+    feeGovernance = (mintAmount * vault.performanceFeeGovernance()) / MAX_BPS
+    feeStrategist = (mintAmount * vault.performanceFeeStrategist()) / MAX_BPS
 
     setup_mint(strategy, want)
 
@@ -149,8 +149,8 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
     
     last_harvest_time = vault.lastHarvestedAt()
 
-    feeGovernance = (mintAmount * strategy.performanceFeeGovernance()) / MAX_BPS
-    feeStrategist = (mintAmount * strategy.performanceFeeStrategist()) / MAX_BPS
+    feeGovernance = (mintAmount * vault.performanceFeeGovernance()) / MAX_BPS
+    feeStrategist = (mintAmount * vault.performanceFeeStrategist()) / MAX_BPS
     last_harvest_time = vault.lastHarvestedAt()
 
     setup_mint(strategy, want)

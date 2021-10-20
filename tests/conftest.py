@@ -36,20 +36,21 @@ def deployed():
     token.initialize([deployer.address, randomUser.address], [100*10**18, 100*10**18])
     want = token
 
+    performanceFeeGovernance = 1000
+    performanceFeeStrategist = 1000
+    withdrawalFee = 50
+    managementFee = 50
+
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, False, "", ""
+      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
     vault.setStrategist(deployer, {"from": governance})
     # NOTE: Vault starts unpaused
 
-    performanceFeeGovernance = 1000
-    performanceFeeStrategist = 1000
-    withdrawalFee = 50
-
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
+      governance, strategist, vault, keeper, guardian, [token]
     )
     # NOTE: Strategy starts unpaused
 

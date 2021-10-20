@@ -48,9 +48,9 @@ def test_setGuardian(deployed_vault, deployer, governance, rando):
 
 def test_setMin(deployed_vault, governance, rando):
   
-  # setting min > max should revert
-  with brownie.reverts("min should be <= max"):
-    deployed_vault.setMin(deployed_vault.max() + 1000, {"from": governance})
+  # setting min > MAX should revert
+  with brownie.reverts("min should be <= MAX"):
+    deployed_vault.setMin(deployed_vault.MAX() + 1_000, {"from": governance})
   
   # setting min
   deployed_vault.setMin(1_000, {"from": governance})
@@ -61,20 +61,113 @@ def test_setMin(deployed_vault, governance, rando):
   with brownie.reverts():
     deployed_vault.setMin(1_000, {"from": rando})
 
-def test_setManagementFees(deployed_vault, governance, rando):
+def test_setMaxPerformanceFee(deployed_vault, governance, strategist, rando):
   
-  # setting min > max should revert
+  # setting maxPeformanceFees > MAX should fail
+  with brownie.reverts("excessive-performance-fee"):
+    deployed_vault.setMaxPerformanceFee(deployed_vault.MAX() + 1_000, {"from": governance})
+  
+  # setting min
+  deployed_vault.setMaxPerformanceFee(8_000, {"from": governance})
+
+  assert deployed_vault.maxPerformanceFee() == 8_000
+
+  # setting maxPeformanceFees from rando user / strategist should fail
+  with brownie.reverts("onlyGovernance"):
+    deployed_vault.setMaxPerformanceFee(1_000, {"from": rando})
+
+  with brownie.reverts("onlyGovernance"):
+    deployed_vault.setMaxPerformanceFee(1_000, {"from": strategist})
+
+def test_setMaxWithdrawalFee(deployed_vault, governance, strategist, rando):
+  
+  # setting maxWithdrawalFee > MAX should fail
+  with brownie.reverts("excessive-withdrawal-fee"):
+    deployed_vault.setMaxWithdrawalFee(deployed_vault.MAX() + 1_000, {"from": governance})
+  
+  # setting setMaxWithdrawalFee
+  deployed_vault.setMaxWithdrawalFee(1_000, {"from": governance})
+
+  assert deployed_vault.maxWithdrawalFee() == 1_000
+
+  # setting setMaxWithdrawalFee from rando user / strategist should fail
+  with brownie.reverts("onlyGovernance"):
+    deployed_vault.setMaxWithdrawalFee(1_000, {"from": rando})
+
+  with brownie.reverts("onlyGovernance"):
+    deployed_vault.setMaxWithdrawalFee(1_000, {"from": strategist})
+
+def test_setManagementFee(deployed_vault, governance, rando):
+  
+  # setting min > MAX should revert
   with brownie.reverts("excessive-management-fee"):
-    deployed_vault.setManagementFees(deployed_vault.max() + 1000, {"from": governance})
+    deployed_vault.setManagementFee(deployed_vault.MAX() + 1_000, {"from": governance})
   
   # setting managementFee
-  deployed_vault.setManagementFees(1_000, {"from": governance})
+  deployed_vault.setManagementFee(1_000, {"from": governance})
 
   assert deployed_vault.managementFee() == 1_000
 
   # setting managementFee from random user should fail
   with brownie.reverts("onlyGovernance"):
-    deployed_vault.setManagementFees(5_000, {"from": rando})
+    deployed_vault.setManagementFee(5_000, {"from": rando})
+
+def test_setWithdrawalFee(deployed_vault, governance, strategist, rando):
+
+    withdrawalFee = 100
+
+    # withdrawalFee from random user should fail
+    with brownie.reverts("onlyGovernanceOrStrategist"): 
+        deployed_vault.setWithdrawalFee(withdrawalFee, {"from": rando})
+
+    # setting withdrawalFee
+    deployed_vault.setWithdrawalFee(withdrawalFee, {"from": governance})
+
+    assert deployed_vault.withdrawalFee() == withdrawalFee
+
+    # setting more that MAX should fail
+    with brownie.reverts("base-strategy/excessive-withdrawal-fee"):
+        deployed_vault.setWithdrawalFee(2 * deployed_vault.maxWithdrawalFee(), {"from": strategist})
+
+def test_setPerformanceFeeStrategist(deployed_vault, governance, strategist, rando):
+
+    performanceFeeStrategist = 2_000 # increasing fees to compensate good strategist.
+
+    # setPerformanceFeeStrategist from random user should fail
+    with brownie.reverts("onlyGovernanceOrStrategist"): 
+        deployed_vault.setPerformanceFeeStrategist(performanceFeeStrategist, {"from": rando})
+
+    # setPerformanceFeeStrategist from governance
+    deployed_vault.setPerformanceFeeStrategist(performanceFeeStrategist, {"from": governance})
+
+    # setPerformanceFeeStrategist from strategist
+    deployed_vault.setPerformanceFeeStrategist(performanceFeeStrategist, {"from": strategist})
+
+    assert deployed_vault.performanceFeeStrategist() == performanceFeeStrategist
+
+    # setting more that maxPerformanceFee should fail
+    with brownie.reverts("base-strategy/excessive-strategist-performance-fee"):
+        deployed_vault.setPerformanceFeeStrategist(2 * deployed_vault.maxPerformanceFee(), {"from": strategist})
+
+def test_setPerformanceFeeGovernance(deployed_vault, governance, strategist, rando):
+
+    performanceFeeGovernance = 2_000
+
+    # setPerformanceFeeGovernance from random user should fail
+    with brownie.reverts("onlyGovernanceOrStrategist"): 
+        deployed_vault.setPerformanceFeeGovernance(performanceFeeGovernance, {"from": rando})
+
+    # setPerformanceFeeGovernance from governance
+    deployed_vault.setPerformanceFeeGovernance(performanceFeeGovernance, {"from": governance})
+
+    # setPerformanceFeeGovernance from strategist
+    deployed_vault.setPerformanceFeeGovernance(performanceFeeGovernance, {"from": strategist})
+
+    assert deployed_vault.performanceFeeGovernance() == performanceFeeGovernance
+
+    # setting more that maxPerformanceFee should fail
+    with brownie.reverts("base-strategy/excessive-governance-performance-fee"):
+        deployed_vault.setPerformanceFeeGovernance(2 * deployed_vault.maxPerformanceFee(), {"from": strategist})
 
 def test_config_pause_unpause(deployed_vault, governance, rando):
 
@@ -96,6 +189,24 @@ def test_config_pause_unpause(deployed_vault, governance, rando):
     with brownie.reverts("Pausable: paused"):
         deployed_vault.setGuardian(rando, {"from": governance})
 
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setManagementFee(1_000, {"from": governance})
+    
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setPerformanceFeeGovernance(2_000, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setPerformanceFeeStrategist(2_000, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setWithdrawalFee(100, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setMaxPerformanceFee(8_000, {"from": governance})
+
+    with brownie.reverts("Pausable: paused"):
+        deployed_vault.setMaxWithdrawalFee(8_000, {"from": governance})
+
     # unpause Vault, now we should be able to set everything
     deployed_vault.unpause({"from": governance})
 
@@ -104,3 +215,9 @@ def test_config_pause_unpause(deployed_vault, governance, rando):
     deployed_vault.setGuestList(rando, {"from": governance})
     deployed_vault.setMin(100, {"from": governance})
     deployed_vault.setGuardian(rando, {"from": governance})
+    deployed_vault.setManagementFee(1_000, {"from": governance})
+    deployed_vault.setPerformanceFeeGovernance(2_000, {"from": governance})
+    deployed_vault.setPerformanceFeeStrategist(2_000, {"from": governance})
+    deployed_vault.setWithdrawalFee(100, {"from": governance})
+    deployed_vault.setMaxPerformanceFee(8_000, {"from": governance})
+    deployed_vault.setMaxWithdrawalFee(8_000, {"from": governance})

@@ -121,15 +121,6 @@ def test_strategy_config_permissions(strategy):
     strategy.setGuardian(AddressZero, {"from": governance})
     assert strategy.guardian() == AddressZero
 
-    strategy.setWithdrawalFee(0, {"from": governance})
-    assert strategy.withdrawalFee() == 0
-
-    strategy.setPerformanceFeeStrategist(0, {"from": governance})
-    assert strategy.performanceFeeStrategist() == 0
-
-    strategy.setPerformanceFeeGovernance(0, {"from": governance})
-    assert strategy.performanceFeeGovernance() == 0
-
     strategy.setVault(AddressZero, {"from": governance})
     assert strategy.vault() == AddressZero
 
@@ -137,30 +128,8 @@ def test_strategy_config_permissions(strategy):
     with brownie.reverts("onlyGovernance"):
         strategy.setGuardian(AddressZero, {"from": randomUser})
 
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        strategy.setWithdrawalFee(0, {"from": randomUser})
-
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        strategy.setPerformanceFeeStrategist(0, {"from": randomUser})
-
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        strategy.setPerformanceFeeGovernance(0, {"from": randomUser})
-
     with brownie.reverts("onlyGovernance"):
         strategy.setVault(AddressZero, {"from": randomUser})
-
-    # Harvest:
-    strategy.setPerformanceFeeGovernance(0, {"from": governance})
-    assert strategy.performanceFeeGovernance() == 0
-
-    strategy.setPerformanceFeeStrategist(0, {"from": governance})
-    assert strategy.performanceFeeStrategist() == 0
-
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        strategy.setPerformanceFeeGovernance(0, {"from": randomUser})
-
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        strategy.setPerformanceFeeStrategist(0, {"from": randomUser})
 
 
 def test_strategy_pausing_permissions(deployer, vault, strategy, want):
@@ -198,8 +167,6 @@ def test_strategy_pausing_permissions(deployer, vault, strategy, want):
 
     strategyKeeper = accounts.at(strategy.keeper(), force=True)
 
-    with brownie.reverts("Pausable: paused"):
-        vault.withdrawAll({"from": deployer})
     with brownie.reverts("Pausable: paused"):
         strategy.harvest({"from": strategyKeeper})
     if strategy.isTendable():

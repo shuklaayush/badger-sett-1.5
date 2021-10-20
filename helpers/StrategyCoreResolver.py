@@ -68,6 +68,27 @@ class StrategyCoreResolver:
         calls.append(
             Call(sett.address, [func.erc20.totalSupply], [["sett.totalSupply", as_wei]])
         )
+        calls.append(
+            Call(
+                sett.address,
+                [func.sett.withdrawalFee],
+                [["sett.withdrawalFee", as_wei]],
+            )
+        )
+        calls.append(
+            Call(
+                sett.address,
+                [func.sett.performanceFeeGovernance],
+                [["sett.performanceFeeGovernance", as_wei]],
+            )
+        )
+        calls.append(
+            Call(
+                sett.address,
+                [func.sett.performanceFeeStrategist],
+                [["sett.performanceFeeStrategist", as_wei]],
+            )
+        )
 
         return calls
 
@@ -93,27 +114,6 @@ class StrategyCoreResolver:
                 strategy.address,
                 [func.strategy.balanceOf],
                 [["strategy.balanceOf", as_wei]],
-            )
-        )
-        calls.append(
-            Call(
-                strategy.address,
-                [func.strategy.withdrawalFee],
-                [["strategy.withdrawalFee", as_wei]],
-            )
-        )
-        calls.append(
-            Call(
-                strategy.address,
-                [func.strategy.performanceFeeGovernance],
-                [["strategy.performanceFeeGovernance", as_wei]],
-            )
-        )
-        calls.append(
-            Call(
-                strategy.address,
-                [func.strategy.performanceFeeStrategist],
-                [["strategy.performanceFeeStrategist", as_wei]],
             )
         )
 
@@ -236,7 +236,7 @@ class StrategyCoreResolver:
 
         # Controller rewards should earn
         if (
-            before.get("strategy.withdrawalFee") > 0
+            before.get("sett.withdrawalFee") > 0
             and
             # Fees are only processed when withdrawing from the strategy.
             before.balances("want", "strategy") > after.balances("want", "strategy")

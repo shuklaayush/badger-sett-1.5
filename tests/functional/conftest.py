@@ -16,6 +16,11 @@ console = Console()
 from dotmap import DotMap
 import pytest
 
+performanceFeeGovernance = 1000
+performanceFeeStrategist = 1000
+withdrawalFee = 50
+managementFee = 50
+
 ################# Token #################
 
 @pytest.fixture
@@ -54,6 +59,10 @@ def proxyAdmin():
     yield accounts[5]
 
 @pytest.fixture
+def strategist():
+    yield accounts[6]
+
+@pytest.fixture
 def rando():
     yield accounts[9]
 
@@ -61,36 +70,31 @@ def rando():
 
 ################# Deploy #################
 @pytest.fixture
-def deployed_vault(deployer, governance, keeper, guardian, token):
+def deployed_vault(deployer, governance, keeper, guardian, strategist, token):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, False, "", ""
+      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
     return vault
 
 @pytest.fixture
-def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxyAdmin):
+def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxyAdmin, strategist):
     
-    strategist = deployer
-
     token = MockToken.deploy({"from": deployer})
     token.initialize([deployer.address, rando.address], [100*10**18, 100*10**18])
     want = token
 
+    # NOTE: change strategist
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, False, "", ""
+      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
-    vault.setStrategist(deployer, {"from": governance})
+    vault.setStrategist(strategist, {"from": governance})
     # NOTE: Vault starts unpaused
-
-    performanceFeeGovernance = 1000
-    performanceFeeStrategist = 1000
-    withdrawalFee = 50
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, deployer, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
+      governance, strategist, vault, keeper, guardian, [token]
     )
     # NOTE: Strategy starts unpaused
 
@@ -106,7 +110,7 @@ def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxy
     )
 
 @pytest.fixture
-def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, guardian, token):
+def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, guardian, strategist, token):
     """
     Deploys TestVipCappedGuestListBbtcUpgradeable.sol for testing Guest List functionality
     """
@@ -153,7 +157,7 @@ def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, 
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, deployer, vault, keeper, guardian, [token], [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee]
+      governance, strategist, vault, keeper, guardian, [token]
     )
     # NOTE: Strategy starts unpaused
 
