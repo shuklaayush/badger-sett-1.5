@@ -55,7 +55,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     IERC20Upgradeable public token;
 
     uint256 public min;
-    uint256 public constant max = 10000;
+    uint256 public constant MAX = 10_000;
 
     uint256 public constant SECS_PER_YEAR  = 31_556_952;  // 365.2425 days
 
@@ -79,19 +79,31 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
 
     uint256 public lastHarvestAmount; // amount harvested during last harvest
     uint256 public assetsAtLastHarvest; // assets for which the harvest took place.
+
+    /// Fees ///
+    /// @notice all fees will be in bps
+    
+    uint256 public performanceFeeGovernance;
+    uint256 public performanceFeeStrategist;
+    uint256 public withdrawalFee;
     uint256 public managementFee;
+
+    uint256 public maxPerformanceFee; // maximum allowed performance fees by governance
+    uint256 public maxWithdrawalFee; // maximum allowed performance fees by governance
 
     function initialize(
         address _token,
         address _governance,
         address _keeper,
         address _guardian,
+        address _strategist,
         bool _overrideTokenName,
         string memory _namePrefix,
-        string memory _symbolPrefix
+        string memory _symbolPrefix,
+        uint256[4] memory _feeConfig
     ) public initializer whenNotPaused {
 
-        require(_token != address(0), "Token address should not be 0x0");
+        require(_token != address(0)); // dev: _token address should not be zero
 
         IERC20Detailed namedToken = IERC20Detailed(_token);
         string memory tokenName = namedToken.name();
@@ -114,13 +126,20 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         token = IERC20Upgradeable(_token);
         governance = _governance;
         rewards = _governance;
-        strategist = address(0);
+        strategist = _strategist;
         keeper = _keeper;
         guardian = _guardian;
 
         min = 10_000;
-        managementFee = 100; // setting management fees by default to 1%
-        lastHarvestedAt = block.timestamp; // setting lastHarvestedAt initial value to the time when the vault was deployed
+        
+        lastHarvestedAt = block.timestamp; // setting initial value to the time when the vault was deployed
+
+        performanceFeeGovernance = _feeConfig[0];
+        performanceFeeStrategist = _feeConfig[1];
+        withdrawalFee = _feeConfig[2];
+        managementFee = _feeConfig[3];
+        maxPerformanceFee = 5_000; // 50% maximum performance fee
+        maxWithdrawalFee = 100; // 1% maximum withdrawal fee
 
         emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
     }
@@ -159,7 +178,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     /// @notice Custom logic in here for how much the vault allows to be borrowed
     /// @notice Sets minimum required on-hand to keep small withdrawals cheap
     function available() public virtual view returns (uint256) {
-        return token.balanceOf(address(this)).mul(min).div(max);
+        return token.balanceOf(address(this)).mul(min).div(MAX);
     }
 
     /// ===== Public Actions =====
@@ -246,7 +265,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     /// ===== Permissioned Actions: Strategy =====
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees
-    function report(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest, uint256 feeStrategist, uint256 feeGovernance) external override whenNotPaused {
+    function report(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest) external override whenNotPaused {
         require(msg.sender == strategy, "onlyStrategy");
 
         
@@ -261,11 +280,13 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         
         lifeTimeEarned += lastHarvestAmount;
 
+        (uint256 feeStrategist, uint256 feeGovernance) = _processPerformanceFees(_harvestedAmount);
+
         // subtracting feeGovernance and feeStrategist from pool as they are already present in vault
 
         uint256 duration = _harvestTime.sub(lastHarvestedAt);
 
-        uint256 management_fee = managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(max);
+        uint256 management_fee = managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(MAX);
 
         lastHarvestedAt = _harvestTime;
 
@@ -311,16 +332,32 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     /// @notice Can only be changed by governance
     function setMin(uint256 _min) external whenNotPaused {
         _onlyGovernance();
-        require(_min <= max, "min should be <= max");
+        require(_min <= MAX, "min should be <= MAX");
         min = _min;
     }
 
     /// @notice Set management fees
     /// @notice Can only be changed by governance
-    function setManagementFees(uint256 _fees) external whenNotPaused {
+    function setManagementFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= max, "excessive-management-fee");
+        require(_fees <= MAX, "excessive-management-fee");
         managementFee = _fees;
+    }
+
+    /// @notice Set maxWithdrawalFee
+    /// @notice Can only be changed by governance
+    function setMaxWithdrawalFee(uint256 _fees) external whenNotPaused {
+        _onlyGovernance();
+        require(_fees <= MAX, "excessive-withdrawal-fee");
+        maxWithdrawalFee = _fees;
+    }
+
+    /// @notice Set maxPerformanceFee
+    /// @notice Can only be changed by governance
+    function setMaxPerformanceFee(uint256 _fees) external whenNotPaused {
+        _onlyGovernance();
+        require(_fees <= MAX, "excessive-performance-fee");
+        maxPerformanceFee = _fees;
     }
 
     /// @notice Change guardian address
@@ -333,6 +370,27 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
 
     /// ===== Permissioned Functions: Trusted Actors =====
 
+    /// @notice can only be done by governance or strategist
+    function setWithdrawalFee(uint256 _withdrawalFee) external whenNotPaused {
+        _onlyGovernanceOrStrategist();
+        require(_withdrawalFee <= maxWithdrawalFee, "base-strategy/excessive-withdrawal-fee");
+        withdrawalFee = _withdrawalFee;
+    }
+
+    /// @notice can only be done by governance or strategist
+    function setPerformanceFeeStrategist(uint256 _performanceFeeStrategist) external whenNotPaused {
+        _onlyGovernanceOrStrategist();
+        require(_performanceFeeStrategist <= maxPerformanceFee, "base-strategy/excessive-strategist-performance-fee");
+        performanceFeeStrategist = _performanceFeeStrategist;
+    }
+
+    /// @notice can only be done by governance or strategist
+    function setPerformanceFeeGovernance(uint256 _performanceFeeGovernance) external whenNotPaused {
+        _onlyGovernanceOrStrategist();
+        require(_performanceFeeGovernance <= maxPerformanceFee, "base-strategy/excessive-governance-performance-fee");
+        performanceFeeGovernance = _performanceFeeGovernance;
+    }
+
     /// @dev Withdraws all funds from Strategy and deposits into vault
     /// @notice can only be done by governance or strategist
     function withdrawToVault() public {
@@ -340,11 +398,12 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         IStrategy(strategy).withdrawToVault();
     }
 
+    /// @notice can only be done by governance or strategist
     function withdrawOther(address _token) public {
         _onlyGovernanceOrStrategist();
-        uint256 balance = IStrategy(strategy).withdrawOther(_token);
+        uint256 _balance = IStrategy(strategy).withdrawOther(_token);
 
-        IERC20Upgradeable(_token).safeTransfer(governance, balance);
+        IERC20Upgradeable(_token).safeTransfer(governance, _balance);
     }
 
     /// @notice Transfer the underlying available to be claimed to the strategy
@@ -408,17 +467,6 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         _mint(recipient, shares);
     }
 
-    /// @dev mints performance fees shares for governance and strategists
-    function _mintPerformanceFeeSharesFor(address recipient, uint256 _amount, uint256 _pool) internal {
-        uint256 shares = 0;
-        if (totalSupply() == 0) {
-            shares = _amount;
-        } else {
-            shares = (_amount.mul(totalSupply())).div(_pool);
-        }
-        _mint(recipient, shares);
-    }
-
     function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal virtual {
         if (address(guestList) != address(0)) {
             require(guestList.authorized(msg.sender, _amount, proof), "guest-list-authorization");
@@ -438,6 +486,7 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     }
 
     // No rebalance implementation for lower fees and faster swaps
+    /// @notice Processes withdrawal fee if present
     function _withdraw(uint256 _shares) internal virtual {
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
@@ -454,7 +503,56 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
             }
         }
 
-        token.safeTransfer(msg.sender, r);
+        // Process withdrawal fee
+        uint256 _fee = _processFee(r, withdrawalFee);
+        IERC20Upgradeable(token).safeTransfer(rewards, _fee);
+
+        token.safeTransfer(msg.sender, r.sub(_fee));
+    }
+
+    /// @dev function to process an arbitrary fee
+    /// @return fee : amount of fees to take
+    function _processFee(
+        uint256 amount,
+        uint256 feeBps
+    ) internal returns (uint256 fee) {
+        if (feeBps == 0) {
+            return 0;
+        }
+        fee = amount.mul(feeBps).div(MAX);
+        return fee;
+    }
+
+    /// @dev used to manage the governance and strategist fee, make sure to use it to get paid!
+    function _processPerformanceFees(uint256 _amount)
+        internal
+        returns (
+            uint256 governancePerformanceFee,
+            uint256 strategistPerformanceFee
+        )
+    {
+        governancePerformanceFee = _processFee(
+            _amount,
+            performanceFeeGovernance
+        );
+
+        strategistPerformanceFee = _processFee(
+            _amount,
+            performanceFeeStrategist
+        );
+
+        return (governancePerformanceFee, strategistPerformanceFee);
+    }
+
+    /// @dev mints performance fees shares for governance and strategist
+    function _mintPerformanceFeeSharesFor(address recipient, uint256 _amount, uint256 _pool) internal {
+        uint256 shares = 0;
+        if (totalSupply() == 0) {
+            shares = _amount;
+        } else {
+            shares = (_amount.mul(totalSupply())).div(_pool);
+        }
+        _mint(recipient, shares);
     }
 
     function _lockForBlock(address account) internal {

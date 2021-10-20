@@ -34,11 +34,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     address public want; // Token used for deposits
 
-    uint256 public performanceFeeGovernance;
-    uint256 public performanceFeeStrategist;
-    uint256 public withdrawalFee;
-
-    uint256 public constant MAX_FEE = 10_000;
+    uint256 public constant MAX = 10_000;
 
     address public vault;
     address public guardian;
@@ -119,24 +115,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         guardian = _guardian;
     }
 
-    function setWithdrawalFee(uint256 _withdrawalFee) external {
-        _onlyGovernanceOrStrategist();
-        require(_withdrawalFee <= MAX_FEE, "base-strategy/excessive-withdrawal-fee");
-        withdrawalFee = _withdrawalFee;
-    }
-
-    function setPerformanceFeeStrategist(uint256 _performanceFeeStrategist) external {
-        _onlyGovernanceOrStrategist();
-        require(_performanceFeeStrategist <= MAX_FEE, "base-strategy/excessive-strategist-performance-fee");
-        performanceFeeStrategist = _performanceFeeStrategist;
-    }
-
-    function setPerformanceFeeGovernance(uint256 _performanceFeeGovernance) external {
-        _onlyGovernanceOrStrategist();
-        require(_performanceFeeGovernance <= MAX_FEE, "base-strategy/excessive-governance-performance-fee");
-        performanceFeeGovernance = _performanceFeeGovernance;
-    }
-
     function setVault(address _vault) external {
         _onlyGovernance();
         vault = _vault;
@@ -144,13 +122,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     function setWithdrawalMaxDeviationThreshold(uint256 _threshold) external {
         _onlyGovernance();
-        require(_threshold <= MAX_FEE, "base-strategy/excessive-max-deviation-threshold");
+        require(_threshold <= MAX, "base-strategy/excessive-max-deviation-threshold");
         withdrawalMaxDeviationThreshold = _threshold;
     }
 
     function setAutoCompoundRatio(uint256 _ratio) internal {
-        // _onlyGovernance(); TODO: see what permissions this has to get
-        require(_ratio <= MAX_FEE, "base-strategy/excessive-auto-compound-ratio");
+        require(_ratio <= MAX, "base-strategy/excessive-auto-compound-ratio");
         autoCompoundRatio = _ratio;
     }
 
@@ -179,7 +156,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     }
 
     /// @notice Withdraw partial funds from the strategy, unrolling from strategy positions as necessary
-    /// @notice Processes withdrawal fee if present
     /// @dev If it fails to recover sufficient funds (defined by withdrawalMaxDeviationThreshold), the withdrawal should fail so that this unexpected behavior can be investigated
     function withdraw(uint256 _amount) external virtual override whenNotPaused {
         _onlyVault();
@@ -194,17 +170,14 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
             uint256 diff = _diff(_amount, _postWithdraw);
 
             // Require that difference between expected and actual values is less than the deviation threshold percentage
-            require(diff <= _amount.mul(withdrawalMaxDeviationThreshold).div(MAX_FEE), "base-strategy/withdraw-exceed-max-deviation-threshold");
+            require(diff <= _amount.mul(withdrawalMaxDeviationThreshold).div(MAX), "base-strategy/withdraw-exceed-max-deviation-threshold");
         }
 
         // Return the amount actually withdrawn if less than amount requested
         uint256 _toWithdraw = MathUpgradeable.min(_postWithdraw, _amount);
 
-        // Process withdrawal fee
-        uint256 _fee = _processFee(want, _toWithdraw, withdrawalFee, IVault(vault).rewards());
-
         // Transfer remaining to Vault to handle withdrawal
-        _transferToVault(_toWithdraw.sub(_fee));
+        _transferToVault(_toWithdraw);
     }
 
     // NOTE: must exclude any tokens used in the yield
@@ -233,56 +206,21 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     /// ===== Internal Helper Functions =====
 
-    /// @dev Helper function to process an arbitrary fee
-    /// @dev If the fee is active, transfers a given portion in basis points of the specified value to the recipient
-    /// @return The fee that was taken
-    function _processFee(
-        address token,
-        uint256 amount,
-        uint256 feeBps,
-        address recipient
-    ) internal returns (uint256) {
-        if (feeBps == 0) {
-            return 0;
-        }
-        uint256 fee = amount.mul(feeBps).div(MAX_FEE);
-        IERC20Upgradeable(token).safeTransfer(recipient, fee);
-        return fee;
-    }
-
-    /// @dev used to manage the governance and strategist fee, make sure to use it to get paid!
-    function _processPerformanceFees(uint256 _amount)
-        internal
-        returns (
-            uint256 governancePerformanceFee,
-            uint256 strategistPerformanceFee
-        )
-    {
-        governancePerformanceFee = _processFee(
-            want,
-            _amount,
-            performanceFeeGovernance,
-            vault
-        );
-
-        strategistPerformanceFee = _processFee(
-            want,
-            _amount,
-            performanceFeeStrategist,
-            vault
-        );
-
-        return (governancePerformanceFee, strategistPerformanceFee);
-    }
-
+    /// @dev function to transfer specific amount of want to vault from strategy
+    /// @notice strategy should have idle funds >= _amount for this to happen
+    /// @param _amount: the amount of want token to transfer to vault
     function _transferToVault(uint256 _amount) internal {
-        IERC20Upgradeable(want).safeTransfer(vault, _amount);
+        if(_amount > 0) {
+            IERC20Upgradeable(want).safeTransfer(vault, _amount);
+        }
     }
 
-    /// @notice Vault-only function to Withdraw partial funds, normally used with a vault withdrawal
+    /// @dev function to report harvest to vault
+    /// @param _harvestedAmount: amount of want token autocompounded during harvest
+    /// @param _harvestTime: timestamp of harvest
+    /// @param _assetsAtLastHarvest: assets in pool for which the harvest took place.
     function _reportToVault(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest) internal whenNotPaused {
-        (uint256 feeStrategist, uint256 feeGovernance) = _processPerformanceFees(_harvestedAmount);
-        IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest, feeStrategist, feeGovernance);
+        IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest);
     }
 
     /// @notice Utility function to diff two numbers, expects higher value in first position
@@ -322,7 +260,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
 
     /// @dev Realize returns from positions
     /// @dev Returns can be reinvested into positions, or distributed in another fashion
-    /// @dev Performance fees should also be implemented in this function
     /// @return harvested : total amount harvested
     function harvest() external virtual returns (uint256 harvested);
 

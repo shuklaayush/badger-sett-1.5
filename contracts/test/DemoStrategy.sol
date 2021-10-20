@@ -24,8 +24,7 @@ contract DemoStrategy is BaseStrategy {
         address _vault,
         address _keeper,
         address _guardian,
-        address[1] memory _wantConfig,
-        uint256[3] memory _feeConfig
+        address[1] memory _wantConfig
     ) public initializer {
         __BaseStrategy_init(
             _governance,
@@ -36,10 +35,6 @@ contract DemoStrategy is BaseStrategy {
         );
         /// @dev Add config here
         want = _wantConfig[0];
-
-        performanceFeeGovernance = _feeConfig[0];
-        performanceFeeStrategist = _feeConfig[1];
-        withdrawalFee = _feeConfig[2];
 
         // If you need to set new values that are not constants, set them like so
         // stakingContract = 0x79ba8b76F61Db3e7D994f7E384ba8f7870A043b7;
