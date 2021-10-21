@@ -10,7 +10,7 @@ import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-import "./lib/SettAccessControlDefended.sol";
+import "./lib/SettAccessControl.sol";
 
 import {IVault} from "interfaces/badger/IVault.sol";
 import {IStrategy} from "interfaces/badger/IStrategy.sol";
@@ -47,7 +47,7 @@ import {BadgerGuestListAPI} from "interfaces/yearn/BadgerGuestlistApi.sol";
         - 
 */
 
-contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableUpgradeable {
+contract Vault is IVault, ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
@@ -58,8 +58,6 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     uint256 public constant MAX = 10_000;
 
     uint256 public constant SECS_PER_YEAR  = 31_556_952;  // 365.2425 days
-
-    mapping(address => uint256) public blockLock;
 
     address public strategy; // address of the strategy connected to the vault
     address public guardian;
@@ -151,10 +149,6 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         require(msg.sender == guardian || msg.sender == governance, "onlyPausers");
     }
 
-    function _blockLocked() internal view {
-        require(blockLock[msg.sender] < block.number, "blockLocked");
-    }
-
     /// ===== View Functions =====
 
     function version() public view returns (string memory) {
@@ -184,50 +178,27 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
     /// ===== Public Actions =====
 
     /// @notice Deposit assets into the Sett, and return corresponding shares to the user
-    /// @notice Only callable by EOA accounts that pass the _defend() check
     function deposit(uint256 _amount) public whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(msg.sender);
         _depositWithAuthorization(_amount, new bytes32[](0));
     }
 
     /// @notice Deposit variant with proof for merkle guest list
     function deposit(uint256 _amount, bytes32[] memory proof) public whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(msg.sender);
         _depositWithAuthorization(_amount, proof);
     }
 
     /// @notice Convenience function: Deposit entire balance of asset into the Sett, and return corresponding shares to the user
-    /// @notice Only callable by EOA accounts that pass the _defend() check
     function depositAll() external whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(msg.sender);
         _depositWithAuthorization(token.balanceOf(msg.sender), new bytes32[](0));
     }
 
     /// @notice DepositAll variant with proof for merkle guest list
     function depositAll(bytes32[] memory proof) external whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(msg.sender);
         _depositWithAuthorization(token.balanceOf(msg.sender), proof);
     }
 
     /// @notice Deposit assets into the Sett, and return corresponding shares to the user
-    /// @notice Only callable by EOA accounts that pass the _defend() check
     function depositFor(address _recipient, uint256 _amount) public whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(_recipient);
         _depositForWithAuthorization(_recipient, _amount, new bytes32[](0));
     }
 
@@ -237,28 +208,16 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
         uint256 _amount,
         bytes32[] memory proof
     ) public whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(_recipient);
         _depositForWithAuthorization(_recipient, _amount, proof);
     }
 
     /// @notice No rebalance implementation for lower fees and faster swaps
     function withdraw(uint256 _shares) public whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(msg.sender);
         _withdraw(_shares);
     }
 
     /// @notice Convenience function: Withdraw all shares of the sender
     function withdrawAll() external whenNotPaused {
-        _defend();
-        _blockLocked();
-
-        _lockForBlock(msg.sender);
         _withdraw(balanceOf(msg.sender));
     }
 
@@ -553,26 +512,5 @@ contract Vault is IVault, ERC20Upgradeable, SettAccessControlDefended, PausableU
             shares = (_amount.mul(totalSupply())).div(_pool);
         }
         _mint(recipient, shares);
-    }
-
-    function _lockForBlock(address account) internal {
-        blockLock[account] = block.number;
-    }
-
-    /// ===== ERC20 Overrides =====
-
-    /// @dev Add blockLock to transfers, users cannot transfer tokens in the same block as a deposit or withdrawal.
-    function transfer(address recipient, uint256 amount) public virtual override whenNotPaused returns (bool) {
-        _blockLocked();
-        return super.transfer(recipient, amount);
-    }
-
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) public virtual override whenNotPaused returns (bool) {
-        _blockLocked();
-        return super.transferFrom(sender, recipient, amount);
     }
 }
