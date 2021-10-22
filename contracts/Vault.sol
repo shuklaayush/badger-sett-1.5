@@ -49,12 +49,13 @@ import {BadgerGuestListAPI} from "interfaces/yearn/BadgerGuestlistApi.sol";
     * Fees
         - Strategy would report the autocompounded harvest amount to the vault
         - Calculation performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee moved to the vault.
-        - Vault mints shares for performanceFees and managementFee to the respective recipient
-        - withdrawal fees is transferred to the rewards address set 
+        - Vault mints shares for performanceFees and managementFee to the respective recipient (treasury, strategist)
+        - withdrawal fees is transferred to the rewards address set
     * Permission:
-        - Strategist can now set performance and withdrawl fees
-        - Governance will determine maxPerformanceFee and maxWithdrawalFee that can be set to prevent rug of rewards from strategist.
+        - Strategist can now set performance, withdrawal and management fees
+        - Governance will determine maxPerformanceFee, maxWithdrawalFee, maxManagementFee that can be set to prevent rug of funds.
     * Strategy would take the actors from the vault it is connected to
+    * All goverance related fees goes to treasury
 */
 
 contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
@@ -67,6 +68,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     address public strategy; // address of the strategy connected to the vault
     address public guardian; // guardian of vault and strategy 
+    address public treasury; // set by governance ... any fees go there
+
     address public rewards; // address of rewards contract
 
     /// @dev name and symbol prefixes for lpcomponent token of vault
@@ -89,6 +92,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     uint256 public maxPerformanceFee; // maximum allowed performance fees
     uint256 public maxWithdrawalFee; // maximum allowed withdrawal fees
+    uint256 public maxManagementFee; // maximum allowed management fees
 
     uint256 public min; // NOTE: in BPS, minimum amount of token to deposit into strategy when earn is called
 
@@ -103,6 +107,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         address _governance,
         address _keeper,
         address _guardian,
+        address _treasury,
         address _strategist,
         bool _overrideTokenName,
         string memory _namePrefix,
@@ -132,7 +137,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
         token = IERC20Upgradeable(_token);
         governance = _governance;
-        rewards = _governance;
+        treasury = _treasury;
+        rewards = _treasury; // Initially set to treasury
         strategist = _strategist;
         keeper = _keeper;
         guardian = _guardian;
@@ -145,6 +151,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         managementFee = _feeConfig[3];
         maxPerformanceFee = 5_000; // 50% maximum performance fee
         maxWithdrawalFee = 100; // 1% maximum withdrawal fee
+        maxManagementFee = 200; // 2% maximum management fee
 
         min = 10_000; // initial value of min 
 
@@ -258,6 +265,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         rewards = _rewards;
     }
 
+    function setTreasury(address _treasury) external whenNotPaused {
+        _onlyGovernance();
+        treasury = _treasury;
+    }
+
     function setStrategy(address _strategy) external whenNotPaused {
         _onlyGovernance(); 
         /// NOTE: Migrate funds if settings strategy when already existing one
@@ -275,14 +287,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         min = _min;
     }
 
-    /// @notice Set management fees
-    /// @notice Can only be changed by governance
-    function setManagementFee(uint256 _fees) external whenNotPaused {
-        _onlyGovernance();
-        require(_fees <= MAX, "excessive-management-fee");
-        managementFee = _fees;
-    }
-
     /// @notice Set maxWithdrawalFee
     /// @notice Can only be changed by governance
     function setMaxWithdrawalFee(uint256 _fees) external whenNotPaused {
@@ -297,6 +301,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         _onlyGovernance();
         require(_fees <= MAX, "excessive-performance-fee");
         maxPerformanceFee = _fees;
+    }
+
+    /// @notice Set maxPerformanceFee
+    /// @notice Can only be changed by governance
+    function setMaxManagementFee(uint256 _fees) external whenNotPaused {
+        _onlyGovernance();
+        require(_fees <= MAX, "excessive-management-fee");
+        maxManagementFee = _fees;
     }
 
     /// @notice Change guardian address
@@ -334,6 +346,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         _onlyGovernanceOrStrategist();
         require(_performanceFeeGovernance <= maxPerformanceFee, "base-strategy/excessive-governance-performance-fee");
         performanceFeeGovernance = _performanceFeeGovernance;
+    }
+
+    /// @notice Set management fees
+    /// @notice Can only be changed by governance or strategist
+    function setManagementFee(uint256 _fees) external whenNotPaused {
+        _onlyGovernanceOrStrategist();
+        require(_fees <= maxManagementFee, "excessive-management-fee");
+        managementFee = _fees;
     }
 
     /// @dev Withdraws all funds from Strategy and deposits into vault
@@ -512,7 +532,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         uint256 _pool = balance().sub(totalGovernanceFee).sub(feeStrategist);
 
         if (totalGovernanceFee != 0) {
-            _mintPerformanceFeeSharesFor(governance, totalGovernanceFee, _pool);
+            _mintPerformanceFeeSharesFor(treasury, totalGovernanceFee, _pool);
         }
 
         if (feeStrategist != 0 && strategist != address(0)) {

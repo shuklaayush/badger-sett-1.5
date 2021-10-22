@@ -18,7 +18,7 @@ def test_strategy_deployment(deployer, governance, keeper, guardian, strategist,
 
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
+      token, governance, keeper, guardian, governance, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
     vault.setStrategist(strategist, {"from": governance})
     # NOTE: Vault starts unpaused

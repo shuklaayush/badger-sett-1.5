@@ -73,7 +73,7 @@ def rando():
 def deployed_vault(deployer, governance, keeper, guardian, strategist, token):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
+      token, governance, keeper, guardian, governance, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
     return vault
 
@@ -87,7 +87,7 @@ def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxy
     # NOTE: change strategist
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
+      token, governance, keeper, guardian, governance, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
     )
     vault.setStrategist(strategist, {"from": governance})
     # NOTE: Vault starts unpaused
