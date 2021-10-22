@@ -25,14 +25,13 @@ def test_strategy_deployment(deployer, governance, keeper, guardian, strategist,
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token]
+      vault, [token]
     )
     # NOTE: Strategy starts unpaused
 
     # Addresses
     assert strategy.want() == want
     assert strategy.governance() == governance
-    assert strategy.strategist() == strategist
     assert strategy.keeper() == keeper
     assert strategy.vault() == vault
     assert strategy.guardian() == guardian

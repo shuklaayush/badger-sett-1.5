@@ -26,20 +26,26 @@ import "interfaces/badger/IVault.sol";
 
     V1.2
     - Remove idle want handling from base withdraw() function. This should be handled as the strategy sees fit in _withdrawSome()
+
+    V1.5
+    - No controller as middleman. The Strategy directly interacts with the vault
+    - withdrawToVault would withdraw all the funds from the strategy and move it into vault
+    - strategy would take the actors from the vault it is connected to
+        - SettAccessControl removed
+    - fees calculation for autocompounding rewards moved to vault
+    - autoCompoundRatio param added to keep a track in which ratio harvested rewards are being autocompounded
 */
-abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessControl {
+abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
     address public want; // Token used for deposits
-
-    uint256 public constant MAX = 10_000;
-
-    address public vault;
-    address public guardian;
-
-    uint256 public withdrawalMaxDeviationThreshold;
+    address public vault; // address of the vault the strategy is connected to
+    
+    uint256 public withdrawalMaxDeviationThreshold; // max allowed slippage when withdrawing
+    
+    uint256 public constant MAX = 10_000; // MAX in terms of BPS = 100%
 
     /// @notice percentage of rewards converted to want
     /// @dev converting of rewards to want during harvest should take place in this ratio
@@ -50,33 +56,39 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
     uint256 public autoCompoundRatio = 10_000;
 
     function __BaseStrategy_init(
-        address _governance,
-        address _strategist,
-        address _vault,
-        address _keeper,
-        address _guardian
+        address _vault
     ) public initializer whenNotPaused {
         __Pausable_init();
-        governance = _governance;
-        strategist = _strategist;
-        keeper = _keeper;
+        
         vault = _vault;
-        guardian = _guardian;
+                
         withdrawalMaxDeviationThreshold = 50;
     }
     
     // ===== Modifiers =====
+
+    function _onlyGovernance() internal view {
+        require(msg.sender == governance(), "onlyGovernance");
+    }
+
+    function _onlyGovernanceOrStrategist() internal view {
+        require(msg.sender == strategist() || msg.sender == governance(), "onlyGovernanceOrStrategist");
+    }
+
+    function _onlyAuthorizedActors() internal view {
+        require(msg.sender == keeper() || msg.sender == governance(), "onlyAuthorizedActors");
+    }
 
     function _onlyVault() internal view {
         require(msg.sender == vault, "onlyVault");
     }
 
     function _onlyAuthorizedActorsOrVault() internal view {
-        require(msg.sender == keeper || msg.sender == governance || msg.sender == vault, "onlyAuthorizedActorsOrVault");
+        require(msg.sender == keeper() || msg.sender == governance() || msg.sender == vault, "onlyAuthorizedActorsOrVault");
     }
 
     function _onlyAuthorizedPausers() internal view {
-        require(msg.sender == guardian || msg.sender == governance, "onlyPausers");
+        require(msg.sender == guardian() || msg.sender == governance(), "onlyPausers");
     }
 
     /// ===== View Functions =====
@@ -108,12 +120,23 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         return false;
     }
 
-    /// ===== Permissioned Actions: Governance =====
-
-    function setGuardian(address _guardian) external {
-        _onlyGovernance();
-        guardian = _guardian;
+    function governance() public view returns (address) {
+        return IVault(vault).governance();
     }
+
+    function strategist() public view returns (address) {
+        return IVault(vault).strategist();
+    }
+
+    function keeper() public view returns (address) {
+        return IVault(vault).keeper();
+    }
+
+    function guardian() public view returns (address) {
+        return IVault(vault).guardian();
+    }
+
+    /// ===== Permissioned Actions: Governance =====
 
     function setVault(address _vault) external {
         _onlyGovernance();
@@ -124,11 +147,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         _onlyGovernance();
         require(_threshold <= MAX, "base-strategy/excessive-max-deviation-threshold");
         withdrawalMaxDeviationThreshold = _threshold;
-    }
-
-    function setAutoCompoundRatio(uint256 _ratio) internal {
-        require(_ratio <= MAX, "base-strategy/excessive-auto-compound-ratio");
-        autoCompoundRatio = _ratio;
     }
 
     function earn() public override whenNotPaused {
@@ -223,10 +241,55 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable, SettAccessCont
         IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest);
     }
 
+    /// @dev Helper function to process an arbitrary fee
+    /// @dev If the fee is active, transfers a given portion in basis points of the specified value to the recipient
+    /// @return The fee that was taken
+    function _processFee(
+        address token,
+        uint256 amount,
+        uint256 feeBps,
+        address recipient
+    ) internal returns (uint256) {
+        if (feeBps == 0) {
+            return 0;
+        }
+        uint256 fee = amount.mul(feeBps).div(MAX);
+        IERC20Upgradeable(token).transfer(recipient, fee);
+        return fee;
+    }
+
+    /// @dev used to manage the governance and strategist fee on earned rewards, make sure to use it to get paid!
+    function _processRewardsFees(uint256 _amount, address _token)
+        internal
+        returns (uint256 governanceRewardsFee, uint256 strategistRewardsFee)
+    {
+        
+        governanceRewardsFee = _processFee(
+            _token,
+            _amount,
+            IVault(vault).performanceFeeGovernance(),
+            IVault(vault).rewards()
+        );
+
+        strategistRewardsFee = _processFee(
+            _token,
+            _amount,
+            IVault(vault).performanceFeeStrategist(),
+            strategist()
+        );
+
+        return (governanceRewardsFee, strategistRewardsFee);
+    }
+
     /// @notice Utility function to diff two numbers, expects higher value in first position
     function _diff(uint256 a, uint256 b) internal pure returns (uint256) {
         require(a >= b, "diff/expected-higher-number-in-first-position");
         return a.sub(b);
+    }
+    
+    function setAutoCompoundRatio(uint256 _ratio) internal {
+        require(_ratio <= MAX, "base-strategy/excessive-auto-compound-ratio");
+        autoCompoundRatio = _ratio;
     }
 
     // ===== Abstract Functions: To be implemented by specific Strategies =====

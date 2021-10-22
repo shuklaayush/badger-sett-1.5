@@ -94,7 +94,7 @@ def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxy
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token]
+        vault, [token]
     )
     # NOTE: Strategy starts unpaused
 
@@ -157,7 +157,7 @@ def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, 
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token]
+        vault, [token]
     )
     # NOTE: Strategy starts unpaused
 

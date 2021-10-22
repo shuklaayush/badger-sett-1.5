@@ -50,7 +50,7 @@ def deployed():
 
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(
-      governance, strategist, vault, keeper, guardian, [token]
+      vault, [token]
     )
     # NOTE: Strategy starts unpaused
 

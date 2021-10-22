@@ -108,30 +108,6 @@ def test_strategy_action_permissions(deployer, vault, strategy, want):
             with brownie.reverts("onlyGovernanceOrStrategist"):
                 vault.withdrawOther(vault, {"from": actor})
 
-
-def test_strategy_config_permissions(strategy):
-    randomUser = accounts[6]
-
-    randomUser = accounts[8]
-    # End Setup
-
-    governance = strategy.governance()
-
-    # Valid User should update
-    strategy.setGuardian(AddressZero, {"from": governance})
-    assert strategy.guardian() == AddressZero
-
-    strategy.setVault(AddressZero, {"from": governance})
-    assert strategy.vault() == AddressZero
-
-    # Invalid User should fail
-    with brownie.reverts("onlyGovernance"):
-        strategy.setGuardian(AddressZero, {"from": randomUser})
-
-    with brownie.reverts("onlyGovernance"):
-        strategy.setVault(AddressZero, {"from": randomUser})
-
-
 def test_strategy_pausing_permissions(deployer, vault, strategy, want):
     # Setup
     state_setup(deployer, vault, vault, strategy, want)

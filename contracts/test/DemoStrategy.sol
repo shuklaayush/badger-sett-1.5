@@ -19,19 +19,11 @@ contract DemoStrategy is BaseStrategy {
   /// @dev add any extra changeable variable at end of initializer as shown
   /// @notice Dev must implement
   function initialize(
-        address _governance,
-        address _strategist,
         address _vault,
-        address _keeper,
-        address _guardian,
         address[1] memory _wantConfig
     ) public initializer {
         __BaseStrategy_init(
-            _governance,
-            _strategist,
-            _vault,
-            _keeper,
-            _guardian
+            _vault
         );
         /// @dev Add config here
         want = _wantConfig[0];
@@ -76,17 +68,19 @@ contract DemoStrategy is BaseStrategy {
   function test_harvest() external whenNotPaused returns (uint256 harvested) {
     _onlyAuthorizedActors();
 
-    // Amount of want earned after harvest in terms of want
-    uint256 harvestAmount = 1 ether;
+    // Amount of want autocompounded after harvest in terms of want
+    harvested = 1 ether;
 
     // keep this to get paid!
     _reportToVault(
-      harvestAmount,
+      harvested,
       block.timestamp,
       balanceOfPool()
     ); 
     
-    return harvestAmount;
+    // _processRewardsFees(0, address(0)); // Pass in the amount of rewards not autocompounded and rewards token address
+    
+    return harvested;
   }
 
   function balanceOfPool() public view override returns (uint256) {

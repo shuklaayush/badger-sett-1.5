@@ -4,19 +4,6 @@ from brownie import *
 from helpers.constants import AddressZero
 
 ## Test Permissioned actions
-def test_setGuardian(deploy_complete, governance, rando):
-
-    strategy = deploy_complete.strategy
-
-    # setRewards from random user should fail
-    with brownie.reverts("onlyGovernance"): 
-        strategy.setGuardian(rando, {"from": rando})
-
-    # setting rewards address
-    strategy.setGuardian(rando, {"from": governance})
-
-    assert strategy.guardian() == rando
-
 def test_setVault(deploy_complete, governance, rando):
 
     strategy = deploy_complete.strategy
