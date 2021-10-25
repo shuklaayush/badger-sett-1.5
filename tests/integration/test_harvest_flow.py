@@ -5,9 +5,7 @@ from helpers.SnapshotManager import SnapshotManager
 from helpers.time import days
 
 
-def test_deposit_withdraw_single_user_flow(
-    deployer, vault, strategy, want, settKeeper
-):
+def test_deposit_withdraw_single_user_flow(deployer, vault, strategy, want, settKeeper):
     # Setup
     snap = SnapshotManager(vault, strategy, "StrategySnapshot")
     randomUser = accounts[6]
@@ -101,9 +99,7 @@ def test_single_user_harvest_flow(
     snap.settWithdraw(shares // 2 - 1, {"from": deployer})
 
 
-def test_migrate_single_user(
-    deployer, vault, strategy, want, strategist
-):
+def test_migrate_single_user(deployer, vault, strategy, want, strategist):
     # Setup
     randomUser = accounts[6]
     snap = SnapshotManager(vault, strategy, "StrategySnapshot")
@@ -243,16 +239,12 @@ def test_withdraw_other(deployer, vault, strategy, want):
 
     # Only Strategist/Goverance should be able to withdraw other tokens
     with brownie.reverts():
-        vault.inCaseStrategyTokenGetStuck(
-            strategy, mockToken, {"from": randomUser}
-        )
+        vault.inCaseStrategyTokenGetStuck(strategy, mockToken, {"from": randomUser})
 
     assert mockToken.balanceOf(vault) == mockAmount
 
 
-def test_single_user_harvest_flow_remove_fees(
-    deployer, vault, strategy, want
-):
+def test_single_user_harvest_flow_remove_fees(deployer, vault, strategy, want):
     # Setup
     randomUser = accounts[6]
     snap = SnapshotManager(vault, strategy, "StrategySnapshot")

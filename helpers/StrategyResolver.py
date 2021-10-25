@@ -11,9 +11,7 @@ class StrategyResolver(StrategyCoreResolver):
         (Strategy Must Implement)
         """
         strategy = self.manager.strategy
-        return {
-            
-        }
+        return {}
 
     def hook_after_confirm_withdraw(self, before, after, params):
         """

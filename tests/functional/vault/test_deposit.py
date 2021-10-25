@@ -5,9 +5,10 @@ from helpers.constants import MaxUint256
 from dotmap import DotMap
 import pytest
 
+
 @pytest.fixture
 def deposit_setup(deploy_complete, deployer, governance):
-    
+
     want = deploy_complete.want
     vault = deploy_complete.vault
 
@@ -25,11 +26,8 @@ def deposit_setup(deploy_complete, deployer, governance):
 
     want.approve(vault.address, MaxUint256, {"from": deployer})
 
-    return DotMap(
-        deployed_vault = vault,
-        want = want,
-        depositAmount = depositAmount
-    )
+    return DotMap(deployed_vault=vault, want=want, depositAmount=depositAmount)
+
 
 def test_deposit(deposit_setup, deployer, governance):
     vault = deposit_setup.deployed_vault
@@ -43,7 +41,7 @@ def test_deposit(deposit_setup, deployer, governance):
 
     balance_after_deposit = vault.balance()
 
-    assert balance_after_deposit - balance_before_deposit == depositAmount 
+    assert balance_after_deposit - balance_before_deposit == depositAmount
 
     # Test deposit when vault is paused
     vault.pause({"from": governance})
@@ -52,6 +50,7 @@ def test_deposit(deposit_setup, deployer, governance):
 
     with brownie.reverts("Pausable: paused"):
         vault.deposit(depositAmount, {"from": deployer})
+
 
 def test_depositFor(deposit_setup, deployer, governance, rando):
     vault = deposit_setup.deployed_vault
@@ -66,7 +65,7 @@ def test_depositFor(deposit_setup, deployer, governance, rando):
     balance_after_deposit = vault.balance()
 
     assert balance_after_deposit - balance_before_deposit == depositAmount
-    # check if balance is deposited for rando 
+    # check if balance is deposited for rando
     assert vault.balanceOf(rando) == depositAmount
 
     # Test deposit when vault is paused
@@ -77,10 +76,11 @@ def test_depositFor(deposit_setup, deployer, governance, rando):
     with brownie.reverts("Pausable: paused"):
         vault.depositFor(rando, depositAmount, {"from": deployer})
 
+
 def test_depositAll(deposit_setup, deployer, governance):
     vault = deposit_setup.deployed_vault
     want = deposit_setup.want
-    
+
     depositAmount = want.balanceOf(deployer)
 
     # Test depositAll
@@ -90,7 +90,7 @@ def test_depositAll(deposit_setup, deployer, governance):
 
     balance_after_deposit = vault.balance()
 
-    assert balance_after_deposit - balance_before_deposit == depositAmount 
+    assert balance_after_deposit - balance_before_deposit == depositAmount
 
     # Test deposit when vault is paused
     vault.pause({"from": governance})

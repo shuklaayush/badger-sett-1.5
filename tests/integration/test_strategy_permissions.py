@@ -15,7 +15,7 @@ def state_setup(deployer, sett, vault, strategy, want):
     startingBalance = want.balanceOf(deployer)
     depositAmount = int(startingBalance * 0.8)
     assert startingBalance >= depositAmount
-    
+
     want.approve(vault, MaxUint256, {"from": deployer})
     vault.deposit(depositAmount, {"from": deployer})
 
@@ -40,8 +40,6 @@ def state_setup(deployer, sett, vault, strategy, want):
     accounts.at(strategy.keeper(), force=True)
     accounts.at(strategy.guardian(), force=True)
     accounts.at(vault, force=True)
-
-
 
 
 def test_strategy_action_permissions(deployer, vault, strategy, want):
@@ -107,6 +105,7 @@ def test_strategy_action_permissions(deployer, vault, strategy, want):
         else:
             with brownie.reverts("onlyGovernanceOrStrategist"):
                 vault.withdrawOther(vault, {"from": actor})
+
 
 def test_strategy_pausing_permissions(deployer, vault, strategy, want):
     # Setup
@@ -232,7 +231,7 @@ def test_sett_config_permissions(deployer, vault, strategy, want):
     with brownie.reverts("onlyGovernance"):
         vault.setStrategy(AddressZero, {"from": randomUser})
 
-    if strategy.balanceOf() == 0 :
+    if strategy.balanceOf() == 0:
         vault.setStrategy(AddressZero, {"from": validActor})
     else:
         with brownie.reverts():

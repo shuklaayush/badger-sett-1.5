@@ -6,11 +6,12 @@ from brownie import (
     MockToken,
     AdminUpgradeabilityProxy,
     TestVipCappedGuestListBbtcUpgradeable,
-    accounts
+    accounts,
 )
 
 from helpers.constants import AddressZero
 from rich.console import Console
+
 console = Console()
 
 from dotmap import DotMap
@@ -23,11 +24,13 @@ managementFee = 50
 
 ################# Token #################
 
+
 @pytest.fixture
 def token(badger, deployer):
     token = MockToken.deploy({"from": deployer})
-    token.initialize([badger.address], [1000*10**18])
+    token.initialize([badger.address], [1000 * 10 ** 18])
     return token
+
 
 #########################################
 
@@ -38,33 +41,41 @@ def token(badger, deployer):
 def badger():
     yield accounts[0]
 
+
 @pytest.fixture
 def deployer():
     yield accounts[1]
+
 
 @pytest.fixture
 def governance():
     yield accounts[2]
 
+
 @pytest.fixture
 def keeper():
     yield accounts[3]
+
 
 @pytest.fixture
 def guardian():
     yield accounts[4]
 
+
 @pytest.fixture
 def proxyAdmin():
     yield accounts[5]
+
 
 @pytest.fixture
 def strategist():
     yield accounts[6]
 
+
 @pytest.fixture
 def rando():
     yield accounts[9]
+
 
 ###########################################
 
@@ -73,48 +84,89 @@ def rando():
 def deployed_vault(deployer, governance, keeper, guardian, strategist, token):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, governance, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        False,
+        "",
+        "",
+        [
+            performanceFeeGovernance,
+            performanceFeeStrategist,
+            withdrawalFee,
+            managementFee,
+        ],
     )
     return vault
 
+
 @pytest.fixture
-def deploy_complete(deployer, governance, keeper, guardian, badger, rando, proxyAdmin, strategist):
-    
+def deploy_complete(
+    deployer, governance, keeper, guardian, badger, rando, proxyAdmin, strategist
+):
+
     token = MockToken.deploy({"from": deployer})
-    token.initialize([deployer.address, rando.address], [100*10**18, 100*10**18])
+    token.initialize(
+        [deployer.address, rando.address], [100 * 10 ** 18, 100 * 10 ** 18]
+    )
     want = token
 
     # NOTE: change strategist
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, governance, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        False,
+        "",
+        "",
+        [
+            performanceFeeGovernance,
+            performanceFeeStrategist,
+            withdrawalFee,
+            managementFee,
+        ],
     )
     vault.setStrategist(strategist, {"from": governance})
     # NOTE: Vault starts unpaused
 
     strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(
-        vault, [token]
-    )
+    strategy.initialize(vault, [token])
     # NOTE: Strategy starts unpaused
 
     vault.setStrategy(strategy, {"from": governance})
 
     return DotMap(
-      vault=vault,
-      strategy=strategy,
-      want=want,
-      performanceFeeGovernance=performanceFeeGovernance,
-      performanceFeeStrategist=performanceFeeStrategist,
-      withdrawalFee=withdrawalFee
+        vault=vault,
+        strategy=strategy,
+        want=want,
+        performanceFeeGovernance=performanceFeeGovernance,
+        performanceFeeStrategist=performanceFeeStrategist,
+        withdrawalFee=withdrawalFee,
     )
 
+
 @pytest.fixture
-def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, guardian, strategist, token):
+def deployed_gueslist(
+    deployed_vault,
+    deployer,
+    governance,
+    proxyAdmin,
+    keeper,
+    guardian,
+    strategist,
+    token,
+):
     """
     Deploys TestVipCappedGuestListBbtcUpgradeable.sol for testing Guest List functionality
     """
-    
+
     # NOTE: Change accordingly
     vaultAddr = deployed_vault.address
     merkleRoot = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
@@ -125,10 +177,10 @@ def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, 
     # vault's governance address in order to set its guestlist parameters.
     dev = deployer
 
-    # Get actors 
+    # Get actors
     governance = governance
     proxyAdmin = proxyAdmin
-    
+
     assert governance != AddressZero
     assert proxyAdmin != AddressZero
 
@@ -156,18 +208,13 @@ def deployed_gueslist(deployed_vault, deployer, governance, proxyAdmin, keeper, 
     withdrawalFee = 50
 
     strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(
-        vault, [token]
-    )
+    strategy.initialize(vault, [token])
     # NOTE: Strategy starts unpaused
 
     vault.setStrategy(strategy, {"from": governance})
 
-    return DotMap(
-        vault = vault,
-        guestlist = guestlist,
-        strategy = strategy
-    )
+    return DotMap(vault=vault, guestlist=guestlist, strategy=strategy)
+
 
 def deploy_guestlist(dev, proxyAdmin, vaultAddr):
 
@@ -192,5 +239,6 @@ def deploy_guestlist(dev, proxyAdmin, vaultAddr):
     console.print("[green]Guestlist was deployed at: [/green]", guestlist_proxy.address)
 
     return guestlist_proxy
+
 
 #############################################

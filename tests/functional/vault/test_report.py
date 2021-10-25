@@ -7,11 +7,12 @@ import pytest
 import math
 
 MAX_BPS = 10_000
-SECS_PER_YEAR  = 31_556_952
+SECS_PER_YEAR = 31_556_952
+
 
 @pytest.fixture
 def setup_report(deploy_complete, deployer, governance):
-    
+
     want = deploy_complete.want
     vault = deploy_complete.vault
     strategy = deploy_complete.strategy
@@ -35,27 +36,29 @@ def setup_report(deploy_complete, deployer, governance):
     vault.earn({"from": governance})
 
     return DotMap(
-        vault = vault,
-        strategy = strategy,
-        want = want,
-        depositAmount = depositAmount
+        vault=vault, strategy=strategy, want=want, depositAmount=depositAmount
     )
+
 
 @pytest.fixture
 def vault(setup_report):
     return setup_report.vault
 
+
 @pytest.fixture
 def strategy(setup_report):
     return setup_report.strategy
+
 
 @pytest.fixture
 def want(setup_report):
     return setup_report.want
 
+
 @pytest.fixture
 def depositAmount(setup_report):
     return setup_report.depositAmount
+
 
 def setup_mint(strategy, want):
     ## Transfer some want to strategy which will represent harvest
@@ -65,8 +68,9 @@ def setup_mint(strategy, want):
     after_mint = strategy.balanceOf()
     assert after_mint - before_mint == mint_amount
 
+
 def test_report_failed(vault, strategy, governance, rando, keeper):
-    
+
     ## report should fail when vault is paused
     # Pausing vault
     vault.pause({"from": governance})
@@ -77,7 +81,7 @@ def test_report_failed(vault, strategy, governance, rando, keeper):
         strategy.test_harvest({"from": keeper})
 
     vault.unpause({"from": governance})
-    
+
     ## report should fail when strategy is paused
     # Pausing strategy
     strategy.pause({"from": governance})
@@ -99,15 +103,15 @@ def test_report_failed(vault, strategy, governance, rando, keeper):
 
 
 def test_report(vault, strategy, want, deployer, governance, depositAmount):
-    
+
     total_supply_before_harvest = vault.totalSupply()
     balanceOfPool_before_harvest = strategy.balanceOfPool()
 
-    ### Harvesting and reporting    
+    ### Harvesting and reporting
 
     # Sent 1 ether as want to strategy to represent harvest
     mintAmount = 1e18
-    
+
     last_harvest_time = vault.lastHarvestedAt()
 
     feeGovernance = (mintAmount * vault.performanceFeeGovernance()) / MAX_BPS
@@ -117,9 +121,19 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount):
 
     pricePerFullShare_before_fees = vault.getPricePerFullShare()
 
-    strategy.test_harvest({"from": governance}) # test_harvest to report harvest value to vault which will take respective fees
+    strategy.test_harvest(
+        {"from": governance}
+    )  # test_harvest to report harvest value to vault which will take respective fees
 
-    management_fee = (vault.balance() * vault.managementFee() * (vault.lastHarvestedAt() - last_harvest_time)) / MAX_BPS / SECS_PER_YEAR
+    management_fee = (
+        (
+            vault.balance()
+            * vault.managementFee()
+            * (vault.lastHarvestedAt() - last_harvest_time)
+        )
+        / MAX_BPS
+        / SECS_PER_YEAR
+    )
 
     total_supply_after_harvest = vault.totalSupply()
     pricePerFullShare_after_fees = vault.getPricePerFullShare()
@@ -135,18 +149,22 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount):
     earned_to_deposit_ratio = mintAmount / depositAmount
 
     # pricePerFullShare should be dilluted if fees are set, comparing with relative tolerance = 10^-9
-    assert math.isclose((pricePerFullShare_before_fees - pricePerFullShare_after_fees), (feeGovernance + feeStrategist + management_fee) * earned_to_deposit_ratio)
+    assert math.isclose(
+        (pricePerFullShare_before_fees - pricePerFullShare_after_fees),
+        (feeGovernance + feeStrategist + management_fee) * earned_to_deposit_ratio,
+    )
+
 
 def test_multiple_reports(vault, strategy, want, deployer, governance, depositAmount):
 
     total_supply_before_harvest = vault.totalSupply()
     balanceOfPool_before_harvest = strategy.balanceOfPool()
 
-    ### Harvesting and reporting    
+    ### Harvesting and reporting
 
     # Sent 1 ether as want to strategy to represent harvest
     mintAmount = 1e18
-    
+
     last_harvest_time = vault.lastHarvestedAt()
 
     feeGovernance = (mintAmount * vault.performanceFeeGovernance()) / MAX_BPS
@@ -155,13 +173,21 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
 
     setup_mint(strategy, want)
 
-    # -- 
+    # --
 
     pricePerFullShare_before_fees = vault.getPricePerFullShare()
 
     strategy.test_harvest({"from": governance})
 
-    management_fee = (vault.balance() * vault.managementFee() * (vault.lastHarvestedAt() - last_harvest_time)) / MAX_BPS / SECS_PER_YEAR
+    management_fee = (
+        (
+            vault.balance()
+            * vault.managementFee()
+            * (vault.lastHarvestedAt() - last_harvest_time)
+        )
+        / MAX_BPS
+        / SECS_PER_YEAR
+    )
 
     pricePerFullShare_after_fees = vault.getPricePerFullShare()
 
@@ -173,13 +199,16 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
     earned_to_deposit_ratio = mintAmount / depositAmount
 
     # pricePerFullShare should be dilluted if fees are set, comparing with relative tolerance = 10^-9
-    assert math.isclose((pricePerFullShare_before_fees - pricePerFullShare_after_fees), (feeGovernance + feeStrategist + management_fee) * earned_to_deposit_ratio)
+    assert math.isclose(
+        (pricePerFullShare_before_fees - pricePerFullShare_after_fees),
+        (feeGovernance + feeStrategist + management_fee) * earned_to_deposit_ratio,
+    )
 
     # Mint some more want to the strategy to represent 2nd harvest
-    
+
     setup_mint(strategy, want)
 
-    # -- 
+    # --
 
     pricePerFullShare_before_fees = vault.getPricePerFullShare()
     strategy.test_harvest({"from": governance})

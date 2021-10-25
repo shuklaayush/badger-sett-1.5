@@ -5,9 +5,10 @@ from helpers.constants import MaxUint256
 from dotmap import DotMap
 import pytest
 
+
 @pytest.fixture
 def withdraw_setup(deploy_complete, deployer, governance, rando, keeper):
-    
+
     want = deploy_complete.want
     vault = deploy_complete.vault
     strategy = deploy_complete.strategy
@@ -27,16 +28,14 @@ def withdraw_setup(deploy_complete, deployer, governance, rando, keeper):
     want.approve(vault.address, MaxUint256, {"from": deployer})
     vault.deposit(depositAmount, {"from": deployer})
     vault.earn({"from": governance})
-    
+
     return DotMap(
-        deployed_vault = vault,
-        want = want,
-        depositAmount = depositAmount,
-        strategy = strategy
+        deployed_vault=vault, want=want, depositAmount=depositAmount, strategy=strategy
     )
 
+
 def test_withdrawToVault(withdraw_setup, deployer, governance, rando):
-    
+
     want = withdraw_setup.want
     vault = withdraw_setup.deployed_vault
     strategy = withdraw_setup.strategy
@@ -44,13 +43,13 @@ def test_withdrawToVault(withdraw_setup, deployer, governance, rando):
     balance_in_strategy = strategy.balanceOf()
     balance_vault_before_withdrawToVault = want.balanceOf(vault)
 
-    # withdrawToVault should withdrawAll from the strategy and move it into vault 
-    
+    # withdrawToVault should withdrawAll from the strategy and move it into vault
+
     # should fail if msg.sender != strategist/governance
 
     with brownie.reverts("onlyGovernanceOrStrategist"):
         vault.withdrawToVault({"from": rando})
-    
+
     # withdrawToVault should fail if strategy is paused
     strategy.pause({"from": governance})
     with brownie.reverts("Pausable: paused"):
@@ -60,12 +59,15 @@ def test_withdrawToVault(withdraw_setup, deployer, governance, rando):
     vault.withdrawToVault({"from": governance})
 
     balance_vault_after_withdrawToVault = want.balanceOf(vault)
-    
-    assert balance_vault_after_withdrawToVault - balance_vault_before_withdrawToVault == balance_in_strategy
+
+    assert (
+        balance_vault_after_withdrawToVault - balance_vault_before_withdrawToVault
+        == balance_in_strategy
+    )
 
 
 def test_withdraw(withdraw_setup, deployer, governance, rando):
-    
+
     want = withdraw_setup.want
     vault = withdraw_setup.deployed_vault
     strategy = withdraw_setup.strategy
@@ -73,7 +75,7 @@ def test_withdraw(withdraw_setup, deployer, governance, rando):
 
     balance_in_strategy = strategy.balanceOf()
     balance_vault_before_withdraw = vault.balance()
-    
+
     withdraw_amount = depositAmount // 10
 
     # withdraw should fail if vault is paused
@@ -86,7 +88,10 @@ def test_withdraw(withdraw_setup, deployer, governance, rando):
 
     balance_vault_after_withdraw = vault.balance()
 
-    assert balance_vault_before_withdraw - balance_vault_after_withdraw == withdraw_amount
+    assert (
+        balance_vault_before_withdraw - balance_vault_after_withdraw == withdraw_amount
+    )
+
 
 def test_withdrawAll(withdraw_setup, deployer, governance, rando):
 
@@ -97,7 +102,7 @@ def test_withdrawAll(withdraw_setup, deployer, governance, rando):
 
     balance_in_strategy = strategy.balanceOf()
     balance_vault_before_withdraw = want.balanceOf(vault)
-    
+
     # withdrawAll should fail if vault is paused
     vault.pause({"from": governance})
     with brownie.reverts("Pausable: paused"):
@@ -123,9 +128,11 @@ def test_withdrawOther(withdraw_setup, deployer, governance, rando):
 
     # Creating another token
     token2 = MockToken.deploy({"from": deployer})
-    token2.initialize([deployer.address, rando.address], [100*10**18, 100*10**18])
+    token2.initialize(
+        [deployer.address, rando.address], [100 * 10 ** 18, 100 * 10 ** 18]
+    )
 
-    # sending token2 to strategy 
+    # sending token2 to strategy
     mintAmount = 100e18
     token2.mint(strategy, mintAmount)
 

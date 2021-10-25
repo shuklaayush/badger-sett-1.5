@@ -5,8 +5,9 @@ from helpers.constants import MaxUint256
 from dotmap import DotMap
 import pytest
 
+
 def test_earn(deploy_complete, deployer, governance, rando, keeper):
-    
+
     want = deploy_complete.want
     vault = deploy_complete.vault
     strategy = deploy_complete.strategy
@@ -34,12 +35,14 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
     # Deposit for deployer and earn
 
     vault.deposit(depositAmount_deployer, {"from": deployer})
-    
+
     # Trying to call earn from unauthorized actors should fail
     with brownie.reverts("onlyAuthorizedActors"):
         vault.earn({"from": rando})
 
-    available_before_earn = vault.available() # this amount should be deposited into the strategy
+    available_before_earn = (
+        vault.available()
+    )  # this amount should be deposited into the strategy
     vault.earn({"from": governance})
 
     assert strategy.balanceOf() == available_before_earn
@@ -47,9 +50,11 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
     # Now rando user deposits and earn
 
     vault.deposit(depositAmount_rando, {"from": rando})
-    
+
     before_earn_balance_strat = strategy.balanceOf()
-    available_before_earn = vault.available() # this amount should be deposited into the strategy
+    available_before_earn = (
+        vault.available()
+    )  # this amount should be deposited into the strategy
     vault.earn({"from": governance})
 
     after_earn_balance_strat = strategy.balanceOf()

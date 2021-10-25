@@ -1,8 +1,5 @@
 import brownie
-from brownie import (
-    Vault,
-    DemoStrategy
-)
+from brownie import Vault, DemoStrategy
 
 from helpers.constants import AddressZero
 
@@ -13,20 +10,32 @@ managementFee = 50
 
 # Test's strategy's deployment
 def test_strategy_deployment(deployer, governance, keeper, guardian, strategist, token):
-    
+
     want = token
 
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-      token, governance, keeper, guardian, governance, strategist, False, "", "", [performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee]
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        False,
+        "",
+        "",
+        [
+            performanceFeeGovernance,
+            performanceFeeStrategist,
+            withdrawalFee,
+            managementFee,
+        ],
     )
     vault.setStrategist(strategist, {"from": governance})
     # NOTE: Vault starts unpaused
 
     strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(
-      vault, [token]
-    )
+    strategy.initialize(vault, [token])
     # NOTE: Strategy starts unpaused
 
     # Addresses
