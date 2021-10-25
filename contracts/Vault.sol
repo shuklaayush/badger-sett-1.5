@@ -454,6 +454,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
 
+
         // Check balance
         uint256 b = token.balanceOf(address(this));
         if (b < r) {
@@ -467,7 +468,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         }
 
         // Process withdrawal fee
-        uint256 _fee = _processFee(r, withdrawalFee);
+        uint256 _fee = _calculateFee(r, withdrawalFee);
         IERC20Upgradeable(token).safeTransfer(rewards, _fee);
 
         token.safeTransfer(msg.sender, r.sub(_fee));
@@ -475,7 +476,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @dev function to process an arbitrary fee
     /// @return fee : amount of fees to take
-    function _processFee(uint256 amount, uint256 feeBps) internal returns (uint256 fee) {
+    function _calculateFee(uint256 amount, uint256 feeBps) internal pure returns (uint256 fee) {
         if (feeBps == 0) {
             return 0;
         }
@@ -484,10 +485,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// @dev used to manage the governance and strategist fee, make sure to use it to get paid!
-    function _processPerformanceFees(uint256 _amount) internal returns (uint256 governancePerformanceFee, uint256 strategistPerformanceFee) {
-        governancePerformanceFee = _processFee(_amount, performanceFeeGovernance);
+    function _calculatePerformanceFee(uint256 _amount) internal view returns (uint256 governancePerformanceFee, uint256 strategistPerformanceFee) {
+        governancePerformanceFee = _calculateFee(_amount, performanceFeeGovernance);
 
-        strategistPerformanceFee = _processFee(_amount, performanceFeeStrategist);
+        strategistPerformanceFee = _calculateFee(_amount, performanceFeeStrategist);
 
         return (governancePerformanceFee, strategistPerformanceFee);
     }
@@ -509,7 +510,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @dev called by function report to handle minting of
     function _handleFees(uint256 _harvestedAmount, uint256 _harvestTime) internal {
-        (uint256 feeStrategist, uint256 feeGovernance) = _processPerformanceFees(_harvestedAmount);
+        (uint256 feeStrategist, uint256 feeGovernance) = _calculatePerformanceFee(_harvestedAmount);
         uint256 duration = _harvestTime.sub(lastHarvestedAt);
         uint256 management_fee = managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(MAX);
         uint256 totalGovernanceFee = feeGovernance + management_fee;
