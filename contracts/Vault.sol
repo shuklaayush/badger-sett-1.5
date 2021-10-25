@@ -12,10 +12,10 @@ import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 import "./lib/SettAccessControl.sol";
 
-import {IVault} from "interfaces/badger/IVault.sol";
-import {IStrategy} from "interfaces/badger/IStrategy.sol";
-import {IERC20Detailed} from "interfaces/erc20/IERC20Detailed.sol";
-import {BadgerGuestListAPI} from "interfaces/yearn/BadgerGuestlistApi.sol";
+import {IVault} from "../interfaces/badger/IVault.sol";
+import {IStrategy} from "../interfaces/badger/IStrategy.sol";
+import {IERC20Detailed} from "../interfaces/erc20/IERC20Detailed.sol";
+import {BadgerGuestListAPI} from "../interfaces/yearn/BadgerGuestlistApi.sol";
 
 /*
     Source: https://github.com/iearn-finance/yearn-protocol/blob/develop/contracts/vaults/yVault.sol

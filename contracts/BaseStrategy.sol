@@ -12,8 +12,8 @@ import "@openzeppelin-contracts-upgradeable/proxy/Initializable.sol";
 
 import "./lib/SettAccessControl.sol";
 
-import "interfaces/badger/IStrategy.sol";
-import "interfaces/badger/IVault.sol";
+import "../interfaces/badger/IStrategy.sol";
+import "../interfaces/badger/IVault.sol";
 
 /*
     ===== Badger Base Strategy =====
