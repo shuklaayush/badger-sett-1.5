@@ -55,6 +55,32 @@ A brief explanation of flags:
 - `-s` - provides iterative display of the tests being executed
 - `--coverage` - generates a test coverage report
 
+## Formatting
+
+Check linter rules for `*.json` and `*.sol` files:
+
+```bash
+yarn lint:check
+```
+
+Fix linter errors for `*.json` and `*.sol` files:
+
+```bash
+yarn lint:fix
+```
+
+Check linter rules for `*.py` files:
+
+```bash
+black . --check
+```
+
+Fix linter errors for `*.py` files:
+
+```bash
+black .
+```
+
 ## TODO:
 
 - Add deposit hook on vault to warn the rewards contract.
