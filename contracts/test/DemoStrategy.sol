@@ -5,26 +5,19 @@ pragma solidity ^0.6.12;
 import {BaseStrategy} from "../BaseStrategy.sol";
 
 contract DemoStrategy is BaseStrategy {
+    // address public want; // Inherited from BaseStrategy
+    // address public lpComponent; // Token that represents ownership in a pool, not always used
+    // address public reward; // Token we farm
 
-  // address public want; // Inherited from BaseStrategy
-  // address public lpComponent; // Token that represents ownership in a pool, not always used
-  // address public reward; // Token we farm
+    /// @notice set using setAutoCompoundRatio()
+    // uint256 public autoCompoundRatio = 10_000; // Inherited from BaseStrategy - percentage of rewards converted to want
 
-  /// @notice set using setAutoCompoundRatio()
-  // uint256 public autoCompoundRatio = 10_000; // Inherited from BaseStrategy - percentage of rewards converted to want
-
-
-  /// @dev Initialize the Strategy with security settings as well as tokens
-  /// @notice Proxies will set any non constant variable you declare as default value
-  /// @dev add any extra changeable variable at end of initializer as shown
-  /// @notice Dev must implement
-  function initialize(
-        address _vault,
-        address[1] memory _wantConfig
-    ) public initializer {
-        __BaseStrategy_init(
-            _vault
-        );
+    /// @dev Initialize the Strategy with security settings as well as tokens
+    /// @notice Proxies will set any non constant variable you declare as default value
+    /// @dev add any extra changeable variable at end of initializer as shown
+    /// @notice Dev must implement
+    function initialize(address _vault, address[1] memory _wantConfig) public initializer {
+        __BaseStrategy_init(_vault);
         /// @dev Add config here
         want = _wantConfig[0];
 
@@ -32,62 +25,58 @@ contract DemoStrategy is BaseStrategy {
         // stakingContract = 0x79ba8b76F61Db3e7D994f7E384ba8f7870A043b7;
     }
 
-  function getName() external pure override returns (string memory) {
-    return "DemoStrategy";
-  }
+    function getName() external pure override returns (string memory) {
+        return "DemoStrategy";
+    }
 
-  function getProtectedTokens() public virtual view override returns (address[] memory) {
-    address[] memory protectedTokens = new address[](1);
-    protectedTokens[0] = want;
-    return protectedTokens;
-  }
+    function getProtectedTokens() public view virtual override returns (address[] memory) {
+        address[] memory protectedTokens = new address[](1);
+        protectedTokens[0] = want;
+        return protectedTokens;
+    }
 
-  function _deposit(uint256 _want) internal override {
-    // No-op as we don't do anything
-  }
+    function _deposit(uint256 _want) internal override {
+        // No-op as we don't do anything
+    }
 
-  function _withdrawAll() internal override {
-    // No-op as we don't deposit
-  }
+    function _withdrawAll() internal override {
+        // No-op as we don't deposit
+    }
 
-  function _withdrawSome(uint256 _want) internal override returns (uint256) {
-    return _want;
-  }
+    function _withdrawSome(uint256 _want) internal override returns (uint256) {
+        return _want;
+    }
 
-  function harvest() external override whenNotPaused returns (uint256 harvested) {
-    _onlyAuthorizedActors();
-    // No-op as we don't do anything with funds
-    // use autoCompoundRatio here to convert rewards to want ...
-    // keep this to get paid!
-    // _reportToVault(earned, block.timestamp, balanceOfPool());
-    return 0;
-  }
+    function harvest() external override whenNotPaused returns (uint256 harvested) {
+        _onlyAuthorizedActors();
+        // No-op as we don't do anything with funds
+        // use autoCompoundRatio here to convert rewards to want ...
+        // keep this to get paid!
+        // _reportToVault(earned, block.timestamp, balanceOfPool());
+        return 0;
+    }
 
-  /// @dev function to test harvest -
-  // NOTE: want of 1 ether would be minted directly to DemoStrategy and this function would be called
-  function test_harvest() external whenNotPaused returns (uint256 harvested) {
-    _onlyAuthorizedActors();
+    /// @dev function to test harvest -
+    // NOTE: want of 1 ether would be minted directly to DemoStrategy and this function would be called
+    function test_harvest() external whenNotPaused returns (uint256 harvested) {
+        _onlyAuthorizedActors();
 
-    // Amount of want autocompounded after harvest in terms of want
-    harvested = 1 ether;
+        // Amount of want autocompounded after harvest in terms of want
+        harvested = 1 ether;
 
-    // keep this to get paid!
-    _reportToVault(
-      harvested,
-      block.timestamp,
-      balanceOfPool()
-    ); 
-    
-    // _processRewardsFees(0, address(0)); // Pass in the amount of rewards not autocompounded and rewards token address
-    
-    return harvested;
-  }
+        // keep this to get paid!
+        _reportToVault(harvested, block.timestamp, balanceOfPool());
 
-  function balanceOfPool() public view override returns (uint256) {
-    return 0;
-  }
+        // _processRewardsFees(0, address(0)); // Pass in the amount of rewards not autocompounded and rewards token address
 
-  function balanceOfRewards() public view override returns (uint256) {
-    return 0;
-  }
+        return harvested;
+    }
+
+    function balanceOfPool() public view override returns (uint256) {
+        return 0;
+    }
+
+    function balanceOfRewards() public view override returns (uint256) {
+        return 0;
+    }
 }

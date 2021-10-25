@@ -133,7 +133,6 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         } else {
             return false;
         }
-
     }
 
     function _setGuests(address[] memory _guests, bool[] memory _invited) internal {
@@ -150,5 +149,4 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         bytes32 node = keccak256(abi.encodePacked(account));
         return MerkleProofUpgradeable.verify(merkleProof, guestRoot, node);
     }
-
 }

@@ -42,9 +42,9 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     address public want; // Token used for deposits
     address public vault; // address of the vault the strategy is connected to
-    
+
     uint256 public withdrawalMaxDeviationThreshold; // max allowed slippage when withdrawing
-    
+
     uint256 public constant MAX = 10_000; // MAX in terms of BPS = 100%
 
     /// @notice percentage of rewards converted to want
@@ -55,16 +55,14 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// 10_000: converting all rewards tokens to want token
     uint256 public autoCompoundRatio = 10_000;
 
-    function __BaseStrategy_init(
-        address _vault
-    ) public initializer whenNotPaused {
+    function __BaseStrategy_init(address _vault) public initializer whenNotPaused {
         __Pausable_init();
-        
+
         vault = _vault;
-                
+
         withdrawalMaxDeviationThreshold = 50;
     }
-    
+
     // ===== Modifiers =====
 
     function _onlyGovernance() internal view {
@@ -102,11 +100,11 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     }
 
     /// @notice Get the total balance of want realized in the strategy, whether idle or active in Strategy positions.
-    function balanceOf() public virtual view override returns (uint256) {
+    function balanceOf() public view virtual override returns (uint256) {
         return balanceOfWant().add(balanceOfPool());
     }
 
-    function isTendable() public virtual view returns (bool) {
+    function isTendable() public view virtual returns (bool) {
         return false;
     }
 
@@ -228,7 +226,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @notice strategy should have idle funds >= _amount for this to happen
     /// @param _amount: the amount of want token to transfer to vault
     function _transferToVault(uint256 _amount) internal {
-        if(_amount > 0) {
+        if (_amount > 0) {
             IERC20Upgradeable(want).safeTransfer(vault, _amount);
         }
     }
@@ -237,7 +235,11 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @param _harvestedAmount: amount of want token autocompounded during harvest
     /// @param _harvestTime: timestamp of harvest
     /// @param _assetsAtLastHarvest: assets in pool for which the harvest took place.
-    function _reportToVault(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest) internal whenNotPaused {
+    function _reportToVault(
+        uint256 _harvestedAmount,
+        uint256 _harvestTime,
+        uint256 _assetsAtLastHarvest
+    ) internal whenNotPaused {
         IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest);
     }
 
@@ -259,24 +261,10 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     }
 
     /// @dev used to manage the governance and strategist fee on earned rewards, make sure to use it to get paid!
-    function _processRewardsFees(uint256 _amount, address _token)
-        internal
-        returns (uint256 governanceRewardsFee, uint256 strategistRewardsFee)
-    {
-        
-        governanceRewardsFee = _processFee(
-            _token,
-            _amount,
-            IVault(vault).performanceFeeGovernance(),
-            IVault(vault).rewards()
-        );
+    function _processRewardsFees(uint256 _amount, address _token) internal returns (uint256 governanceRewardsFee, uint256 strategistRewardsFee) {
+        governanceRewardsFee = _processFee(_token, _amount, IVault(vault).performanceFeeGovernance(), IVault(vault).rewards());
 
-        strategistRewardsFee = _processFee(
-            _token,
-            _amount,
-            IVault(vault).performanceFeeStrategist(),
-            strategist()
-        );
+        strategistRewardsFee = _processFee(_token, _amount, IVault(vault).performanceFeeStrategist(), strategist());
 
         return (governanceRewardsFee, strategistRewardsFee);
     }
@@ -286,7 +274,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         require(a >= b, "diff/expected-higher-number-in-first-position");
         return a.sub(b);
     }
-    
+
     function setAutoCompoundRatio(uint256 _ratio) internal {
         require(_ratio <= MAX, "base-strategy/excessive-auto-compound-ratio");
         autoCompoundRatio = _ratio;
@@ -310,7 +298,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev Gives the list of protected tokens
     /// @return array of protected tokens
-    function getProtectedTokens() public virtual view returns (address[] memory);
+    function getProtectedTokens() public view virtual returns (address[] memory);
 
     /// @dev Internal logic for strategy migration. Should exit positions as efficiently as possible
     function _withdrawAll() internal virtual;
@@ -328,16 +316,16 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev User-friendly name for this strategy for purposes of convenient reading
     /// @return Name of the strategy
-    function getName() external virtual pure returns (string memory);
+    function getName() external pure virtual returns (string memory);
 
     /// @dev Balance of want currently held in strategy positions
     /// @return balance of want held in strategy positions
-    function balanceOfPool() public virtual view override returns (uint256);
+    function balanceOfPool() public view virtual override returns (uint256);
 
-    /// @dev Calculate the total amount of rewards accured. 
+    /// @dev Calculate the total amount of rewards accured.
     /// @notice if there are multiple reward tokens this function should take all of them into account
     /// @return the amount of rewards accured
-    function balanceOfRewards() public virtual view override returns (uint256);
+    function balanceOfRewards() public view virtual override returns (uint256);
 
     uint256[49] private __gap;
 }

@@ -17,7 +17,6 @@ import {IStrategy} from "interfaces/badger/IStrategy.sol";
 import {IERC20Detailed} from "interfaces/erc20/IERC20Detailed.sol";
 import {BadgerGuestListAPI} from "interfaces/yearn/BadgerGuestlistApi.sol";
 
-
 /*
     Source: https://github.com/iearn-finance/yearn-protocol/blob/develop/contracts/vaults/yVault.sol
     
@@ -67,7 +66,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     BadgerGuestListAPI public guestList; // guestlist when vault is in experiment/ guarded state
 
     address public strategy; // address of the strategy connected to the vault
-    address public guardian; // guardian of vault and strategy 
+    address public guardian; // guardian of vault and strategy
     address public treasury; // set by governance ... any fees go there
 
     address public rewards; // address of rewards contract
@@ -76,7 +75,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     string internal constant _defaultNamePrefix = "Badger Sett ";
     string internal constant _symbolSymbolPrefix = "b";
 
-    /// Params to track autocompounded rewards 
+    /// Params to track autocompounded rewards
     uint256 public lifeTimeEarned; // keeps track of total earnings
     uint256 public lastHarvestedAt; // timestamp of the last harvest
     uint256 public lastHarvestAmount; // amount harvested during last harvest
@@ -84,7 +83,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// Fees ///
     /// @notice all fees will be in bps
-    
+
     uint256 public performanceFeeGovernance;
     uint256 public performanceFeeStrategist;
     uint256 public withdrawalFee;
@@ -98,7 +97,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     // Constants
     uint256 public constant MAX = 10_000;
-    uint256 public constant SECS_PER_YEAR  = 31_556_952;  // 365.2425 days
+    uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
     event FullPricePerShareUpdated(uint256 value, uint256 indexed timestamp, uint256 indexed blockNumber);
 
@@ -114,7 +113,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         string memory _symbolPrefix,
         uint256[4] memory _feeConfig
     ) public initializer whenNotPaused {
-
         require(_token != address(0)); // dev: _token address should not be zero
 
         IERC20Detailed namedToken = IERC20Detailed(_token);
@@ -153,13 +151,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         maxWithdrawalFee = 100; // 1% maximum withdrawal fee
         maxManagementFee = 200; // 2% maximum management fee
 
-        min = 10_000; // initial value of min 
+        min = 10_000; // initial value of min
 
         emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
     }
 
     /// ===== Modifiers ====
-
 
     function _onlyAuthorizedPausers() internal view {
         require(msg.sender == guardian || msg.sender == governance, "onlyPausers");
@@ -171,7 +168,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         return "1.5";
     }
 
-    function getPricePerFullShare() public virtual view returns (uint256) {
+    function getPricePerFullShare() public view virtual returns (uint256) {
         if (totalSupply() == 0) {
             return 1e18;
         }
@@ -180,14 +177,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @notice Return the total balance of the underlying token within the system
     /// @notice Sums the balance in the Sett and the Strategy
-    function balance() public virtual view returns (uint256) {
+    function balance() public view virtual returns (uint256) {
         return token.balanceOf(address(this)).add(IStrategy(strategy).balanceOf());
     }
 
     /// @notice Defines how much of the Setts' underlying can be borrowed by the Strategy for use
     /// @notice Custom logic in here for how much the vault allows to be borrowed
     /// @notice Sets minimum required on-hand to keep small withdrawals cheap
-    function available() public virtual view returns (uint256) {
+    function available() public view virtual returns (uint256) {
         return token.balanceOf(address(this)).mul(min).div(MAX);
     }
 
@@ -240,20 +237,24 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// ===== Permissioned Actions: Strategy =====
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees
-    function report(uint256 _harvestedAmount, uint256 _harvestTime, uint256 _assetsAtLastHarvest) external whenNotPaused {
+    function report(
+        uint256 _harvestedAmount,
+        uint256 _harvestTime,
+        uint256 _assetsAtLastHarvest
+    ) external whenNotPaused {
         require(msg.sender == strategy, "onlyStrategy");
 
         _handleFees(_harvestedAmount, _harvestTime);
-        
+
         lastHarvestAmount = _harvestedAmount;
-        
+
         // if we withdrawnAll from strategy and then harvest _assetsAtLastHarvest == 0 therefore dont change assetsAtLastHarvest
-        if (_assetsAtLastHarvest !=0) {
+        if (_assetsAtLastHarvest != 0) {
             assetsAtLastHarvest = _assetsAtLastHarvest;
         } else if (_assetsAtLastHarvest == 0 && lastHarvestAmount == 0) {
             assetsAtLastHarvest = 0;
         }
-        
+
         lifeTimeEarned += lastHarvestAmount;
         lastHarvestedAt = _harvestTime;
     }
@@ -271,9 +272,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     function setStrategy(address _strategy) external whenNotPaused {
-        _onlyGovernance(); 
+        _onlyGovernance();
         /// NOTE: Migrate funds if settings strategy when already existing one
-        if(strategy != address(0)){
+        if (strategy != address(0)) {
             require(IStrategy(strategy).balanceOf() == 0, "Please withdrawAll before changing strat");
         }
         strategy = _strategy;
@@ -390,13 +391,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @dev Transfer an amount of the specified token from the vault to the sender.
     /// @dev Token balance are never meant to exist in the controller, this is purely a safeguard.
-    function inCaseStrategyTokenGetStuck(address _strategy, address _token)
-        public
-    {
+    function inCaseStrategyTokenGetStuck(address _strategy, address _token) public {
         _onlyGovernanceOrStrategist();
         IStrategy(_strategy).withdrawOther(_token);
     }
-
 
     function pause() external {
         _onlyAuthorizedPausers();
@@ -477,10 +475,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @dev function to process an arbitrary fee
     /// @return fee : amount of fees to take
-    function _processFee(
-        uint256 amount,
-        uint256 feeBps
-    ) internal returns (uint256 fee) {
+    function _processFee(uint256 amount, uint256 feeBps) internal returns (uint256 fee) {
         if (feeBps == 0) {
             return 0;
         }
@@ -489,28 +484,20 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// @dev used to manage the governance and strategist fee, make sure to use it to get paid!
-    function _processPerformanceFees(uint256 _amount)
-        internal
-        returns (
-            uint256 governancePerformanceFee,
-            uint256 strategistPerformanceFee
-        )
-    {
-        governancePerformanceFee = _processFee(
-            _amount,
-            performanceFeeGovernance
-        );
+    function _processPerformanceFees(uint256 _amount) internal returns (uint256 governancePerformanceFee, uint256 strategistPerformanceFee) {
+        governancePerformanceFee = _processFee(_amount, performanceFeeGovernance);
 
-        strategistPerformanceFee = _processFee(
-            _amount,
-            performanceFeeStrategist
-        );
+        strategistPerformanceFee = _processFee(_amount, performanceFeeStrategist);
 
         return (governancePerformanceFee, strategistPerformanceFee);
     }
 
     /// @dev mints performance fees shares for governance and strategist
-    function _mintPerformanceFeeSharesFor(address recipient, uint256 _amount, uint256 _pool) internal {
+    function _mintPerformanceFeeSharesFor(
+        address recipient,
+        uint256 _amount,
+        uint256 _pool
+    ) internal {
         uint256 shares = 0;
         if (totalSupply() == 0) {
             shares = _amount;
@@ -520,9 +507,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         _mint(recipient, shares);
     }
 
-    /// @dev called by function report to handle minting of 
+    /// @dev called by function report to handle minting of
     function _handleFees(uint256 _harvestedAmount, uint256 _harvestTime) internal {
-        
         (uint256 feeStrategist, uint256 feeGovernance) = _processPerformanceFees(_harvestedAmount);
         uint256 duration = _harvestTime.sub(lastHarvestedAt);
         uint256 management_fee = managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(MAX);
@@ -539,7 +525,5 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
             /// NOTE: adding feeGovernance backed to _pool as shares would have been issued for it.
             _mintPerformanceFeeSharesFor(strategist, feeStrategist, _pool.add(totalGovernanceFee));
         }
-
     }
-
 }

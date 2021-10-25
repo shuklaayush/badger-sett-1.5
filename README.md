@@ -60,13 +60,13 @@ A brief explanation of flags:
 Check linter rules for `*.json` and `*.sol` files:
 
 ```bash
-yarn lint:check
+yarn format:check
 ```
 
 Fix linter errors for `*.json` and `*.sol` files:
 
 ```bash
-yarn lint:fix
+yarn format
 ```
 
 Check linter rules for `*.py` files:
