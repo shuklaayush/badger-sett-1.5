@@ -365,7 +365,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// @notice can only be called by governance or strategist
-    function SweepExtraToken(address _token) external {
+    function sweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
         uint256 _balance = IStrategy(strategy).withdrawOther(_token);
 
