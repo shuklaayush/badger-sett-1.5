@@ -191,12 +191,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// ===== Public Actions =====
 
     /// @notice Deposit assets into the Sett, and return corresponding shares to the user
-    function deposit(uint256 _amount) public whenNotPaused {
+    function deposit(uint256 _amount) external whenNotPaused {
         _depositWithAuthorization(_amount, new bytes32[](0));
     }
 
     /// @notice Deposit variant with proof for merkle guest list
-    function deposit(uint256 _amount, bytes32[] memory proof) public whenNotPaused {
+    function deposit(uint256 _amount, bytes32[] memory proof) external whenNotPaused {
         _depositWithAuthorization(_amount, proof);
     }
 
@@ -211,7 +211,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// @notice Deposit assets into the Sett, and return corresponding shares to the user
-    function depositFor(address _recipient, uint256 _amount) public whenNotPaused {
+    function depositFor(address _recipient, uint256 _amount) external whenNotPaused {
         _depositForWithAuthorization(_recipient, _amount, new bytes32[](0));
     }
 
@@ -220,12 +220,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         address _recipient,
         uint256 _amount,
         bytes32[] memory proof
-    ) public whenNotPaused {
+    ) external whenNotPaused {
         _depositForWithAuthorization(_recipient, _amount, proof);
     }
 
     /// @notice No rebalance implementation for lower fees and faster swaps
-    function withdraw(uint256 _shares) public whenNotPaused {
+    function withdraw(uint256 _shares) external whenNotPaused {
         _withdraw(_shares);
     }
 
@@ -260,7 +260,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// ===== Permissioned Actions: Governance =====
-
+    
     function setRewards(address _rewards) external whenNotPaused {
         _onlyGovernance();
         rewards = _rewards;
@@ -359,13 +359,13 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @dev Withdraws all funds from Strategy and deposits into vault
     /// @notice can only be called by governance or strategist
-    function withdrawToVault() public {
+    function withdrawToVault() external {
         _onlyGovernanceOrStrategist();
         IStrategy(strategy).withdrawToVault();
     }
 
     /// @notice can only be called by governance or strategist
-    function withdrawOther(address _token) public {
+    function SweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
         uint256 _balance = IStrategy(strategy).withdrawOther(_token);
 
@@ -374,7 +374,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @notice Transfer the underlying available to be claimed to the strategy
     /// @notice The strategy will use for yield-generating activities
-    function earn() public whenNotPaused {
+    function earn() external whenNotPaused {
         _onlyAuthorizedActors();
 
         uint256 _bal = available();
@@ -387,13 +387,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function trackFullPricePerShare() external whenNotPaused {
         _onlyAuthorizedActors();
         emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
-    }
-
-    /// @dev Transfer an amount of the specified token from the vault to the sender.
-    /// @dev Token balance are never meant to exist in the controller, this is purely a safeguard.
-    function inCaseStrategyTokenGetStuck(address _strategy, address _token) public {
-        _onlyGovernanceOrStrategist();
-        IStrategy(_strategy).withdrawOther(_token);
     }
 
     function pause() external {

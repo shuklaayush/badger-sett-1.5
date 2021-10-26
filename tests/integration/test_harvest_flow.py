@@ -232,14 +232,14 @@ def test_withdraw_other(deployer, vault, strategy, want):
 
     for token in protectedTokens:
         with brownie.reverts():
-            vault.inCaseStrategyTokenGetStuck(strategy, token, {"from": deployer})
+            vault.SweepExtraToken(strategy, token, {"from": deployer})
 
     # Should send balance of non-protected token to sender
-    vault.inCaseStrategyTokenGetStuck(strategy, mockToken, {"from": deployer})
+    vault.SweepExtraToken(strategy, mockToken, {"from": deployer})
 
     # Only Strategist/Goverance should be able to withdraw other tokens
     with brownie.reverts():
-        vault.inCaseStrategyTokenGetStuck(strategy, mockToken, {"from": randomUser})
+        vault.SweepExtraToken(strategy, mockToken, {"from": randomUser})
 
     assert mockToken.balanceOf(vault) == mockAmount
 
