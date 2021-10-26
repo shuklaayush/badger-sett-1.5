@@ -12,6 +12,11 @@ interface IVault {
     uint256 _assetsAtLastHarvest
   ) external;
 
+  function reportAdditionalToken(
+    uint256 _amount, 
+    address _token
+  ) external;
+
   // Fees
   function performanceFeeGovernance() external view returns (uint256);
   function performanceFeeStrategist() external view returns (uint256);
