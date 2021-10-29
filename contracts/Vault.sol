@@ -395,6 +395,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @notice can only be called by governance or strategist
     function withdrawOtherFromVault(address _token) public {
+        require(_token != token); // dev: can't rug want
         _onlyGovernanceOrStrategist();
         uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
 
