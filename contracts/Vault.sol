@@ -407,6 +407,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice Transfer the underlying available to be claimed to the strategy
     /// @notice The strategy will use for yield-generating activities
     function earn() external whenNotPaused {
+        require(!pausedDeposit); // dev: deposits are paused, we don't earn as well
         _onlyAuthorizedActors();
 
         uint256 _bal = available();
