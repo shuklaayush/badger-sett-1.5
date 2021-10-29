@@ -155,9 +155,9 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     function deposit() public virtual whenNotPaused {
         _onlyAuthorizedActorsOrVault();
-        uint256 _want = IERC20Upgradeable(want).balanceOf(address(this));
-        if (_want > 0) {
-            _deposit(_want);
+        uint256 _amount = IERC20Upgradeable(want).balanceOf(address(this));
+        if (_amount > 0) {
+            _deposit(_amount);
         }
         _postDeposit();
     }
