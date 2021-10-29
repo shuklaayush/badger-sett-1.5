@@ -65,6 +65,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     IERC20Upgradeable public token; // Token used for deposits
     BadgerGuestListAPI public guestList; // guestlist when vault is in experiment/ guarded state
 
+    bool public pausedDeposit; // false by default Allows to only block deposits, use pause for the normal pause state
+
     address public strategy; // address of the strategy connected to the vault
     address public guardian; // guardian of vault and strategy
     address public treasury; // set by governance ... any fees go there
@@ -388,8 +390,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice can only be called by governance or strategist
     function sweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
+        // Safe because check for tokens is done in the strategy
         uint256 _balance = IStrategy(strategy).withdrawOther(_token);
-
         IERC20Upgradeable(_token).safeTransfer(governance, _balance);
     }
 
@@ -397,8 +399,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function withdrawOtherFromVault(address _token) public {
         require(_token != address(token)); // dev: can't rug want
         _onlyGovernanceOrStrategist();
-        uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
 
+        uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
         IERC20Upgradeable(_token).safeTransfer(governance, _balance);
     }
 
@@ -417,6 +419,15 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function trackFullPricePerShare() external whenNotPaused {
         _onlyAuthorizedActors();
         emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
+    }
+
+    function pauseDeposits() external {
+        _onlyAuthorizedPausers();
+        pausedDeposit = true;
+    }
+    function unpauseDeposits() external {
+        _onlyAuthorizedPausers();
+        pausedDeposit = false;
     }
 
     function pause() external {
@@ -439,6 +450,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     function _depositFor(address recipient, uint256 _amount) internal virtual {
+        require(!pausedDeposit); // dev: deposits are paused
+        
         uint256 _pool = balance();
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
