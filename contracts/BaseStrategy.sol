@@ -159,7 +159,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         if (_amount > 0) {
             _deposit(_amount);
         }
-        _postDeposit();
     }
 
     // ===== Permissioned Actions: Vault =====
@@ -266,10 +265,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @dev Internal deposit logic to be implemented by Stratgies
     /// @param _want: the amount of want token to be deposited into the strategy
     function _deposit(uint256 _want) internal virtual;
-
-    function _postDeposit() internal virtual {
-        //no-op by default
-    }
 
     /// @notice Specify tokens used in yield process, should not be available to withdraw via withdrawOther()
     /// @param _asset: address of asset
