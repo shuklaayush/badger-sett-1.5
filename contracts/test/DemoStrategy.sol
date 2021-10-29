@@ -21,8 +21,16 @@ contract DemoStrategy is BaseStrategy {
         /// @dev Add config here
         want = _wantConfig[0];
 
+        autoCompoundRatio = 10_000; // Percentage of reward we reinvest into want
+
         // If you need to set new values that are not constants, set them like so
         // stakingContract = 0x79ba8b76F61Db3e7D994f7E384ba8f7870A043b7;
+
+        // If you need to do one-off approvals do them here like so
+        // IERC20Upgradeable(reward).safeApprove(
+        //     address(DX_SWAP_ROUTER),
+        //     type(uint256).max
+        // );
     }
 
     function getName() external pure override returns (string memory) {
@@ -35,7 +43,7 @@ contract DemoStrategy is BaseStrategy {
         return protectedTokens;
     }
 
-    function _deposit(uint256 _want) internal override {
+    function _deposit(uint256 _amount) internal override {
         // No-op as we don't do anything
     }
 
@@ -43,8 +51,8 @@ contract DemoStrategy is BaseStrategy {
         // No-op as we don't deposit
     }
 
-    function _withdrawSome(uint256 _want) internal override returns (uint256) {
-        return _want;
+    function _withdrawSome(uint256 _amount) internal override returns (uint256) {
+        return _amount;
     }
 
     function harvest() external override whenNotPaused returns (uint256 harvested) {

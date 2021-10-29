@@ -40,12 +40,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
+    uint256 public constant MAX = 10_000; // MAX in terms of BPS = 100%
+
+
     address public want; // Token used for deposits
     address public vault; // address of the vault the strategy is connected to
-
     uint256 public withdrawalMaxDeviationThreshold; // max allowed slippage when withdrawing
-
-    uint256 public constant MAX = 10_000; // MAX in terms of BPS = 100%
 
     /// @notice percentage of rewards converted to want
     /// @dev converting of rewards to want during harvest should take place in this ratio
@@ -53,7 +53,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// value ranges from 0 to 10_000
     /// 0: keeping 100% harvest in reward tokens
     /// 10_000: converting all rewards tokens to want token
-    uint256 public autoCompoundRatio = 10_000;
+    uint256 public autoCompoundRatio = 10_000; // NOTE: Since this is upgradeable this won't be set
 
     function __BaseStrategy_init(address _vault) public initializer whenNotPaused {
         __Pausable_init();
@@ -137,6 +137,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// ===== Permissioned Actions: Governance =====
 
     function setVault(address _vault) external {
+        // I think we'll remove this
+        // Make strat unable to change vault so that it can't be used to swap / rug
         _onlyGovernance();
         vault = _vault;
     }
@@ -254,10 +256,10 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         return a.sub(b);
     }
 
-    function setAutoCompoundRatio(uint256 _ratio) internal {
-        require(_ratio <= MAX, "base-strategy/excessive-auto-compound-ratio");
-        autoCompoundRatio = _ratio;
-    }
+    // function setAutoCompoundRatio(uint256 _ratio) internal {
+    //     require(_ratio <= MAX, "base-strategy/excessive-auto-compound-ratio");
+    //     autoCompoundRatio = _ratio;
+    // }
 
     // ===== Abstract Functions: To be implemented by specific Strategies =====
 
