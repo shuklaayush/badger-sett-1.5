@@ -236,7 +236,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// ===== Permissioned Actions: Strategy =====
 
-    /// @dev assigns harvest's variable and mints shares to governance and strategist for fees
+    /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for autocompounded rewards
     function report(
         uint256 _harvestedAmount,
         uint256 _harvestTime,
@@ -257,6 +257,27 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
         lifeTimeEarned += lastHarvestAmount;
         lastHarvestedAt = _harvestTime;
+    }
+
+    /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for non want rewards
+    /// NOTE: non want rewards would remain in the strategy and can be withdrawn using 
+    function reportAdditionalToken(
+        uint256 _amount,
+        address _token
+    ) external whenNotPaused {
+        require(msg.sender == strategy, "onlyStrategy");
+
+        uint256 beforeTransferAmount = IERC20Upgradeable(_token).balanceOf(address(this));
+        IStrategy(strategy).withdrawOther(_token);
+        uint256 afterTransferAmount = IERC20Upgradeable(_token).balanceOf(address(this));
+
+        require(afterTransferAmount - beforeTransferAmount >= _amount); // dev: insufficient token amount transferred
+
+        uint256 governanceRewardsFee = _calculateFee(_amount, performanceFeeGovernance);
+        uint256 strategistRewardsFee = _calculateFee(_amount, performanceFeeStrategist);
+
+        IERC20Upgradeable(_token).transfer(treasury, governanceRewardsFee);
+        IERC20Upgradeable(_token).transfer(strategist, strategistRewardsFee);
     }
 
     /// ===== Permissioned Actions: Governance =====
@@ -372,6 +393,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         IERC20Upgradeable(_token).safeTransfer(governance, _balance);
     }
 
+    /// @notice can only be called by governance or strategist
+    function withdrawOtherFromVault(address _token) public {
+        _onlyGovernanceOrStrategist();
+        uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
+
+        IERC20Upgradeable(_token).safeTransfer(governance, _balance);
+    }
+
     /// @notice Transfer the underlying available to be claimed to the strategy
     /// @notice The strategy will use for yield-generating activities
     function earn() external whenNotPaused {
@@ -462,8 +491,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
         // Process withdrawal fee
         uint256 _fee = _calculateFee(r, withdrawalFee);
-        IERC20Upgradeable(token).safeTransfer(rewards, _fee);
-
+        _mintSharesFor(treasury, _fee, balance().sub(_fee));
+        // move other reward fees here
         token.safeTransfer(msg.sender, r.sub(_fee));
     }
 
@@ -487,7 +516,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// @dev mints performance fees shares for governance and strategist
-    function _mintPerformanceFeeSharesFor(
+    function _mintSharesFor(
         address recipient,
         uint256 _amount,
         uint256 _pool
@@ -512,12 +541,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         uint256 _pool = balance().sub(totalGovernanceFee).sub(feeStrategist);
 
         if (totalGovernanceFee != 0) {
-            _mintPerformanceFeeSharesFor(treasury, totalGovernanceFee, _pool);
+            _mintSharesFor(treasury, totalGovernanceFee, _pool);
         }
 
         if (feeStrategist != 0 && strategist != address(0)) {
             /// NOTE: adding feeGovernance backed to _pool as shares would have been issued for it.
-            _mintPerformanceFeeSharesFor(strategist, feeStrategist, _pool.add(totalGovernanceFee));
+            _mintSharesFor(strategist, feeStrategist, _pool.add(totalGovernanceFee));
         }
     }
 }

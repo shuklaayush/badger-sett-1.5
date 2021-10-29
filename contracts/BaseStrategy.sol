@@ -243,30 +243,9 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest);
     }
 
-    /// @dev Helper function to process an arbitrary fee
-    /// @dev If the fee is active, transfers a given portion in basis points of the specified value to the recipient
-    /// @return The fee that was taken
-    function _processFee(
-        address token,
-        uint256 amount,
-        uint256 feeBps,
-        address recipient
-    ) internal returns (uint256) {
-        if (feeBps == 0) {
-            return 0;
-        }
-        uint256 fee = amount.mul(feeBps).div(MAX);
-        IERC20Upgradeable(token).transfer(recipient, fee);
-        return fee;
-    }
-
-    /// @dev used to manage the governance and strategist fee on earned rewards, make sure to use it to get paid!
-    function _processRewardsFees(uint256 _amount, address _token) internal returns (uint256 governanceRewardsFee, uint256 strategistRewardsFee) {
-        governanceRewardsFee = _processFee(_token, _amount, IVault(vault).performanceFeeGovernance(), IVault(vault).rewards());
-
-        strategistRewardsFee = _processFee(_token, _amount, IVault(vault).performanceFeeStrategist(), strategist());
-
-        return (governanceRewardsFee, strategistRewardsFee);
+    /// @dev used to manage the governance and strategist fee on earned rewards , make sure to use it to get paid!
+    function _processRewardsFees(uint256 _amount, address _token) internal {
+        IVault(vault).reportAdditionalToken(_amount, _token);
     }
 
     /// @notice Utility function to diff two numbers, expects higher value in first position
