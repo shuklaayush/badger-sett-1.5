@@ -1,4 +1,4 @@
-# Badger Vaults 1.5
+# Badger Vaults 1.5 - WARNING - CODE NOT AUDITED - WORK IN PROGRESS
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
 ## Overview
