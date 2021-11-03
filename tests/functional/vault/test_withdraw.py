@@ -139,7 +139,7 @@ def test_withdrawOther(withdraw_setup, deployer, governance, rando):
     # should fail if msg.sender != strategist/governance
 
     with brownie.reverts("onlyGovernanceOrStrategist"):
-        vault.withdrawOther(token2.address, {"from": rando})
+        vault.sweepExtraToken(token2.address, {"from": rando})
 
     vault.withdrawAll({"from": deployer})
 

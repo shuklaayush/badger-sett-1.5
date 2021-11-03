@@ -101,10 +101,10 @@ def test_strategy_action_permissions(deployer, vault, strategy, want):
     # withdrawOther _onlyNotProtectedTokens
     for actor in actorsToCheck:
         if actor == strategy.governance() or actor == strategy.strategist():
-            vault.withdrawOther(vault, {"from": actor})
+            vault.sweepExtraToken(vault, {"from": actor})
         else:
             with brownie.reverts("onlyGovernanceOrStrategist"):
-                vault.withdrawOther(vault, {"from": actor})
+                vault.sweepExtraToken(vault, {"from": actor})
 
 
 def test_strategy_pausing_permissions(deployer, vault, strategy, want):
