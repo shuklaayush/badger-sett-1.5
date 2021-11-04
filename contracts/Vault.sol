@@ -262,11 +262,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for non want rewards
-    /// NOTE: non want rewards would remain in the strategy and can be withdrawn using 
-    function reportAdditionalToken(
-        uint256 _amount,
-        address _token
-    ) external whenNotPaused {
+    /// NOTE: non want rewards would remain in the strategy and can be withdrawn using
+    function reportAdditionalToken(uint256 _amount, address _token) external whenNotPaused {
         require(msg.sender == strategy, "onlyStrategy");
 
         uint256 beforeTransferAmount = IERC20Upgradeable(_token).balanceOf(address(this));
@@ -283,7 +280,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// ===== Permissioned Actions: Governance =====
-    
+
     function setRewards(address _rewards) external whenNotPaused {
         _onlyGovernance();
         rewards = _rewards;
@@ -426,6 +423,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         _onlyAuthorizedPausers();
         pausedDeposit = true;
     }
+
     function unpauseDeposits() external {
         _onlyAuthorizedPausers();
         pausedDeposit = false;
@@ -452,7 +450,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     function _depositFor(address recipient, uint256 _amount) internal virtual {
         require(!pausedDeposit); // dev: deposits are paused
-        
+
         uint256 _pool = balance();
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
@@ -483,7 +481,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function _withdraw(uint256 _shares) internal virtual {
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
-
 
         // Check balance
         uint256 b = token.balanceOf(address(this));
@@ -517,7 +514,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     /// @dev used to manage the governance and strategist fee, make sure to use it to get paid!
-    function _calculatePerformanceFee(uint256 _amount) internal view returns (uint256 governancePerformanceFee, uint256 strategistPerformanceFee) {
+    function _calculatePerformanceFee(uint256 _amount)
+        internal
+        view
+        returns (uint256 governancePerformanceFee, uint256 strategistPerformanceFee)
+    {
         governancePerformanceFee = _calculateFee(_amount, performanceFeeGovernance);
 
         strategistPerformanceFee = _calculateFee(_amount, performanceFeeStrategist);

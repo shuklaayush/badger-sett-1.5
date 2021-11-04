@@ -42,7 +42,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     uint256 public constant MAX = 10_000; // MAX in terms of BPS = 100%
 
-
     address public want; // Token used for deposits
     address public vault; // address of the vault the strategy is connected to
     uint256 public withdrawalMaxDeviationThreshold; // max allowed slippage when withdrawing

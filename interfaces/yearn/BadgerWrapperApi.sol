@@ -9,10 +9,7 @@ interface BadgerWrapperAPI is IERC20 {
 
     function pricePerShare() external view returns (uint256);
 
-    function totalWrapperBalance(address account)
-        external
-        view
-        returns (uint256);
+    function totalWrapperBalance(address account) external view returns (uint256);
 
     function totalVaultBalance(address account) external view returns (uint256);
 }

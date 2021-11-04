@@ -1,21 +1,25 @@
 # Badger Vaults 1.5 - WARNING - CODE NOT AUDITED - WORK IN PROGRESS
+
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
 ## TODO
+
 - Test Pause
 - Test Permissions
-Remove all the clutter from functional tests
-Bulk all permissions test separately
+  Remove all the clutter from functional tests
+  Bulk all permissions test separately
 
 - Test Math
--> Check it's all there
+  -> Check it's all there
 
 CHANGE
 All withdrawal should be == not >=
->= means the vault is loosing money and the user is gaining
-We cannot socialize lossess
+
+> = means the vault is loosing money and the user is gaining
+> We cannot socialize lossess
 
 ## Overview
+
 ### Vault
 
 - Tracks shares for deposits
@@ -27,13 +31,13 @@ We cannot socialize lossess
 - Params added to track autocompounded rewards (lifeTimeEarned, lastHarvestedAt, lastHarvestAmount, assetsAtLastHarvest)
   this would work in sync with autoCompoundRatio to help us track harvests better.
 - Fees
-    - Strategy would report the autocompounded harvest amount to the vault
-    - Calculation performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee moved to the vault.
-    - Vault mints shares for performanceFees and managementFee to the respective recipient (treasury, strategist)
-    - withdrawal fees is transferred to the rewards address set
+  - Strategy would report the autocompounded harvest amount to the vault
+  - Calculation performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee moved to the vault.
+  - Vault mints shares for performanceFees and managementFee to the respective recipient (treasury, strategist)
+  - withdrawal fees is transferred to the rewards address set
 - Permission:
-    - Strategist can now set performance, withdrawal and management fees
-    - Governance will determine maxPerformanceFee, maxWithdrawalFee, maxManagementFee that can be set to prevent rug of funds.
+  - Strategist can now set performance, withdrawal and management fees
+  - Governance will determine maxPerformanceFee, maxWithdrawalFee, maxManagementFee that can be set to prevent rug of funds.
 - Strategy would take the actors from the vault it is connected to
 - All goverance related fees goes to treasury
 
@@ -42,7 +46,7 @@ We cannot socialize lossess
 - No controller as middleman. The Strategy directly interacts with the vault
 - withdrawToVault would withdraw all the funds from the strategy and move it into vault
 - strategy would take the actors from the vault it is connected to
-    - SettAccessControl removed
+  - SettAccessControl removed
 - fees calculation for autocompounding rewards moved to vault
 - autoCompoundRatio param added to keep a track in which ratio harvested rewards are being autocompounded
 - Strategy.withdrawAll to move all funds to the Vault
