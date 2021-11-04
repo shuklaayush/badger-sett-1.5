@@ -504,8 +504,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         // After you burned the shares, and you have sent the funds, adding here is equivalent to depositing
         // Process withdrawal fee
         _mintSharesFor(treasury, _fee, balance().sub(_fee));
-        
-
     }
 
     /// @dev function to process an arbitrary fee
