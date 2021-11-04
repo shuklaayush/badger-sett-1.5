@@ -1,6 +1,20 @@
 # Badger Vaults 1.5 - WARNING - CODE NOT AUDITED - WORK IN PROGRESS
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
+## TODO
+- Test Pause
+- Test Permissions
+Remove all the clutter from functional tests
+Bulk all permissions test separately
+
+- Test Math
+-> Check it's all there
+
+CHANGE
+All withdrawal should be == not >=
+>= means the vault is loosing money and the user is gaining
+We cannot socialize lossess
+
 ## Overview
 ### Vault
 

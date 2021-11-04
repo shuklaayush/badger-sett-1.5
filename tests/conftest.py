@@ -8,7 +8,7 @@ from brownie import (
     TestVipCappedGuestListBbtcUpgradeable,
     accounts,
 )
-
+from helpers.constants import MaxUint256
 from helpers.constants import AddressZero
 from rich.console import Console
 
@@ -233,3 +233,20 @@ def performanceFeeStrategist(deployed):
 @pytest.fixture
 def withdrawalFee(deployed):
     return deployed.withdrawalFee
+
+@pytest.fixture
+def setup_share_math(deployer, vault, want, governance):
+
+    depositAmount = int(want.balanceOf(deployer) * 0.5)
+    assert depositAmount > 0
+    want.approve(vault.address, MaxUint256, {"from": deployer})
+    vault.deposit(depositAmount, {"from": deployer})
+
+    vault.earn({"from": governance})
+
+    return DotMap(depositAmount=depositAmount)
+
+## Forces reset before each test
+@pytest.fixture(autouse=True)
+def isolation(fn_isolation):
+    pass

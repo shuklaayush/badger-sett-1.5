@@ -1,7 +1,9 @@
 import brownie
 from brownie import *
 from helpers.constants import MaxUint256
-
+from helpers.utils import (
+    approx,
+)
 from dotmap import DotMap
 
 import pytest
@@ -9,21 +11,11 @@ import pytest
 MAX_BPS = 10_000
 
 
-@pytest.fixture
-def setup_share_math(deployer, vault, want, governance):
-
-    depositAmount = int(want.balanceOf(deployer) * 0.5)
-    assert depositAmount > 0
-    want.approve(vault.address, MaxUint256, {"from": deployer})
-    vault.deposit(depositAmount, {"from": deployer})
-
-    vault.earn({"from": governance})
-
-    return DotMap(depositAmount=depositAmount)
-
-
 ## Test for deposit with no initial shares
 def test_deposit_no_initial_shares(deployer, vault, want):
+    """
+        If I deposit X and the vault has 0, then I will get X shares
+    """
     # Deposit
     assert want.balanceOf(deployer) > 0
 
@@ -47,6 +39,10 @@ def test_deposit_no_initial_shares(deployer, vault, want):
 
 ## Test for deposit with some initial shares
 def test_deposit_some_initial_shares(deployer, vault, want):
+    """
+        If I deposit X + Y and there's X + Y value (no harvest)
+        I'll have X + Y shares (1-1)
+    """
     # Deposit
     assert want.balanceOf(deployer) > 0
 
@@ -99,9 +95,9 @@ def test_deposit_earn_harvest(deployer, governance, vault, strategy, want):
 
     want.approve(vault.address, MaxUint256, {"from": deployer})
     vault.deposit(depositAmount, {"from": deployer})
-    shares = vault.balanceOf(deployer)
+    initial_shares = vault.balanceOf(deployer)
 
-    assert shares == depositAmount
+    assert initial_shares == depositAmount
     assert vault.balance() == depositAmount
 
     vault.earn({"from": governance})
@@ -115,6 +111,7 @@ def test_deposit_earn_harvest(deployer, governance, vault, strategy, want):
 
     ## Deposit when initial_shares + harvest
     balance_before_deposit = vault.balance()
+    total_supply_before_deposit = vault.totalSupply()
     depositAmount = int(want.balanceOf(deployer) * 0.1)
 
     assert depositAmount > 0
@@ -122,8 +119,22 @@ def test_deposit_earn_harvest(deployer, governance, vault, strategy, want):
     vault.deposit(depositAmount, {"from": deployer})
 
     balance_after_deposit = vault.balance()
+    
 
+    ## Sanity check, deposit has happened
     assert balance_after_deposit - balance_before_deposit == depositAmount
+
+    new_shares = vault.balanceOf(deployer)
+    delta_shares = new_shares - initial_shares
+
+    ## Math from code
+    expected_shares = depositAmount * total_supply_before_deposit / balance_before_deposit
+
+    assert approx(
+        delta_shares,
+        expected_shares,
+        100 ## Rounding down to 100 wei
+    )
 
 
 ## Tests for withdrawal's
@@ -156,16 +167,18 @@ def test_withdrawalAll(
         - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
     )
 
+    delta_user = user_balance_after_withdraw - user_balance_before_withdraw
     # As we are withdrawing all - Withdrawn amount should be equal to deposit amount of user
     assert (
-        user_balance_after_withdraw - user_balance_before_withdraw
+        delta_user
         >= min_expected_withdrawn_amount_after_withdrawalFee
     )
 
+    delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
+    withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX()
     # vault balance should decrease propotionally
-    assert (
-        vault_balance_before_withdraw - vault_balance_after_withdraw == withdraw_amount
-    )
+    assert  delta_vault == withdraw_amount - withdrawal_fee
+    ## i.e vault has retained the withdrawal fees
 
 
 ## Test for withdrawing more shares than deposited
@@ -179,6 +192,8 @@ def test_withdrawalSome_more_than_deposited(
 
     with brownie.reverts():
         vault.withdraw(withdraw_amount, {"from": deployer})
+    
+    vault.withdraw(depositAmount)
 
 
 ## Test for withdrawal of a given amount of shares
@@ -206,16 +221,18 @@ def test_withdrawSome(
         - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
     )
 
-    # Withdrawn amount should be equal to withdraw_amount amount for user
+    delta_user = user_balance_after_withdraw - user_balance_before_withdraw
+    # As we are withdrawing all - Withdrawn amount should be equal to deposit amount of user
     assert (
-        user_balance_after_withdraw - user_balance_before_withdraw
+        delta_user
         >= min_expected_withdrawn_amount_after_withdrawalFee
     )
 
-    # vault balance should decrease
-    assert (
-        vault_balance_before_withdraw - vault_balance_after_withdraw == withdraw_amount
-    )
+    delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
+    withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX()
+    # vault balance should decrease propotionally
+    assert  delta_vault == withdraw_amount - withdrawal_fee
+    ## i.e vault has retained the withdrawal fees
 
 
 ## Test for withdrawal after harvest
@@ -224,7 +241,6 @@ def test_withdrawalAll_after_harvest(
 ):
 
     # Setup #
-
     depositAmount = setup_share_math.depositAmount
 
     ## Transfer some want to strategy which will represent harvest
@@ -240,31 +256,40 @@ def test_withdrawalAll_after_harvest(
 
     vault_balance_before_withdraw = vault.balance()
     user_balance_before_withdraw = want.balanceOf(deployer)
+    vault_ppfs_before_withdraw = vault.getPricePerFullShare()
 
     vault.withdrawAll({"from": deployer})
 
     vault_balance_after_withdraw = vault.balance()
     user_balance_after_withdraw = want.balanceOf(deployer)
+    user_delta_balance = user_balance_after_withdraw - user_balance_before_withdraw
+    ## Shares burnt = withdraw_amount
 
-    min_expected_withdrawn_amount = (
-        (withdraw_amount + mint_amount) * strategy.withdrawalMaxDeviationThreshold()
-    ) / MAX_BPS
-    min_expected_withdrawn_amount_after_withdrawalFee = (
-        min_expected_withdrawn_amount
-        - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
-    )
 
-    # Withdrawn amount should be >= withdraw_amount for user + min_expected_harvest_amount
-    assert (
-        user_balance_after_withdraw - user_balance_before_withdraw
-        >= min_expected_withdrawn_amount_after_withdrawalFee
-    )
+    ## Math on what they should get
+    ## They should get: new_value_of_shares - withdrawal_fee
 
-    # vault balance decrease should be equal to withdraw_amount +
-    assert (
-        vault_balance_before_withdraw - vault_balance_after_withdraw
-        == withdraw_amount + mint_amount
-    )
+    ## The minimum they get is the value of initial shares - withdrawal_fee
+    initial_ppfs = 1
+    ## The min without accounting for harvest
+    min_value_withdrawn = withdraw_amount * initial_ppfs - (withdraw_amount * withdrawalFee / MAX_BPS)
+
+    assert user_delta_balance > min_value_withdrawn ## Proof of no loss
+
+    ## Now proof of correct math
+    ## The user withdraws all shares they have, they should get the new 
+    # value = ppfs * shares
+    # withdrawn = value - withdrawalFee(value)
+
+    value = withdraw_amount * vault_ppfs_before_withdraw / 1e18
+    expected_withdrawn = value - (value * withdrawalFee / MAX_BPS)
+
+
+    # Delta is greater than or equal to expected
+    assert user_delta_balance == expected_withdrawn
+
+    # Reflexive property, the funds we sent to the user are the same as the vault delta
+    assert vault_balance_before_withdraw - vault_balance_after_withdraw == expected_withdrawn
 
 
 ## Test for multiple withdrawals
@@ -274,33 +299,47 @@ def test_multiple_withdrawals(
 
     depositAmount = setup_share_math.depositAmount
 
-    for i in range(2):
+    for i in range(1):
         withdraw_amount = depositAmount // 10
 
         vault_balance_before_withdraw = vault.balance()
+        user_shares_before = vault.balanceOf(deployer)
         user_balance_before_withdraw = want.balanceOf(deployer)
+        vault_ppfs_before_withdraw = vault.getPricePerFullShare()
 
         vault.withdraw(withdraw_amount, {"from": deployer})
 
         vault_balance_after_withdraw = vault.balance()
+        user_shares_after = vault.balanceOf(deployer)
+
         user_balance_after_withdraw = want.balanceOf(deployer)
+        user_delta_balance = user_balance_after_withdraw - user_balance_before_withdraw
 
-        min_expected_withdrawn_amount = (
-            (withdraw_amount) * strategy.withdrawalMaxDeviationThreshold()
-        ) / MAX_BPS
-        min_expected_withdrawn_amount_after_withdrawalFee = (
-            min_expected_withdrawn_amount
-            - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
-        )
+        ## Shares burnt = withdraw_amount
+        assert user_shares_before - user_shares_after == withdraw_amount ## We burnt the right amount of shares
 
-        # Withdrawn amount should be equal to withdraw_amount amount for user
-        assert (
-            user_balance_after_withdraw - user_balance_before_withdraw
-            >= min_expected_withdrawn_amount_after_withdrawalFee
-        )
 
-        # vault balance should decrease
-        assert (
-            vault_balance_before_withdraw - vault_balance_after_withdraw
-            == withdraw_amount
-        )
+        ## Math on what they should get
+        ## They should get: new_value_of_shares - withdrawal_fee
+
+        ## The minimum they get is the value of initial shares - withdrawal_fee
+        initial_ppfs = 1
+        ## The min without accounting for harvest
+        min_value_withdrawn = withdraw_amount * initial_ppfs - (withdraw_amount * withdrawalFee / MAX_BPS)
+
+        assert user_delta_balance == min_value_withdrawn ## Proof of no loss as we didn't harvest
+
+        ## Now proof of correct math
+        ## The user withdraws all shares they have, they should get the new 
+        # value = ppfs * shares
+        # withdrawn = value - withdrawalFee(value)
+
+        value = withdraw_amount * vault_ppfs_before_withdraw / 1e18
+        expected_withdrawn = value - (value * withdrawalFee / MAX_BPS)
+
+
+        # Delta is greater than or equal to expected
+        assert user_delta_balance == expected_withdrawn
+
+        # Reflexive property, the funds we sent to the user are the same as the vault delta
+        assert vault_balance_before_withdraw - vault_balance_after_withdraw == expected_withdrawn
