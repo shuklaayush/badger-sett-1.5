@@ -89,7 +89,8 @@ def test_withdraw(withdraw_setup, deployer, governance, rando):
     balance_vault_after_withdraw = vault.balance()
 
     assert (
-        balance_vault_before_withdraw - balance_vault_after_withdraw == withdraw_amount - vault.withdrawalFee() * withdraw_amount / vault.MAX()
+        balance_vault_before_withdraw - balance_vault_after_withdraw
+        == withdraw_amount - vault.withdrawalFee() * withdraw_amount / vault.MAX()
     )
 
 
@@ -113,7 +114,11 @@ def test_withdrawAll(withdraw_setup, deployer, governance, rando):
 
     balance_vault_after_withdraw = want.balanceOf(vault)
 
-    assert balance_vault_after_withdraw - depositAmount * vault.withdrawalFee() / vault.MAX() == 0
+    assert (
+        balance_vault_after_withdraw
+        - depositAmount * vault.withdrawalFee() / vault.MAX()
+        == 0
+    )
 
 
 def test_withdrawOther(withdraw_setup, deployer, governance, rando):
@@ -145,4 +150,8 @@ def test_withdrawOther(withdraw_setup, deployer, governance, rando):
 
     balance_vault_after_withdraw = want.balanceOf(vault)
 
-    assert balance_vault_after_withdraw - depositAmount * vault.withdrawalFee() / vault.MAX() == 0
+    assert (
+        balance_vault_after_withdraw
+        - depositAmount * vault.withdrawalFee() / vault.MAX()
+        == 0
+    )

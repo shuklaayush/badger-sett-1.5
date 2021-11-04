@@ -222,7 +222,9 @@ class SnapshotManager:
         table = []
         console.print("[green]=== Status Report: {} Sett ===[green]".format(self.key))
 
-        table.append(["sett.getPricePerFullShare", snap.get("sett.getPricePerFullShare")])
+        table.append(
+            ["sett.getPricePerFullShare", snap.get("sett.getPricePerFullShare")]
+        )
         table.append(["strategy.want", snap.balances("want", "strategy")])
 
         print(tabulate(table, headers=["metric", "value"]))

@@ -20,7 +20,7 @@ MAX_BPS = 10_000
 ## Test for deposit with no initial shares
 def test_deposit_no_initial_shares(deployer, vault, want):
     """
-        If I deposit X and the vault has 0, then I will get X shares
+    If I deposit X and the vault has 0, then I will get X shares
     """
     # Deposit
     assert want.balanceOf(deployer) > 0
@@ -46,8 +46,8 @@ def test_deposit_no_initial_shares(deployer, vault, want):
 ## Test for deposit with some initial shares
 def test_deposit_some_initial_shares(deployer, vault, want):
     """
-        If I deposit X + Y and there's X + Y value (no harvest)
-        I'll have X + Y shares (1-1)
+    If I deposit X + Y and there's X + Y value (no harvest)
+    I'll have X + Y shares (1-1)
     """
     # Deposit
     assert want.balanceOf(deployer) > 0
@@ -125,7 +125,6 @@ def test_deposit_earn_harvest(deployer, governance, vault, strategy, want):
     vault.deposit(depositAmount, {"from": deployer})
 
     balance_after_deposit = vault.balance()
-    
 
     ## Sanity check, deposit has happened
     assert balance_after_deposit - balance_before_deposit == depositAmount
@@ -134,13 +133,11 @@ def test_deposit_earn_harvest(deployer, governance, vault, strategy, want):
     delta_shares = new_shares - initial_shares
 
     ## Math from code
-    expected_shares = depositAmount * total_supply_before_deposit / balance_before_deposit
-
-    assert approx(
-        delta_shares,
-        expected_shares,
-        100 ## Rounding down to 100 wei
+    expected_shares = (
+        depositAmount * total_supply_before_deposit / balance_before_deposit
     )
+
+    assert approx(delta_shares, expected_shares, 100)  ## Rounding down to 100 wei
 
 
 ## Test for withdrawal all
@@ -160,19 +157,17 @@ def test_withdrawalAll(
     vault_balance_after_withdraw = vault.balance()
     user_balance_after_withdraw = want.balanceOf(deployer)
 
-    vault_ppfs_before_withdraw = 1e18 ## No harvest means it's 1
+    vault_ppfs_before_withdraw = 1e18  ## No harvest means it's 1
     value = withdraw_amount * vault_ppfs_before_withdraw / 1e18
     expected_withdrawn = value - (value * withdrawalFee / MAX_BPS)
     delta_user = user_balance_after_withdraw - user_balance_before_withdraw
     # As we are withdrawing all - Withdrawn amount should be equal to deposit amount of user
-    assert (
-        delta_user == expected_withdrawn
-    )
+    assert delta_user == expected_withdrawn
 
     delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
     withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX()
     # vault balance should decrease propotionally
-    assert  delta_vault == withdraw_amount - withdrawal_fee
+    assert delta_vault == withdraw_amount - withdrawal_fee
     ## i.e vault has retained the withdrawal fees
 
 
@@ -187,7 +182,7 @@ def test_withdrawalSome_more_than_deposited(
 
     with brownie.reverts():
         vault.withdraw(withdraw_amount, {"from": deployer})
-    
+
     vault.withdraw(depositAmount)
 
 
@@ -214,11 +209,10 @@ def test_withdrawSome(
     delta_user = user_balance_after_withdraw - user_balance_before_withdraw
     assert delta_user == expected_withdrawn
 
-
     delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
     withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX()
     # vault balance should decrease propotionally
-    assert  delta_vault == withdraw_amount - withdrawal_fee
+    assert delta_vault == withdraw_amount - withdrawal_fee
     ## i.e vault has retained the withdrawal fees
 
 
@@ -252,31 +246,34 @@ def test_withdrawalAll_after_harvest(
     user_delta_balance = user_balance_after_withdraw - user_balance_before_withdraw
     ## Shares burnt = withdraw_amount
 
-
     ## Math on what they should get
     ## They should get: new_value_of_shares - withdrawal_fee
 
     ## The minimum they get is the value of initial shares - withdrawal_fee
     initial_ppfs = 1
     ## The min without accounting for harvest
-    min_value_withdrawn = withdraw_amount * initial_ppfs - (withdraw_amount * withdrawalFee / MAX_BPS)
+    min_value_withdrawn = withdraw_amount * initial_ppfs - (
+        withdraw_amount * withdrawalFee / MAX_BPS
+    )
 
-    assert user_delta_balance > min_value_withdrawn ## Proof of no loss
+    assert user_delta_balance > min_value_withdrawn  ## Proof of no loss
 
     ## Now proof of correct math
-    ## The user withdraws all shares they have, they should get the new 
+    ## The user withdraws all shares they have, they should get the new
     # value = ppfs * shares
     # withdrawn = value - withdrawalFee(value)
 
     value = withdraw_amount * vault_ppfs_before_withdraw / 1e18
     expected_withdrawn = value - (value * withdrawalFee / MAX_BPS)
 
-
     # Delta is greater than or equal to expected
     assert user_delta_balance == expected_withdrawn
 
     # Reflexive property, the funds we sent to the user are the same as the vault delta
-    assert vault_balance_before_withdraw - vault_balance_after_withdraw == expected_withdrawn
+    assert (
+        vault_balance_before_withdraw - vault_balance_after_withdraw
+        == expected_withdrawn
+    )
 
 
 ## Test for multiple withdrawals
@@ -303,8 +300,9 @@ def test_multiple_withdrawals(
         user_delta_balance = user_balance_after_withdraw - user_balance_before_withdraw
 
         ## Shares burnt = withdraw_amount
-        assert user_shares_before - user_shares_after == withdraw_amount ## We burnt the right amount of shares
-
+        assert (
+            user_shares_before - user_shares_after == withdraw_amount
+        )  ## We burnt the right amount of shares
 
         ## Math on what they should get
         ## They should get: new_value_of_shares - withdrawal_fee
@@ -312,21 +310,27 @@ def test_multiple_withdrawals(
         ## The minimum they get is the value of initial shares - withdrawal_fee
         initial_ppfs = 1
         ## The min without accounting for harvest
-        min_value_withdrawn = withdraw_amount * initial_ppfs - (withdraw_amount * withdrawalFee / MAX_BPS)
+        min_value_withdrawn = withdraw_amount * initial_ppfs - (
+            withdraw_amount * withdrawalFee / MAX_BPS
+        )
 
-        assert user_delta_balance == min_value_withdrawn ## Proof of no loss as we didn't harvest
+        assert (
+            user_delta_balance == min_value_withdrawn
+        )  ## Proof of no loss as we didn't harvest
 
         ## Now proof of correct math
-        ## The user withdraws all shares they have, they should get the new 
+        ## The user withdraws all shares they have, they should get the new
         # value = ppfs * shares
         # withdrawn = value - withdrawalFee(value)
 
         value = withdraw_amount * vault_ppfs_before_withdraw / 1e18
         expected_withdrawn = value - (value * withdrawalFee / MAX_BPS)
 
-
         # Delta is greater than or equal to expected
         assert user_delta_balance == expected_withdrawn
 
         # Reflexive property, the funds we sent to the user are the same as the vault delta
-        assert vault_balance_before_withdraw - vault_balance_after_withdraw == expected_withdrawn
+        assert (
+            vault_balance_before_withdraw - vault_balance_after_withdraw
+            == expected_withdrawn
+        )

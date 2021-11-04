@@ -234,6 +234,7 @@ def performanceFeeStrategist(deployed):
 def withdrawalFee(deployed):
     return deployed.withdrawalFee
 
+
 @pytest.fixture
 def setup_share_math(deployer, vault, want, governance):
 
@@ -245,6 +246,7 @@ def setup_share_math(deployer, vault, want, governance):
     vault.earn({"from": governance})
 
     return DotMap(depositAmount=depositAmount)
+
 
 ## Forces reset before each test
 @pytest.fixture(autouse=True)

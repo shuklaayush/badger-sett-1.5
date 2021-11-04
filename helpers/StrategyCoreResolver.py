@@ -201,7 +201,7 @@ class StrategyCoreResolver:
         ## Accurately check user got the expected amount
 
         ## Accurately calculate withdrawal fee
-        if(before.get("sett.withdrawalFee") > 0):
+        if before.get("sett.withdrawalFee") > 0:
             shares_to_burn = params["amount"]
             ppfs_before_withdraw = before.get("sett.getPricePerFullShare")
             vault_decimals = before.get("sett.decimals")
@@ -209,15 +209,22 @@ class StrategyCoreResolver:
             total_supply_before_withdraw = before.get("sett.totalSupply")
             vault_balance_before_withdraw = before.get("sett.balance")
 
-            fee = get_withdrawal_fees_in_shares(shares_to_burn, ppfs_before_withdraw, vault_decimals, withdrawal_fee_bps, total_supply_before_withdraw, vault_balance_before_withdraw)
-            
+            fee = get_withdrawal_fees_in_shares(
+                shares_to_burn,
+                ppfs_before_withdraw,
+                vault_decimals,
+                withdrawal_fee_bps,
+                total_supply_before_withdraw,
+                vault_balance_before_withdraw,
+            )
+
             ## We got shares issued as expected
-            assert after.balances("sett", "treasury") == before.balances(
-                "sett", "treasury"
-            ) + fee
+            assert (
+                after.balances("sett", "treasury")
+                == before.balances("sett", "treasury") + fee
+            )
 
         ## TODO: Accurately calculate withdrawal amount and verify it's exactly that (the user got what they wanted)
-
 
         # Want in the strategy should be decreased, if idle in sett is insufficient to cover withdrawal
         if params["amount"] > before.balances("want", "sett"):
@@ -363,5 +370,3 @@ class StrategyCoreResolver:
         (Strategy Must Implement)
         """
         assert False
-
-
