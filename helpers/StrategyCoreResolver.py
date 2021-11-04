@@ -1,5 +1,6 @@
 from brownie import *
 from decimal import Decimal
+from helpers.shares_math import get_withdrawal_fees_in_shares
 
 from helpers.utils import (
     approx,
@@ -62,8 +63,11 @@ class StrategyCoreResolver:
             Call(
                 sett.address,
                 [func.sett.getPricePerFullShare],
-                [["sett.pricePerFullShare", as_wei]],
+                [["sett.getPricePerFullShare", as_wei]],
             )
+        )
+        calls.append(
+            Call(sett.address, [func.erc20.decimals], [["sett.decimals", as_wei]])
         )
         calls.append(
             Call(sett.address, [func.erc20.totalSupply], [["sett.totalSupply", as_wei]])
@@ -177,7 +181,7 @@ class StrategyCoreResolver:
         - Decrease the balance() tracked for want in the Strategy
         - Decrease the available() if it is not zero
         """
-        ppfs = before.get("sett.pricePerFullShare")
+        ppfs = before.get("sett.getPricePerFullShare")
 
         console.print("=== Compare Withdraw ===")
         self.manager.printCompare(before, after)
@@ -194,12 +198,26 @@ class StrategyCoreResolver:
         # Decrease the Sett tokens for the user based on withdrawAmount and pricePerFullShare
         assert after.balances("sett", "user") < before.balances("sett", "user")
 
-        # Decrease the want in the Sett, if there was idle want
-        if before.balances("want", "sett") > 0:
-            assert after.balances("want", "sett") < before.balances("want", "sett")
+        ## Accurately check user got the expected amount
 
-            # Available in the sett should decrease if want decreased
-            assert after.get("sett.available") <= before.get("sett.available")
+        ## Accurately calculate withdrawal fee
+        if(before.get("sett.withdrawalFee") > 0):
+            shares_to_burn = params["amount"]
+            ppfs_before_withdraw = before.get("sett.getPricePerFullShare")
+            vault_decimals = before.get("sett.decimals")
+            withdrawal_fee_bps = before.get("sett.withdrawalFee")
+            total_supply_before_withdraw = before.get("sett.totalSupply")
+            vault_balance_before_withdraw = before.get("sett.balance")
+
+            fee = get_withdrawal_fees_in_shares(shares_to_burn, ppfs_before_withdraw, vault_decimals, withdrawal_fee_bps, total_supply_before_withdraw, vault_balance_before_withdraw)
+            
+            ## We got shares issued as expected
+            assert after.balances("sett", "treasury") == before.balances(
+                "sett", "treasury"
+            ) + fee
+
+        ## TODO: Accurately calculate withdrawal amount and verify it's exactly that (the user got what they wanted)
+
 
         # Want in the strategy should be decreased, if idle in sett is insufficient to cover withdrawal
         if params["amount"] > before.balances("want", "sett"):
@@ -234,16 +252,6 @@ class StrategyCoreResolver:
                 "want", "sett"
             ) < before.balances("want", "strategy") + before.balances("want", "sett")
 
-        # Controller rewards should earn
-        if (
-            before.get("sett.withdrawalFee") > 0
-            and
-            # Fees are only processed when withdrawing from the strategy.
-            before.balances("want", "strategy") > after.balances("want", "strategy")
-        ):
-            assert after.balances("want", "governanceRewards") > before.balances(
-                "want", "governanceRewards"
-            )
         self.hook_after_confirm_withdraw(before, after, params)
 
     def confirm_deposit(self, before, after, params):
@@ -255,7 +263,7 @@ class StrategyCoreResolver:
         - Decrease the balanceOf() want of the user by depositAmount
         """
 
-        ppfs = before.get("sett.pricePerFullShare")
+        ppfs = before.get("sett.getPricePerFullShare")
         console.print("=== Compare Deposit ===")
         self.manager.printCompare(before, after)
 
@@ -293,50 +301,58 @@ class StrategyCoreResolver:
         self.hook_after_confirm_deposit(before, after, params)
 
     # ===== Strategies must implement =====
+    def get_strategy_destinations(self):
+        """
+        Track balances for all strategy implementations
+        (Strategy Must Implement)
+        """
+        return {}
+
+    ## NOTE: The ones below should be changed to assert False for the V1.5 Mix as the developer has to customize
     def hook_after_confirm_withdraw(self, before, after, params):
         """
         Specifies extra check for ordinary operation on withdrawal
         Use this to verify that balances in the get_strategy_destinations are properly set
         """
-        assert False
+        assert True
 
     def hook_after_confirm_deposit(self, before, after, params):
         """
         Specifies extra check for ordinary operation on deposit
         Use this to verify that balances in the get_strategy_destinations are properly set
         """
-        assert False
+        assert True
 
     def hook_after_earn(self, before, after, params):
         """
         Specifies extra check for ordinary operation on earn
         Use this to verify that balances in the get_strategy_destinations are properly set
         """
-        assert False
+        assert True
 
     def confirm_harvest(self, before, after, tx):
         """
         Verfies that the Harvest produced yield and fees
         """
-        console.print("=== Compare Harvest ===")
-        self.manager.printCompare(before, after)
-        self.confirm_harvest_state(before, after, tx)
+        # console.print("=== Compare Harvest ===")
+        # self.manager.printCompare(before, after)
+        # self.confirm_harvest_state(before, after, tx)
 
-        valueGained = after.get("sett.pricePerFullShare") > before.get(
-            "sett.pricePerFullShare"
-        )
+        # # valueGained = after.get("sett.getPricePerFullShare") > before.get(
+        # #     "sett.getPricePerFullShare"
+        # # )
 
-        # # Strategist should earn if fee is enabled and value was generated
-        # if before.get("strategy.performanceFeeStrategist") > 0 and valueGained:
-        #     assert after.balances("want", "strategist") > before.balances(
-        #         "want", "strategist"
-        #     )
+        # # # # Strategist should earn if fee is enabled and value was generated
+        # # # if before.get("strategy.performanceFeeStrategist") > 0 and valueGained:
+        # # #     assert after.balances("want", "strategist") > before.balances(
+        # # #         "want", "strategist"
+        # # #     )
 
-        # # Strategist should earn if fee is enabled and value was generated
-        # if before.get("strategy.performanceFeeGovernance") > 0 and valueGained:
-        #     assert after.balances("want", "governanceRewards") > before.balances(
-        #         "want", "governanceRewards"
-        #     )
+        # # # # Strategist should earn if fee is enabled and value was generated
+        # # # if before.get("strategy.performanceFeeGovernance") > 0 and valueGained:
+        # # #     assert after.balances("want", "treasury") > before.balances(
+        # # #         "want", "treasury"
+        # # #     )
 
     def confirm_tend(self, before, after, tx):
         """
@@ -348,9 +364,4 @@ class StrategyCoreResolver:
         """
         assert False
 
-    def get_strategy_destinations(self):
-        """
-        Track balances for all strategy implementations
-        (Strategy Must Implement)
-        """
-        assert False
+

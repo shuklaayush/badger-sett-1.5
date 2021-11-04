@@ -28,7 +28,7 @@ class SnapshotManager:
         self.addEntity("sett", self.sett.address)
         self.addEntity("strategy", self.strategy.address)
         self.addEntity("governance", self.strategy.governance())
-        self.addEntity("governanceRewards", self.sett.rewards())
+        self.addEntity("treasury", self.sett.treasury())
         self.addEntity("strategist", self.strategy.strategist())
 
         destinations = self.resolver.get_strategy_destinations()
@@ -156,7 +156,7 @@ class SnapshotManager:
             if (
                 "balance" in key
                 or key == "sett.available"
-                or key == "sett.pricePerFullShare"
+                or key == "sett.getPricePerFullShare"
                 or key == "sett.totalSupply"
             ):
                 return val(value)
@@ -222,7 +222,7 @@ class SnapshotManager:
         table = []
         console.print("[green]=== Status Report: {} Sett ===[green]".format(self.key))
 
-        table.append(["sett.pricePerFullShare", snap.get("sett.pricePerFullShare")])
+        table.append(["sett.getPricePerFullShare", snap.get("sett.getPricePerFullShare")])
         table.append(["strategy.want", snap.balances("want", "strategy")])
 
         print(tabulate(table, headers=["metric", "value"]))

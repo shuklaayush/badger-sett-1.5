@@ -457,7 +457,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 _after = token.balanceOf(address(this));
-        _mintSharesFor(recipient, _amount, _pool);
+        _mintSharesFor(recipient, _after.sub(_before), _pool);
     }
 
     function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal virtual {
@@ -496,12 +496,16 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
                 r = b.add(_diff);
             }
         }
-
-        // Process withdrawal fee
         uint256 _fee = _calculateFee(r, withdrawalFee);
-        _mintSharesFor(treasury, _fee, balance().sub(_fee));
-        // move other reward fees here
+
+        // Send funds to user
         token.safeTransfer(msg.sender, r.sub(_fee));
+
+        // After you burned the shares, and you have sent the funds, adding here is equivalent to depositing
+        // Process withdrawal fee
+        _mintSharesFor(treasury, _fee, balance().sub(_fee));
+        
+
     }
 
     /// @dev function to process an arbitrary fee

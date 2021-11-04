@@ -42,8 +42,8 @@ class StrategyResolver(StrategyCoreResolver):
         self.manager.printCompare(before, after)
         self.confirm_harvest_state(before, after, tx)
 
-        valueGained = after.get("sett.pricePerFullShare") > before.get(
-            "sett.pricePerFullShare"
+        valueGained = after.get("sett.getPricePerFullShare") > before.get(
+            "sett.getPricePerFullShare"
         )
 
         assert True

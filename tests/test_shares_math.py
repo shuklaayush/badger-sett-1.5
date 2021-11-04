@@ -10,6 +10,12 @@ import pytest
 
 MAX_BPS = 10_000
 
+## Tests for withdrawal's
+# NOTE: For now only withdrawalFee is taken into account
+# TODO: take into account performanceFeeGovernance and performanceFeeStrategist
+# TODO: Refactor the ones with min_ they will cause issues (democratized loss)
+# TODO: Test for vault loosing ppfs below 1, how does the vault code react?
+# TODO: Add a test that prooves that even when taking withdrawal fees, the sharePrice is stable (no negative inflation)
 
 ## Test for deposit with no initial shares
 def test_deposit_no_initial_shares(deployer, vault, want):
@@ -137,11 +143,6 @@ def test_deposit_earn_harvest(deployer, governance, vault, strategy, want):
     )
 
 
-## Tests for withdrawal's
-# NOTE: For now only withdrawalFee is taken into account
-# TODO: take into account performanceFeeGovernance and performanceFeeStrategist
-
-
 ## Test for withdrawal all
 def test_withdrawalAll(
     setup_share_math, deployer, governance, vault, strategy, want, withdrawalFee
@@ -159,19 +160,13 @@ def test_withdrawalAll(
     vault_balance_after_withdraw = vault.balance()
     user_balance_after_withdraw = want.balanceOf(deployer)
 
-    min_expected_withdrawn_amount = (
-        (withdraw_amount) * strategy.withdrawalMaxDeviationThreshold()
-    ) / MAX_BPS
-    min_expected_withdrawn_amount_after_withdrawalFee = (
-        min_expected_withdrawn_amount
-        - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
-    )
-
+    vault_ppfs_before_withdraw = 1e18 ## No harvest means it's 1
+    value = withdraw_amount * vault_ppfs_before_withdraw / 1e18
+    expected_withdrawn = value - (value * withdrawalFee / MAX_BPS)
     delta_user = user_balance_after_withdraw - user_balance_before_withdraw
     # As we are withdrawing all - Withdrawn amount should be equal to deposit amount of user
     assert (
-        delta_user
-        >= min_expected_withdrawn_amount_after_withdrawalFee
+        delta_user == expected_withdrawn
     )
 
     delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
@@ -207,26 +202,18 @@ def test_withdrawSome(
 
     vault_balance_before_withdraw = vault.balance()
     user_balance_before_withdraw = want.balanceOf(deployer)
+    vault_ppfs_before_withdraw = vault.getPricePerFullShare()
 
     vault.withdraw(withdraw_amount, {"from": deployer})
 
     vault_balance_after_withdraw = vault.balance()
     user_balance_after_withdraw = want.balanceOf(deployer)
 
-    min_expected_withdrawn_amount = (
-        (withdraw_amount) * strategy.withdrawalMaxDeviationThreshold()
-    ) / MAX_BPS
-    min_expected_withdrawn_amount_after_withdrawalFee = (
-        min_expected_withdrawn_amount
-        - ((min_expected_withdrawn_amount * withdrawalFee) / MAX_BPS)
-    )
-
+    value = withdraw_amount * vault_ppfs_before_withdraw / 1e18
+    expected_withdrawn = value - (value * withdrawalFee / MAX_BPS)
     delta_user = user_balance_after_withdraw - user_balance_before_withdraw
-    # As we are withdrawing all - Withdrawn amount should be equal to deposit amount of user
-    assert (
-        delta_user
-        >= min_expected_withdrawn_amount_after_withdrawalFee
-    )
+    assert delta_user == expected_withdrawn
+
 
     delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
     withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX()
