@@ -189,7 +189,7 @@ def test_migrate_single_user(deployer, vault, strategy, want, strategist):
     assert after["stratWant"] == 0
 
 
-def test_withdraw_other(deployer, vault, strategy, want):
+def test_withdraw_other(deployer, vault, strategy, want, governance):
     """
     - Vault should be able to withdraw other tokens
     - Vault should not be able to withdraw core/protected tokens
@@ -225,6 +225,7 @@ def test_withdraw_other(deployer, vault, strategy, want):
     mockToken = MockToken.deploy({"from": deployer})
     mockToken.initialize([strategy], [mockAmount], {"from": deployer})
 
+    ## Strat has received the tokens
     assert mockToken.balanceOf(strategy) == mockAmount
 
     # Should not be able to withdraw protected tokens
@@ -234,14 +235,15 @@ def test_withdraw_other(deployer, vault, strategy, want):
         with brownie.reverts():
             vault.sweepExtraToken(token, {"from": deployer})
 
-    # Should send balance of non-protected token to sender
-    vault.sweepExtraToken(mockToken, {"from": deployer})
-
     # Only Strategist/Goverance should be able to withdraw other tokens
     with brownie.reverts():
         vault.sweepExtraToken(mockToken, {"from": randomUser})
 
-    assert mockToken.balanceOf(vault) == mockAmount
+    # Should send balance of non-protected token to sender
+    vault.sweepExtraToken(mockToken, {"from": deployer})
+
+    ## Verify governance received the extra tokens
+    assert mockToken.balanceOf(governance) == mockAmount
 
 
 def test_single_user_harvest_flow_remove_fees(deployer, vault, strategy, want):
