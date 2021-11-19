@@ -219,9 +219,20 @@ class StrategyCoreResolver:
             )
 
             ## We got shares issued as expected
-            assert (
-                after.balances("sett", "treasury")
-                == before.balances("sett", "treasury") + fee
+            """
+                NOTE: We have to approx here
+                We approx because for rounding we may get 1 less share
+                >>> after.balances("sett", "treasury")
+                399999999999999999
+                >>> before.balances("sett", "treasury")
+                200000000000000000
+                >>> fee
+                2e+17
+            """
+            assert approx(
+                after.balances("sett", "treasury"),
+                before.balances("sett", "treasury") + fee,
+                1,
             )
 
         ## TODO: Accurately calculate withdrawal amount and verify it's exactly that (the user got what they wanted)
