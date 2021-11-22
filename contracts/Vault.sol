@@ -425,7 +425,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     }
 
     function unpauseDeposits() external {
-        _onlyAuthorizedPausers();
+        _onlyGovernance();
         pausedDeposit = false;
     }
 
