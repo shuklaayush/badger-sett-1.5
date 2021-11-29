@@ -70,3 +70,41 @@ def get_withdrawal_fees_in_shares(
         / vault_balance_before_withdraw
     )
     return expected_shares
+
+
+def get_performance_fees_want(total_harvest_gain, performance_fee):
+    """
+    Given the harvested Want returns the fee in want
+    """
+
+    return total_harvest_gain * performance_fee / MAX_BPS
+
+
+def get_performance_fees_shares(
+    total_harvest_gain,
+    performance_fee,
+    total_supply_before_deposit,
+    balance_before_deposit,
+):
+    """
+    Given the harvested Want, and the vault state before the harvest
+    Returns the amount of shares that will be issued for that performance fee
+    """
+
+    fee_in_want = get_performance_fees_want(total_harvest_gain, performance_fee)
+
+    ## TODO: Add Performance Fee Governance
+    ## TODO: Add Performance Fee Strategist
+    ## TODO: Add Management Fee
+
+    ## Given the fee, and the total gains
+    ## Estimate the growth of the pool by that size
+
+    ## At harvest, supply of shares is not increased
+    new_total_supply = total_supply_before_deposit
+    ## New balance will be  balance_before_deposit + total_harvest_gain, subtract fee_in_want to avoid double counting
+    balance_at_harvest = (
+        balance_before_deposit + total_harvest_gain - fee_in_want * 2
+    )  ## NOTE: Assumes the fees are 50/50
+
+    return from_want_to_shares(fee_in_want, new_total_supply, balance_at_harvest)

@@ -13,7 +13,6 @@ MAX_BPS = 10_000
 ## Tests for withdrawal's
 # NOTE: For now only withdrawalFee is taken into account
 # TODO: take into account performanceFeeGovernance and performanceFeeStrategist
-# TODO: Refactor the ones with min_ they will cause issues (democratized loss)
 # TODO: Test for vault loosing ppfs below 1, how does the vault code react?
 # TODO: Add a test that prooves that even when taking withdrawal fees, the sharePrice is stable (no negative inflation)
 

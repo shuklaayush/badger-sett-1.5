@@ -239,26 +239,39 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// ===== Permissioned Actions: Strategy =====
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for autocompounded rewards
+    /// @notice you are trusting the strategy to report the correct amount
+    // TODO: It would be best to have a check here to ensure the profit is correct
+    // Guessing thsi may help:
+    // balanceOf() >= _assetsAtHarvest.add(_harvestedAmount)
     function report(
         uint256 _harvestedAmount,
         uint256 _harvestTime,
-        uint256 _assetsAtLastHarvest
+        uint256 _assetsAtHarvest
     ) external whenNotPaused {
-        require(msg.sender == strategy, "onlyStrategy");
+        require(msg.sender == strategy, "onlyStrategy"); // dev: onlystrategy
+        // NOTE: Doesn't give a guarantee of accuracy, nor does it implement the report for you
+        // NOTE: However it provides a baseline guarantee of the strat not overestimating yield
+        require(IStrategy(strategy).balanceOf() >= _assetsAtHarvest.add(_harvestedAmount)); // dev: strat overpromising
 
         _handleFees(_harvestedAmount, _harvestTime);
 
         lastHarvestAmount = _harvestedAmount;
 
-        // if we withdrawnAll from strategy and then harvest _assetsAtLastHarvest == 0 therefore dont change assetsAtLastHarvest
-        if (_assetsAtLastHarvest != 0) {
-            assetsAtLastHarvest = _assetsAtLastHarvest;
-        } else if (_assetsAtLastHarvest == 0 && lastHarvestAmount == 0) {
+        // if we withdrawAll
+        // we will have some yield left
+        // having 0 for assets will inflate APY
+        // Instead, have the last harvest report with the previous assets
+        // And if you end up harvesting again, that report will have both 0s
+        if (_assetsAtHarvest != 0) {
+            assetsAtLastHarvest = _assetsAtHarvest;
+        } else if (_assetsAtHarvest == 0 && lastHarvestAmount == 0) {
             assetsAtLastHarvest = 0;
         }
 
         lifeTimeEarned += lastHarvestAmount;
         lastHarvestedAt = _harvestTime;
+
+        emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
     }
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for non want rewards
@@ -412,13 +425,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         IStrategy(strategy).earn();
     }
 
-    /// @dev Emit event tracking current full price per share
-    /// @dev Provides a pure on-chain way of approximating APY
-    function trackFullPricePerShare() external whenNotPaused {
-        _onlyAuthorizedActors();
-        emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
-    }
-
     function pauseDeposits() external {
         _onlyAuthorizedPausers();
         pausedDeposit = true;
@@ -545,12 +551,15 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function _handleFees(uint256 _harvestedAmount, uint256 _harvestTime) internal {
         (uint256 feeStrategist, uint256 feeGovernance) = _calculatePerformanceFee(_harvestedAmount);
         uint256 duration = _harvestTime.sub(lastHarvestedAt);
-        uint256 management_fee = managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(MAX);
+        uint256 management_fee = managementFee > 0 
+            ? managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(MAX)
+            : 0;
         uint256 totalGovernanceFee = feeGovernance + management_fee;
 
         // subtracting totalGovernanceFee and feeStrategist from pool as they are already present in vault
         uint256 _pool = balance().sub(totalGovernanceFee).sub(feeStrategist);
 
+        // uint != is cheaper and equivalent to >
         if (totalGovernanceFee != 0) {
             _mintSharesFor(treasury, totalGovernanceFee, _pool);
         }

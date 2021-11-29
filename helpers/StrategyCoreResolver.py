@@ -356,6 +356,10 @@ class StrategyCoreResolver:
         # self.manager.printCompare(before, after)
         # self.confirm_harvest_state(before, after, tx)
 
+        ## TODO: Verify harvest, and verify that the correct amount of shares was issued against perf fees
+        # 1- Add custom test with code
+        # 2- Use custom test and code to finish this oen
+
         # # valueGained = after.get("sett.getPricePerFullShare") > before.get(
         # #     "sett.getPricePerFullShare"
         # # )
