@@ -12,7 +12,6 @@ A linear improvement from original architecture. No longer using Controller, jus
 - Test Math
   -> Check it's all there
 
-
   TODO TODO TODO
   All the math for shares needs to be tested by re-doing the snapshot manager
   Also, migrate the math for shares to be used everywhere (in tests)

@@ -53,6 +53,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// 0: keeping 100% harvest in reward tokens
     /// 10_000: converting all rewards tokens to want token
     uint256 public autoCompoundRatio = 10_000; // NOTE: Since this is upgradeable this won't be set
+
     // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
     function __BaseStrategy_init(address _vault) public initializer whenNotPaused {
