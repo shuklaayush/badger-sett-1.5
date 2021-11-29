@@ -106,3 +106,20 @@ black .
 ## TODO:
 
 - Add deposit hook on vault to warn the rewards contract.
+
+
+
+# Breaking Changes
+
+List of changes for Vaults 1.5 that make it breaking for some scripts
+
+## No more Controller
+That's the point
+
+## setRewards is gone
+Replace by setTreasury
+
+## Vault handles report of funds
+
+## badgerTree is in the Vault
+Set in the vault and transfered when reported by the strat

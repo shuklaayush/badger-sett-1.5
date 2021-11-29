@@ -174,7 +174,6 @@ def test_migrate_single_user(deployer, vault, strategy, want, strategist):
     before = {
         "settWant": want.balanceOf(vault),
         "stratWant": strategy.balanceOf(),
-        "rewardsWant": want.balanceOf(vault.rewards()),
     }
 
     with brownie.reverts():

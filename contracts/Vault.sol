@@ -71,7 +71,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     address public guardian; // guardian of vault and strategy
     address public treasury; // set by governance ... any fees go there
 
-    address public rewards; // address of rewards contract
+    address public badgerTree;
 
     /// @dev name and symbol prefixes for lpcomponent token of vault
     string internal constant _defaultNamePrefix = "Badger Sett ";
@@ -102,6 +102,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
     event FullPricePerShareUpdated(uint256 value, uint256 indexed timestamp, uint256 indexed blockNumber);
+    event TreeDistribution(
+        address indexed token,
+        uint256 amount,
+        uint256 indexed blockNumber,
+        uint256 timestamp
+    );
 
     function initialize(
         address _token,
@@ -110,24 +116,26 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         address _guardian,
         address _treasury,
         address _strategist,
-        bool _overrideTokenName,
-        string memory _namePrefix,
-        string memory _symbolPrefix,
+        address _badgerTree,
+        string memory _name,
+        string memory _symbol,
         uint256[4] memory _feeConfig
     ) public initializer whenNotPaused {
         require(_token != address(0)); // dev: _token address should not be zero
 
-        IERC20Detailed namedToken = IERC20Detailed(_token);
-        string memory tokenName = namedToken.name();
-        string memory tokenSymbol = namedToken.symbol();
-
         string memory name;
         string memory symbol;
 
-        if (_overrideTokenName) {
-            name = string(abi.encodePacked(_namePrefix, tokenName));
-            symbol = string(abi.encodePacked(_symbolPrefix, tokenSymbol));
+        // If they are non empty string we'll use the custom names
+        if (keccak256(abi.encodePacked(_name)) != keccak256("") && keccak256(abi.encodePacked(_symbol)) != keccak256("")) {
+            name = _name;
+            symbol = _symbol;
         } else {
+            // Else just add the default prefix
+            IERC20Detailed namedToken = IERC20Detailed(_token);
+            string memory tokenName = namedToken.name();
+            string memory tokenSymbol = namedToken.symbol();
+
             name = string(abi.encodePacked(_defaultNamePrefix, tokenName));
             symbol = string(abi.encodePacked(_symbolSymbolPrefix, tokenSymbol));
         }
@@ -138,10 +146,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         token = IERC20Upgradeable(_token);
         governance = _governance;
         treasury = _treasury;
-        rewards = _treasury; // Initially set to treasury
         strategist = _strategist;
         keeper = _keeper;
         guardian = _guardian;
+        badgerTree = _badgerTree;
 
         lastHarvestedAt = block.timestamp; // setting initial value to the time when the vault was deployed
 
@@ -149,7 +157,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         performanceFeeStrategist = _feeConfig[1];
         withdrawalFee = _feeConfig[2];
         managementFee = _feeConfig[3];
-        maxPerformanceFee = 5_000; // 50% maximum performance fee
+        maxPerformanceFee = 3_000; // 30% maximum performance fee // We usually do 20, so this is insanely high already
         maxWithdrawalFee = 100; // 1% maximum withdrawal fee
         maxManagementFee = 200; // 2% maximum management fee
 
@@ -278,28 +286,26 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for non want rewards
     /// NOTE: non want rewards would remain in the strategy and can be withdrawn using
-    function reportAdditionalToken(uint256 _amount, address _token) external whenNotPaused {
+    // This function is called after the strat sends us the tokens
+    // We have to receive the tokens as those are protected and no-one can pull those funds
+    function reportAdditionalToken(address _token) external whenNotPaused {
         require(msg.sender == strategy, "onlyStrategy");
+        uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
-        uint256 beforeTransferAmount = IERC20Upgradeable(_token).balanceOf(address(this));
-        IStrategy(strategy).withdrawOther(_token);
-        uint256 afterTransferAmount = IERC20Upgradeable(_token).balanceOf(address(this));
+        // We may have more, but we still report only what the strat sent
+        uint256 governanceRewardsFee = _calculateFee(tokenBalance, performanceFeeGovernance);
+        uint256 strategistRewardsFee = _calculateFee(tokenBalance, performanceFeeStrategist);
 
-        require(afterTransferAmount - beforeTransferAmount >= _amount); // dev: insufficient token amount transferred
+        IERC20Upgradeable(_token).safeTransfer(treasury, governanceRewardsFee);
+        IERC20Upgradeable(_token).safeTransfer(strategist, strategistRewardsFee);
 
-        uint256 governanceRewardsFee = _calculateFee(_amount, performanceFeeGovernance);
-        uint256 strategistRewardsFee = _calculateFee(_amount, performanceFeeStrategist);
-
-        IERC20Upgradeable(_token).transfer(treasury, governanceRewardsFee);
-        IERC20Upgradeable(_token).transfer(strategist, strategistRewardsFee);
+        // Send rest to tree
+        uint256 newBalance = IERC20Upgradeable(_token).balanceOf(address(this));
+        IERC20Upgradeable(_token).safeTransfer(badgerTree, newBalance);
+        emit TreeDistribution(_token, newBalance, block.number, block.timestamp);
     }
 
     /// ===== Permissioned Actions: Governance =====
-
-    function setRewards(address _rewards) external whenNotPaused {
-        _onlyGovernance();
-        rewards = _rewards;
-    }
 
     function setTreasury(address _treasury) external whenNotPaused {
         _onlyGovernance();

@@ -52,7 +52,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// value ranges from 0 to 10_000
     /// 0: keeping 100% harvest in reward tokens
     /// 10_000: converting all rewards tokens to want token
-    uint256 public autoCompoundRatio = 10_000; // NOTE: Since this is upgradeable this won't be set
+    uint256 public autoCompoundRatio;
 
     // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
@@ -62,6 +62,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         vault = _vault;
 
         withdrawalMaxDeviationThreshold = 50;
+        // NOTE: See above
+        autoCompoundRatio = 10_000;
     }
 
     // ===== Modifiers =====
@@ -246,8 +248,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     }
 
     /// @dev used to manage the governance and strategist fee on earned rewards , make sure to use it to get paid!
-    function _processRewardsFees(uint256 _amount, address _token) internal {
+    function _processExtraTokenFees(uint256 _amount, address _token) internal {
+        IERC20Upgradeable(_token).safeTransfer(vault, _amount);
         IVault(vault).reportAdditionalToken(_amount, _token);
+
+        // Get the fees from the vault
+        // Send to strat and gov
     }
 
     /// @notice Utility function to diff two numbers, expects higher value in first position
@@ -255,11 +261,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         require(a >= b, "diff/expected-higher-number-in-first-position");
         return a.sub(b);
     }
-
-    // function setAutoCompoundRatio(uint256 _ratio) internal {
-    //     require(_ratio <= MAX, "base-strategy/excessive-auto-compound-ratio");
-    //     autoCompoundRatio = _ratio;
-    // }
 
     // ===== Abstract Functions: To be implemented by specific Strategies =====
 

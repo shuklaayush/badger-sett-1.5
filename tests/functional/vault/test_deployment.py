@@ -9,7 +9,7 @@ withdrawalFee = 50
 managementFee = 50
 
 # Test's vault deployment
-def test_vault_deployment(deployer, governance, keeper, guardian, strategist, token):
+def test_vault_deployment(deployer, governance, keeper, guardian, strategist, badgerTree, token):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
         token,
@@ -18,7 +18,7 @@ def test_vault_deployment(deployer, governance, keeper, guardian, strategist, to
         guardian,
         governance,
         strategist,
-        False,
+        badgerTree,
         "",
         "",
         [
@@ -34,7 +34,6 @@ def test_vault_deployment(deployer, governance, keeper, guardian, strategist, to
     assert vault.keeper() == keeper
     assert vault.guardian() == guardian
     assert vault.token() == token
-    assert vault.rewards() == governance
     assert vault.treasury() == governance
 
     # Params
@@ -44,12 +43,12 @@ def test_vault_deployment(deployer, governance, keeper, guardian, strategist, to
     assert vault.withdrawalFee() == withdrawalFee
     assert vault.managementFee() == managementFee
     assert vault.MAX() == 10_000
-    assert vault.maxPerformanceFee() == 5_000
+    assert vault.maxPerformanceFee() == 3_000
     assert vault.maxWithdrawalFee() == 100
 
 
 def test_vault_deployment_badTokenAddress(
-    deployer, governance, keeper, guardian, strategist
+    deployer, governance, keeper, guardian, strategist, badgerTree
 ):
     vault = Vault.deploy({"from": deployer})
     with brownie.reverts("dev: _token address should not be zero"):
@@ -60,7 +59,7 @@ def test_vault_deployment_badTokenAddress(
             guardian,
             governance,
             strategist,
-            False,
+            badgerTree,
             "",
             "",
             [

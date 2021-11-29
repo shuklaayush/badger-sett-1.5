@@ -9,7 +9,7 @@ withdrawalFee = 50
 managementFee = 50
 
 # Test's strategy's deployment
-def test_strategy_deployment(deployer, governance, keeper, guardian, strategist, token):
+def test_strategy_deployment(deployer, governance, keeper, guardian, strategist, token, badgerTree):
 
     want = token
 
@@ -21,7 +21,7 @@ def test_strategy_deployment(deployer, governance, keeper, guardian, strategist,
         guardian,
         governance,
         strategist,
-        False,
+        badgerTree,
         "",
         "",
         [

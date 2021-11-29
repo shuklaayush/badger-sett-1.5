@@ -73,6 +73,10 @@ def strategist():
 
 
 @pytest.fixture
+def badgerTree():
+    yield accounts[8]
+
+@pytest.fixture
 def rando():
     yield accounts[9]
 
@@ -81,7 +85,7 @@ def rando():
 
 ################# Deploy #################
 @pytest.fixture
-def deployed_vault(deployer, governance, keeper, guardian, strategist, token):
+def deployed_vault(deployer, governance, keeper, guardian, strategist, badgerTree, token):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
         token,
@@ -90,7 +94,7 @@ def deployed_vault(deployer, governance, keeper, guardian, strategist, token):
         guardian,
         governance,
         strategist,
-        False,
+        badgerTree,
         "",
         "",
         [
@@ -105,7 +109,7 @@ def deployed_vault(deployer, governance, keeper, guardian, strategist, token):
 
 @pytest.fixture
 def deploy_complete(
-    deployer, governance, keeper, guardian, badger, rando, proxyAdmin, strategist
+    deployer, governance, keeper, guardian, badger, rando, proxyAdmin, badgerTree, strategist
 ):
 
     token = MockToken.deploy({"from": deployer})
@@ -123,7 +127,7 @@ def deploy_complete(
         guardian,
         governance,
         strategist,
-        False,
+        badgerTree,
         "",
         "",
         [

@@ -3,19 +3,6 @@ from brownie import Vault
 
 from helpers.constants import AddressZero
 
-## Test Permissioned actions
-def test_setRewards(deployed_vault, governance, rando):
-
-    # setting rewards address
-    deployed_vault.setRewards(deployed_vault, {"from": governance})
-
-    assert deployed_vault.rewards() == deployed_vault.address
-
-    # setRewards from random user should fail
-    with brownie.reverts():
-        deployed_vault.setRewards(deployed_vault, {"from": rando})
-
-
 def test_setTreasury(deployed_vault, governance, rando):
 
     # setting treasury address
@@ -56,7 +43,7 @@ def test_setGuardian(deployed_vault, deployer, governance, rando):
 
     # setGuardian from random user should fail
     with brownie.reverts():
-        deployed_vault.setRewards(rando, {"from": deployer})
+        deployed_vault.setGuardian(rando, {"from": deployer})
 
 
 def test_setMin(deployed_vault, governance, rando):
@@ -240,9 +227,6 @@ def test_config_pause_unpause(deployed_vault, governance, strategist, rando):
     deployed_vault.pause({"from": governance})
 
     with brownie.reverts("Pausable: paused"):
-        deployed_vault.setRewards(rando, {"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
         deployed_vault.setStrategy(rando, {"from": governance})
 
     with brownie.reverts("Pausable: paused"):
@@ -274,8 +258,6 @@ def test_config_pause_unpause(deployed_vault, governance, strategist, rando):
 
     # unpause Vault, now we should be able to set everything
     deployed_vault.unpause({"from": governance})
-
-    deployed_vault.setRewards(rando, {"from": governance})
     deployed_vault.setStrategy(rando, {"from": governance})
     deployed_vault.setGuestList(rando, {"from": governance})
     deployed_vault.setMin(100, {"from": governance})

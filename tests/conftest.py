@@ -33,6 +33,7 @@ def deployed():
     proxyAdmin = accounts[3]
 
     randomUser = accounts[9]
+    badgerTree = accounts[8]
 
     token = MockToken.deploy({"from": deployer})
     token.initialize(
@@ -53,7 +54,7 @@ def deployed():
         guardian,
         governance,
         strategist,
-        False,
+        badgerTree,
         "",
         "",
         [
