@@ -1,6 +1,6 @@
 from brownie import *
 from decimal import Decimal
-from helpers.shares_math import get_withdrawal_fees_in_shares
+from helpers.shares_math import get_withdrawal_fees_in_shares, from_shares_to_want
 
 from helpers.utils import (
     approx,
@@ -234,16 +234,12 @@ class StrategyCoreResolver:
                 before.balances("sett", "treasury") + fee,
                 1,
             )
-
-        ## TODO: Accurately calculate withdrawal amount and verify it's exactly that (the user got what they wanted)
-
+        
         # Want in the strategy should be decreased, if idle in sett is insufficient to cover withdrawal
         if params["amount"] > before.balances("want", "sett"):
             # Adjust amount based on total balance x total supply
             # Division in python is not accurate, use Decimal package to ensure division is consistent w/ division inside of EVM
-            expectedWithdraw = Decimal(
-                params["amount"] * before.get("sett.balance")
-            ) / Decimal(before.get("sett.totalSupply"))
+            expectedWithdraw = from_shares_to_want(shares_to_burn, ppfs_before_withdraw, vault_decimals, withdrawal_fee_bps)
             # Withdraw from idle in sett first
             expectedWithdraw -= before.balances("want", "sett")
             # First we attempt to withdraw from idle want in strategy
