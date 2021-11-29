@@ -249,6 +249,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         uint256 _assetsAtHarvest
     ) external whenNotPaused {
         require(msg.sender == strategy, "onlyStrategy"); // dev: onlystrategy
+
+        // NOTE: May be best to just get the result of balance().sub(_harvestedAmount)
         // NOTE: Doesn't give a guarantee of accuracy, nor does it implement the report for you
         // NOTE: However it provides a baseline guarantee of the strat not overestimating yield
         require(IStrategy(strategy).balanceOf() >= _assetsAtHarvest.add(_harvestedAmount)); // dev: strat overpromising
@@ -551,6 +553,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function _handleFees(uint256 _harvestedAmount, uint256 _harvestTime) internal {
         (uint256 feeStrategist, uint256 feeGovernance) = _calculatePerformanceFee(_harvestedAmount);
         uint256 duration = _harvestTime.sub(lastHarvestedAt);
+        // NOTE: This fee may be wrong as you should prob just take the fee from _pool to be more fair
         uint256 management_fee = managementFee > 0 ? managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(MAX) : 0;
         uint256 totalGovernanceFee = feeGovernance + management_fee;
 

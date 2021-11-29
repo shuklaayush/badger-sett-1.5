@@ -2,7 +2,7 @@ import brownie
 from brownie import *
 
 from helpers.utils import approx
-from helpers.shares_math import get_performance_fees_shares
+from helpers.shares_math import get_performance_fees_shares, get_report_fees
 from dotmap import DotMap
 
 import pytest
@@ -68,12 +68,14 @@ def test_performance_fees_are_issued_as_shares(
     perf_fees_strategist = vault.performanceFeeStrategist()
     total_supply_before_deposit = vault.totalSupply()
     balance_before_deposit = vault.balance()
+    time_of_prev_harvest = vault.lastHarvestedAt()
 
     vault.setManagementFee(
         0, {"from": governance}
     )  ## Set management fees to keep math simple
 
     ## Initial Values
+    management_fee = vault.managementFee()
     strat_balance_before = want.balanceOf(strategy)
     strategist_shares_before = vault.balanceOf(strategist)
     governance_shares_before = vault.balanceOf(treasury)
@@ -85,6 +87,7 @@ def test_performance_fees_are_issued_as_shares(
     strat_balance_after = want.balanceOf(strategy)
     strat_harvest_gain = strat_balance_after - strat_balance_before
 
+    ## NOTE: This test is kind of sketch as the function is doing some roundings
     expected_strategist_shares = get_performance_fees_shares(
         strat_harvest_gain,
         perf_fees_strategist,
@@ -97,6 +100,8 @@ def test_performance_fees_are_issued_as_shares(
         {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
+    time_of_this_harvest = vault.lastHarvestedAt()
+
     ## 1 Eth was harvested, we have to take perf fees
     strategist_shares_after = vault.balanceOf(strategist)
     governance_shares_after = vault.balanceOf(treasury)
@@ -106,5 +111,96 @@ def test_performance_fees_are_issued_as_shares(
     assert approx(
         expected_strategist_shares,
         delta_strategist_shares,
+        1,
+    )
+
+    duration_of_harvest = time_of_this_harvest - time_of_prev_harvest
+
+    report_fees = get_report_fees(strat_harvest_gain, perf_fees_gov, perf_fees_strategist, management_fee, duration_of_harvest, total_supply_before_deposit, balance_before_deposit)
+
+    assert approx(
+        report_fees.shares_perf_strategist,
+        delta_strategist_shares,
+        1,
+    )
+    assert approx(
+        report_fees.shares_management + report_fees.shares_perf_treasury,
+        delta_governance_shares,
+        1,
+    )
+
+
+def test_performance_fees_are_issued_to_treasury_and_strategist(
+    setup_share_math,
+    strategy,
+    want,
+    governance,
+    vault,
+):
+    """
+        This is the more proper test for shares issuance
+    """
+
+    ## Get settings
+    treasury = vault.treasury()
+    strategist = vault.strategist()
+    perf_fees_gov = vault.performanceFeeGovernance()
+    perf_fees_strategist = vault.performanceFeeStrategist()
+    total_supply_before_deposit = vault.totalSupply()
+    balance_before_deposit = vault.balance()
+    time_of_prev_harvest = vault.lastHarvestedAt()
+
+    ## Initial Values
+    management_fee = vault.managementFee()
+    strat_balance_before = want.balanceOf(strategy)
+    strategist_shares_before = vault.balanceOf(strategist)
+    governance_shares_before = vault.balanceOf(treasury)
+
+    ## Mint 1 ETH of want
+    setup_mint(strategy, want)
+
+    ## Delta math
+    strat_balance_after = want.balanceOf(strategy)
+    strat_harvest_gain = strat_balance_after - strat_balance_before
+
+    ## NOTE: This test is kind of sketch as the function is doing some roundings
+    expected_strategist_shares = get_performance_fees_shares(
+        strat_harvest_gain,
+        perf_fees_strategist,
+        total_supply_before_deposit,
+        balance_before_deposit,
+    )
+
+    ## Run the actual operation
+    strategy.test_harvest(
+        {"from": governance}
+    )  # test_harvest to report harvest value to vault which will take respective fees
+
+    time_of_this_harvest = vault.lastHarvestedAt()
+
+    ## 1 Eth was harvested, we have to take perf fees
+    strategist_shares_after = vault.balanceOf(strategist)
+    governance_shares_after = vault.balanceOf(treasury)
+    delta_strategist_shares = strategist_shares_after - strategist_shares_before
+    delta_governance_shares = governance_shares_after - governance_shares_before
+
+    assert approx(
+        expected_strategist_shares,
+        delta_strategist_shares,
+        1,
+    )
+
+    duration_of_harvest = time_of_this_harvest - time_of_prev_harvest
+
+    report_fees = get_report_fees(strat_harvest_gain, perf_fees_gov, perf_fees_strategist, management_fee, duration_of_harvest, total_supply_before_deposit, balance_before_deposit)
+
+    assert approx(
+        report_fees.shares_perf_strategist,
+        delta_strategist_shares,
+        1,
+    )
+    assert approx(
+        report_fees.shares_management + report_fees.shares_perf_treasury,
+        delta_governance_shares,
         1,
     )
