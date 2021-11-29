@@ -553,11 +553,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function _handleFees(uint256 _harvestedAmount, uint256 _harvestTime) internal {
         (uint256 feeStrategist, uint256 feeGovernance) = _calculatePerformanceFee(_harvestedAmount);
         uint256 duration = _harvestTime.sub(lastHarvestedAt);
-        // NOTE: This fee may be wrong as you should prob just take the fee from _pool to be more fair
-        uint256 management_fee = managementFee > 0 ? managementFee.mul(balance()).mul(duration).div(SECS_PER_YEAR).div(MAX) : 0;
+
+        // Management fee is calculated against the assets before harvest, to make it fair to depositors
+        uint256 management_fee = managementFee > 0 ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX) : 0;
         uint256 totalGovernanceFee = feeGovernance + management_fee;
 
-        // subtracting totalGovernanceFee and feeStrategist from pool as they are already present in vault
+        // Pool size is the size of the pool minus the fees, this way 
+        // it's equivalent to sending the tokens as rewards after the harvest
+        // and depositing them again
         uint256 _pool = balance().sub(totalGovernanceFee).sub(feeStrategist);
 
         // uint != is cheaper and equivalent to >

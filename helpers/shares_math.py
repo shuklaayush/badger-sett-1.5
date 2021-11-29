@@ -143,7 +143,7 @@ def get_report_fees(
     new_total_supply = total_supply_before_deposit
 
     fee_in_want_treasury = get_performance_fees_want(total_harvest_gain, performance_fee_treasury)
-    management_fee_in_want = get_management_fees_want(balance, time_since_last_harvest, management_fee)
+    management_fee_in_want = get_management_fees_want(balance_before_deposit, time_since_last_harvest, management_fee)
     fee_in_want_strategist = get_performance_fees_want(total_harvest_gain, performance_fee_strategist)
 
     ## Get the shares
