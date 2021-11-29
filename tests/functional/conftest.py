@@ -71,11 +71,6 @@ def proxyAdmin():
 def strategist():
     yield accounts[6]
 
-
-@pytest.fixture
-def badgerTree():
-    yield accounts[8]
-
 @pytest.fixture
 def rando():
     yield accounts[9]

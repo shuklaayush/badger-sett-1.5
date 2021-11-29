@@ -40,7 +40,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
-    uint256 public constant MAX = 10_000; // MAX in terms of BPS = 100%
+    uint256 public constant MAX_BPS = 10_000; // MAX_BPS in terms of BPS = 100%
 
     address public want; // Token used for deposits
     address public vault; // address of the vault the strategy is connected to
@@ -148,7 +148,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     function setWithdrawalMaxDeviationThreshold(uint256 _threshold) external {
         _onlyGovernance();
-        require(_threshold <= MAX, "base-strategy/excessive-max-deviation-threshold");
+        require(_threshold <= MAX_BPS, "base-strategy/excessive-max-deviation-threshold");
         withdrawalMaxDeviationThreshold = _threshold;
     }
 
@@ -190,7 +190,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
             uint256 diff = _diff(_amount, _postWithdraw);
 
             // Require that difference between expected and actual values is less than the deviation threshold percentage
-            require(diff <= _amount.mul(withdrawalMaxDeviationThreshold).div(MAX), "base-strategy/withdraw-exceed-max-deviation-threshold");
+            require(diff <= _amount.mul(withdrawalMaxDeviationThreshold).div(MAX_BPS), "base-strategy/withdraw-exceed-max-deviation-threshold");
         }
 
         // Return the amount actually withdrawn if less than amount requested
@@ -247,13 +247,14 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest);
     }
 
-    /// @dev used to manage the governance and strategist fee on earned rewards , make sure to use it to get paid!
-    function _processExtraTokenFees(uint256 _amount, address _token) internal {
+    /// @dev Report additional token income to the Vault, handles fees and sends directly to tree
+    /// @notice This is how you emit tokens in V1.5
+    /// @notice After calling this function, the tokens are gone, sent to fee receivers and badgerTree
+    /// @notice This is arguably a rug vector as it allows to move funds to the tree
+    /// @notice for this reason I highly recommend you verify the tree is the badgerTree from the registry
+    function _processExtraToken(address _token, uint256 _amount) internal {
         IERC20Upgradeable(_token).safeTransfer(vault, _amount);
-        IVault(vault).reportAdditionalToken(_amount, _token);
-
-        // Get the fees from the vault
-        // Send to strat and gov
+        IVault(vault).reportAdditionalToken(_token);
     }
 
     /// @notice Utility function to diff two numbers, expects higher value in first position

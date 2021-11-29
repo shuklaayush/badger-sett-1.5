@@ -38,8 +38,9 @@ contract DemoStrategy is BaseStrategy {
     }
 
     function getProtectedTokens() public view virtual override returns (address[] memory) {
-        address[] memory protectedTokens = new address[](1);
+        address[] memory protectedTokens = new address[](2);
         protectedTokens[0] = want;
+        protectedTokens[1] = 0x3472A5A71965499acd81997a54BBA8D852C6E53d;
         return protectedTokens;
     }
 
@@ -75,6 +76,13 @@ contract DemoStrategy is BaseStrategy {
         _reportToVault(amount, block.timestamp, balanceOfPool());
 
         return harvested;
+    }
+
+    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (uint256 emitted){
+        _onlyAuthorizedActors();
+
+        // Note: This breaks if you don't send amount to the strat
+        _processExtraToken(token, amount);
     }
 
     function balanceOfPool() public view override returns (uint256) {

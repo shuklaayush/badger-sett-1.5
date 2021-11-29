@@ -98,7 +98,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     uint256 public min; // NOTE: in BPS, minimum amount of token to deposit into strategy when earn is called
 
     // Constants
-    uint256 public constant MAX = 10_000;
+    uint256 public constant MAX_BPS = 10_000;
     uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
     event FullPricePerShareUpdated(uint256 value, uint256 indexed timestamp, uint256 indexed blockNumber);
@@ -195,7 +195,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice Custom logic in here for how much the vault allows to be borrowed
     /// @notice Sets minimum required on-hand to keep small withdrawals cheap
     function available() public view virtual returns (uint256) {
-        return token.balanceOf(address(this)).mul(min).div(MAX);
+        return token.balanceOf(address(this)).mul(min).div(MAX_BPS);
     }
 
     /// ===== Public Actions =====
@@ -325,7 +325,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice Can only be changed by governance
     function setMin(uint256 _min) external whenNotPaused {
         _onlyGovernance();
-        require(_min <= MAX, "min should be <= MAX");
+        require(_min <= MAX_BPS, "min should be <= MAX_BPS");
         min = _min;
     }
 
@@ -333,7 +333,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice Can only be changed by governance
     function setMaxWithdrawalFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= MAX, "excessive-withdrawal-fee");
+        require(_fees <= MAX_BPS, "excessive-withdrawal-fee");
         maxWithdrawalFee = _fees;
     }
 
@@ -341,7 +341,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice Can only be changed by governance
     function setMaxPerformanceFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= MAX, "excessive-performance-fee");
+        require(_fees <= MAX_BPS, "excessive-performance-fee");
         maxPerformanceFee = _fees;
     }
 
@@ -349,7 +349,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice Can only be changed by governance
     function setMaxManagementFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= MAX, "excessive-management-fee");
+        require(_fees <= MAX_BPS, "excessive-management-fee");
         maxManagementFee = _fees;
     }
 
@@ -523,7 +523,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         if (feeBps == 0) {
             return 0;
         }
-        fee = amount.mul(feeBps).div(MAX);
+        fee = amount.mul(feeBps).div(MAX_BPS);
         return fee;
     }
 
@@ -561,7 +561,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         uint256 duration = _harvestTime.sub(lastHarvestedAt);
 
         // Management fee is calculated against the assets before harvest, to make it fair to depositors
-        uint256 management_fee = managementFee > 0 ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX) : 0;
+        uint256 management_fee = managementFee > 0 ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX_BPS) : 0;
         uint256 totalGovernanceFee = feeGovernance + management_fee;
 
         // Pool size is the size of the pool minus the fees, this way 

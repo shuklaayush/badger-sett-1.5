@@ -84,6 +84,7 @@ def deployed():
         performanceFeeGovernance=performanceFeeGovernance,
         performanceFeeStrategist=performanceFeeStrategist,
         withdrawalFee=withdrawalFee,
+        badgerTree=badgerTree
     )
 
 
@@ -161,10 +162,15 @@ def vault(deployed):
 def strategy(deployed):
     return deployed.strategy
 
+@pytest.fixture
+def badgerTree(deployed):
+    return deployed.badgerTree
+
 
 @pytest.fixture
 def guestlist(deployed_gueslist):
     return deployed_gueslist.guestlist
+
 
 
 ## Tokens ##
@@ -201,6 +207,10 @@ def strategyKeeper(strategy):
 
 @pytest.fixture
 def governance(deployed):
+    return deployed.governance
+
+@pytest.fixture
+def treasury(deployed):
     return deployed.governance
 
 
