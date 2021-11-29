@@ -139,7 +139,7 @@ def get_report_fees(
     ## 1. Calculate fees in wants
     ## 2. Get pool amount changes based on 1
     ## 3. Actually issue shares
-    balance = total_supply_before_deposit + total_harvest_gain
+    balance = balance_before_deposit + total_harvest_gain
     new_total_supply = total_supply_before_deposit
 
     fee_in_want_treasury = get_performance_fees_want(total_harvest_gain, performance_fee_treasury)

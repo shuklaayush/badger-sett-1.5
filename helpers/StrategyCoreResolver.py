@@ -1,6 +1,6 @@
 from brownie import *
 from decimal import Decimal
-from helpers.shares_math import get_withdrawal_fees_in_shares, from_shares_to_want
+from helpers.shares_math import get_withdrawal_fees_in_shares, from_shares_to_want, get_report_fees
 
 from helpers.utils import (
     approx,
@@ -77,6 +77,20 @@ class StrategyCoreResolver:
                 sett.address,
                 [func.sett.withdrawalFee],
                 [["sett.withdrawalFee", as_wei]],
+            )
+        )
+        calls.append(
+            Call(
+                sett.address,
+                [func.sett.managementFee],
+                [["sett.managementFee", as_wei]],
+            )
+        )
+        calls.append(
+            Call(
+                sett.address,
+                [func.sett.lastHarvestedAt],
+                [["sett.lastHarvestedAt", as_wei]],
             )
         )
         calls.append(
@@ -352,25 +366,47 @@ class StrategyCoreResolver:
         # self.manager.printCompare(before, after)
         # self.confirm_harvest_state(before, after, tx)
 
+
+
         ## TODO: Verify harvest, and verify that the correct amount of shares was issued against perf fees
-        # 1- Add custom test with code
         # 2- Use custom test and code to finish this oen
 
-        # # valueGained = after.get("sett.getPricePerFullShare") > before.get(
-        # #     "sett.getPricePerFullShare"
-        # # )
+        ## Simple check to guarantee a degree of gains
+        valueGained = after.get("sett.getPricePerFullShare") > before.get(
+            "sett.getPricePerFullShare"
+        )
 
-        # # # # Strategist should earn if fee is enabled and value was generated
-        # # # if before.get("strategy.performanceFeeStrategist") > 0 and valueGained:
-        # # #     assert after.balances("want", "strategist") > before.balances(
-        # # #         "want", "strategist"
-        # # #     )
+        # # Strategist should earn if fee is enabled and value was generated
+        if before.get("sett.performanceFeeStrategist") > 0 and valueGained:
+            assert after.balances("want", "strategist") > before.balances(
+                "want", "strategist"
+            )
 
-        # # # # Strategist should earn if fee is enabled and value was generated
-        # # # if before.get("strategy.performanceFeeGovernance") > 0 and valueGained:
-        # # #     assert after.balances("want", "treasury") > before.balances(
-        # # #         "want", "treasury"
-        # # #     )
+        # # Strategist should earn if fee is enabled and value was generated
+        if before.get("sett.performanceFeeGovernance") > 0 and valueGained:
+            assert after.balances("want", "treasury") > before.balances(
+                "want", "treasury"
+            )
+        
+
+        ## Specific check to prove that gain was as modeled
+        total_harvest_gain = after.get("sett.balance") - before.get("sett.balance")
+        performance_fee_treasury = before.get("sett.performanceFeeGovernance")
+        performance_fee_strategist = before.get("sett.performanceFeeStrategist")
+        management_fee = before.get("sett.managementFee")
+        time_since_last_harvest = after.get("sett.lastHarvestedAt") - before.get("sett.lastHarvestedAt")
+        total_supply_before_deposit = before.get("sett.totalSupply")
+        balance_before_deposit = before.get("sett.balance")
+
+        get_report_fees(
+            total_harvest_gain,
+            performance_fee_treasury,
+            performance_fee_strategist,
+            management_fee,
+            time_since_last_harvest,
+            total_supply_before_deposit,
+            balance_before_deposit,
+        )
 
     def confirm_tend(self, before, after, tx):
         """

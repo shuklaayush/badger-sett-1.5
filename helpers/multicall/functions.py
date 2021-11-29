@@ -27,7 +27,9 @@ sett = DotMap(
     strategist="strategist()(address)",
     keeper="keeper()(address)",
     shares="shares()(uint256)",
+    managementFee="managementFee()(uint256)",
     withdrawalFee="withdrawalFee()(uint256)",
+    lastHarvestedAt="lastHarvestedAt()(uint256)",
     performanceFeeGovernance="performanceFeeGovernance()(uint256)",
     performanceFeeStrategist="performanceFeeStrategist()(uint256)",
 )
