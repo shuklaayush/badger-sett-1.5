@@ -10,6 +10,10 @@ import pytest
 MAX_BPS = 10_000
 
 
+@pytest.fixture
+def mint_amount():
+    return 1e18
+
 def test_withdrawal_fees_are_issued_as_shares(
     setup_share_math, deployer, governance, vault, strategy, want, withdrawalFee
 ):
@@ -45,13 +49,14 @@ def test_withdrawal_fees_are_issued_as_shares(
     assert expected_shares == delta_shares
 
 
-def setup_mint(strategy, want):
+def setup_mint(strategy, want, mint_amount):
     ## Transfer some want to strategy which will represent harvest
     before_mint = strategy.balanceOf()
-    mint_amount = 1e18
     want.mint(strategy, mint_amount)
     after_mint = strategy.balanceOf()
     assert after_mint - before_mint == mint_amount
+
+    return mint_amount
 
 
 def test_performance_fees_are_issued_as_shares(
@@ -60,6 +65,7 @@ def test_performance_fees_are_issued_as_shares(
     want,
     governance,
     vault,
+    mint_amount
 ):
     ## Get settings
     treasury = vault.treasury()
@@ -81,7 +87,7 @@ def test_performance_fees_are_issued_as_shares(
     governance_shares_before = vault.balanceOf(treasury)
 
     ## Mint 1 ETH of want
-    setup_mint(strategy, want)
+    setup_mint(strategy, want, mint_amount)
 
     ## Delta math
     strat_balance_after = want.balanceOf(strategy)
@@ -97,6 +103,7 @@ def test_performance_fees_are_issued_as_shares(
 
     ## Run the actual operation
     strategy.test_harvest(
+        mint_amount,
         {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
@@ -136,6 +143,7 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
     want,
     governance,
     vault,
+    mint_amount
 ):
     """
         This is the more proper test for shares issuance
@@ -157,7 +165,7 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
     governance_shares_before = vault.balanceOf(treasury)
 
     ## Mint 1 ETH of want
-    setup_mint(strategy, want)
+    setup_mint(strategy, want, mint_amount)
 
     ## Delta math
     strat_balance_after = want.balanceOf(strategy)
@@ -173,6 +181,7 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
 
     ## Run the actual operation
     strategy.test_harvest(
+        mint_amount,
         {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 

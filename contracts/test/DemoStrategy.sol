@@ -66,16 +66,13 @@ contract DemoStrategy is BaseStrategy {
 
     /// @dev function to test harvest -
     // NOTE: want of 1 ether would be minted directly to DemoStrategy and this function would be called
-    function test_harvest() external whenNotPaused returns (uint256 harvested) {
+    /// @param amount how much was minted to report
+    function test_harvest(uint256 amount) external whenNotPaused returns (uint256 harvested) {
         _onlyAuthorizedActors();
 
         // Amount of want autocompounded after harvest in terms of want
-        harvested = 1 ether;
-
         // keep this to get paid!
-        _reportToVault(harvested, block.timestamp, balanceOfPool());
-
-        // _processRewardsFees(0, address(0)); // Pass in the amount of rewards not autocompounded and rewards token address
+        _reportToVault(amount, block.timestamp, balanceOfPool());
 
         return harvested;
     }

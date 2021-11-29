@@ -60,16 +60,21 @@ def depositAmount(setup_report):
     return setup_report.depositAmount
 
 
-def setup_mint(strategy, want):
+@pytest.fixture
+def mint_amount():
+    return 1e18
+
+def setup_mint(strategy, want, mint_amount):
     ## Transfer some want to strategy which will represent harvest
     before_mint = strategy.balanceOf()
-    mint_amount = 1e18
     want.mint(strategy, mint_amount)
     after_mint = strategy.balanceOf()
     assert after_mint - before_mint == mint_amount
 
+    return mint_amount
 
-def test_report_failed(vault, strategy, governance, rando, keeper):
+
+def test_report_failed(vault, strategy, governance, rando, keeper, mint_amount):
 
     ## report should fail when vault is paused
     # Pausing vault
@@ -78,7 +83,7 @@ def test_report_failed(vault, strategy, governance, rando, keeper):
     assert vault.paused() == True
 
     with brownie.reverts("Pausable: paused"):
-        strategy.test_harvest({"from": keeper})
+        strategy.test_harvest(mint_amount, {"from": keeper})
 
     vault.unpause({"from": governance})
 
@@ -89,7 +94,7 @@ def test_report_failed(vault, strategy, governance, rando, keeper):
     assert strategy.paused() == True
 
     with brownie.reverts("Pausable: paused"):
-        strategy.test_harvest({"from": keeper})
+        strategy.test_harvest(mint_amount, {"from": keeper})
 
     strategy.unpause({"from": governance})
 
@@ -99,10 +104,10 @@ def test_report_failed(vault, strategy, governance, rando, keeper):
 
     # harvest should fail when called by rando
     with brownie.reverts("onlyAuthorizedActors"):
-        strategy.test_harvest({"from": rando})
+        strategy.test_harvest(mint_amount, {"from": rando})
 
 
-def test_report(vault, strategy, want, deployer, governance, depositAmount):
+def test_report(vault, strategy, want, deployer, governance, depositAmount, mint_amount):
 
     total_supply_before_harvest = vault.totalSupply()
     balanceOfPool_before_harvest = strategy.balanceOfPool()
@@ -117,11 +122,12 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount):
     feeGovernance = (mintAmount * vault.performanceFeeGovernance()) / MAX_BPS
     feeStrategist = (mintAmount * vault.performanceFeeStrategist()) / MAX_BPS
 
-    setup_mint(strategy, want)
+    setup_mint(strategy, want, mint_amount)
 
     pricePerFullShare_before_fees = vault.getPricePerFullShare()
 
     strategy.test_harvest(
+        mint_amount,
         {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
@@ -155,7 +161,7 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount):
     )
 
 
-def test_multiple_reports(vault, strategy, want, deployer, governance, depositAmount):
+def test_multiple_reports(vault, strategy, want, deployer, governance, depositAmount, mint_amount):
 
     total_supply_before_harvest = vault.totalSupply()
     balanceOfPool_before_harvest = strategy.balanceOfPool()
@@ -171,13 +177,13 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
     feeStrategist = (mintAmount * vault.performanceFeeStrategist()) / MAX_BPS
     last_harvest_time = vault.lastHarvestedAt()
 
-    setup_mint(strategy, want)
+    mint_amount = setup_mint(strategy, want, mint_amount)
 
     # --
 
     pricePerFullShare_before_fees = vault.getPricePerFullShare()
 
-    strategy.test_harvest({"from": governance})
+    strategy.test_harvest(mint_amount, {"from": governance})
 
     management_fee = (
         (
@@ -206,12 +212,12 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
 
     # Mint some more want to the strategy to represent 2nd harvest
 
-    setup_mint(strategy, want)
+    setup_mint(strategy, want, mint_amount)
 
     # --
 
     pricePerFullShare_before_fees = vault.getPricePerFullShare()
-    strategy.test_harvest({"from": governance})
+    strategy.test_harvest(mint_amount, {"from": governance})
 
     total_supply_after_harvest = vault.totalSupply()
     pricePerFullShare_after_fees = vault.getPricePerFullShare()
