@@ -408,9 +408,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @notice can only be called by governance or strategist
     function sweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
-        // Safe because check for tokens is done in the strategy
-        uint256 _balance = IStrategy(strategy).withdrawOther(_token);
-        IERC20Upgradeable(_token).safeTransfer(governance, _balance);
+        IStrategy(strategy).withdrawOther(_token);
+        // Send all `_token` we have
+        // Safe because `withdrawOther` will revert on protected tokens  
+        // Done this way works for both a donation to strategy or to vault
+        IERC20Upgradeable(_token).safeTransfer(governance, IERC20Upgradeable(_token).balanceOf(address(this)));
     }
 
     /// @notice can only be called by governance or strategist

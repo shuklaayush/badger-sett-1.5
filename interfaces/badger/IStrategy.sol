@@ -15,7 +15,7 @@ interface IStrategy {
 
     function withdrawToVault() external returns (uint256 balance);
 
-    function withdrawOther(address _asset) external returns (uint256 balance);
+    function withdrawOther(address _asset) external;
 
     function balanceOfRewards() external view returns (uint256);
 }

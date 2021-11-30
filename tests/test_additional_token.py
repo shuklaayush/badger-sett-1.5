@@ -2,7 +2,7 @@
 What happens if we gift a random token to the strat?
 """
 import brownie
-from brownie import accounts, interface
+from brownie import accounts, interface, MockToken
 
 def test_report_an_extra_token(strategy, badgerTree, strategist, treasury, vault):
   """
@@ -44,5 +44,34 @@ def test_report_an_extra_token(strategy, badgerTree, strategist, treasury, vault
   assert extra_token.balanceOf(strategist) == initial_strategist_balance + fee_strat
 
 
-def test_withdraw_another_token_(strategy, badgerTree, strategist, treasury, vault):
-  assert False ## TODO
+def test_withdraw_another_token_from_strat(strategy, strategist, governance, vault, deployer):
+    mint_amount = 10e18
+    extra_token = MockToken.deploy({"from": deployer})
+    extra_token.initialize(
+        [strategy], [mint_amount]
+    )
+
+    prev_gov_bal = extra_token.balanceOf(governance)
+
+    vault.sweepExtraToken(extra_token, {"from": strategist})
+
+    after_gov_bal = extra_token.balanceOf(governance)
+
+    assert after_gov_bal - prev_gov_bal == mint_amount
+
+
+
+def test_withdraw_another_token_from_vault(strategist, governance, vault, deployer):
+    mint_amount = 10e18
+    extra_token = MockToken.deploy({"from": deployer})
+    extra_token.initialize(
+        [vault], [mint_amount]
+    )
+
+    prev_gov_bal = extra_token.balanceOf(governance)
+
+    vault.sweepExtraToken(extra_token, {"from": strategist})
+
+    after_gov_bal = extra_token.balanceOf(governance)
+
+    assert after_gov_bal - prev_gov_bal == mint_amount

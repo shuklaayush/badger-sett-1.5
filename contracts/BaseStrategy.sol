@@ -202,14 +202,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     // NOTE: must exclude any tokens used in the yield
     // Vault role - withdraw should return to Vault
-    /// @return balance - balance of asset withdrawn
-    function withdrawOther(address _asset) external override whenNotPaused returns (uint256 balance) {
+    function withdrawOther(address _asset) external override whenNotPaused {
         _onlyVault();
         _onlyNotProtectedTokens(_asset);
 
-        balance = IERC20Upgradeable(_asset).balanceOf(address(this));
-        IERC20Upgradeable(_asset).safeTransfer(vault, balance);
-        return balance;
+        IERC20Upgradeable(_asset).safeTransfer(vault, IERC20Upgradeable(_asset).balanceOf(address(this)));
+
     }
 
     /// ===== Permissioned Actions: Authoized Contract Pausers =====
