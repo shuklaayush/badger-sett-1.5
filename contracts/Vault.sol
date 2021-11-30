@@ -415,15 +415,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         IERC20Upgradeable(_token).safeTransfer(governance, IERC20Upgradeable(_token).balanceOf(address(this)));
     }
 
-    /// @notice can only be called by governance or strategist
-    function sweepExtraTokenFromVault(address _token) public {
-        require(_token != address(token)); // dev: can't rug want
-        _onlyGovernanceOrStrategist();
-
-        uint256 _balance = IERC20Upgradeable(_token).balanceOf(address(this));
-        IERC20Upgradeable(_token).safeTransfer(governance, _balance);
-    }
-
     /// @notice Transfer the underlying available to be claimed to the strategy
     /// @notice The strategy will use for yield-generating activities
     function earn() external whenNotPaused {
