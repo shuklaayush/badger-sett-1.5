@@ -60,7 +60,6 @@ def test_withdraw_another_token_from_strat(strategy, strategist, governance, vau
     assert after_gov_bal - prev_gov_bal == mint_amount
 
 
-
 def test_withdraw_another_token_from_vault(strategist, governance, vault, deployer):
     mint_amount = 10e18
     extra_token = MockToken.deploy({"from": deployer})
@@ -75,3 +74,34 @@ def test_withdraw_another_token_from_vault(strategist, governance, vault, deploy
     after_gov_bal = extra_token.balanceOf(governance)
 
     assert after_gov_bal - prev_gov_bal == mint_amount
+
+
+def test_security_try_rugging_want(deployer, governance, vault, strategy, want):
+  ## Try to rug want via withdrawOther
+  mint_amount = 1e18
+  want.mint(strategy, mint_amount)
+
+  with brownie.reverts():
+    vault.sweepExtraToken(want, {"from": governance})
+
+
+def test_security_try_rugging_protected_token(deployer, governance, vault, strategy, want):
+  """
+  Badger is protected token for testing
+  Do a donation to strat, then try rugging
+  """
+
+  ## Badger Treasury
+  donator = accounts.at("0x4441776e6a5d61fa024a5117bfc26b953ad1f425", force=True)
+
+  ## Badger
+  badger = interface.IERC20("0x3472A5A71965499acd81997a54BBA8D852C6E53d") 
+
+  assert strategy.getProtectedTokens()[1] == badger
+
+  ## Send the gift and report it
+  amount = 1e18
+  badger.transfer(strategy, amount, {"from": donator})
+
+  with brownie.reverts():
+    vault.sweepExtraToken(badger, {"from": governance})
