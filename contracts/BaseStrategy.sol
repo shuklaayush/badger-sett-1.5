@@ -93,24 +93,26 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     }
 
     /// ===== View Functions =====
-    function baseStrategyVersion() public view returns (string memory) {
+    function baseStrategyVersion() external view returns (string memory) {
         return "1.5";
     }
 
     /// @notice Get the balance of want held idle in the Strategy
+    /// @notice public because used internally for accounting
     function balanceOfWant() public view override returns (uint256) {
         return IERC20Upgradeable(want).balanceOf(address(this));
     }
 
     /// @notice Get the total balance of want realized in the strategy, whether idle or active in Strategy positions.
-    function balanceOf() public view virtual override returns (uint256) {
+    function balanceOf() external view virtual override returns (uint256) {
         return balanceOfWant().add(balanceOfPool());
     }
 
-    function isTendable() public view virtual returns (bool) {
+    function isTendable() external view virtual returns (bool) {
         return false;
     }
 
+    /// @dev Used to verify if a token can be transfered / sweeped (as it's not part of the strategy)
     function isProtectedToken(address token) public view returns (bool) {
         address[] memory protectedTokens = getProtectedTokens();
         for (uint256 i = 0; i < protectedTokens.length; i++) {
@@ -145,7 +147,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         withdrawalMaxDeviationThreshold = _threshold;
     }
 
-    function earn() public override whenNotPaused {
+    function earn() external override whenNotPaused {
         deposit();
     }
 
@@ -193,14 +195,26 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         _transferToVault(_toWithdraw);
     }
 
-    // NOTE: must exclude any tokens used in the yield
-    // Vault role - withdraw should return to Vault
+    // e.g. airdrop or donation
+    // Discussion: https://discord.com/channels/785315893960900629/837083557557305375
+    /// @dev The counterpart to _processExtraToken
+    /// @dev Allows to emit the non protected tokens
+    /// @notice this is for the tokens you didn't expect the strat to receive
+    /// @notice instead of sweeping them, just emit so it saves time while offering security guarantees
+    /// @notice This is not a rug vector as it can't use protected tokens
+    function emitNonProtectedToken(address _token) external override {
+        _onlyVault();
+        _onlyNotProtectedTokens(_token);
+        IERC20Upgradeable(_token).safeTransfer(vault, IERC20Upgradeable(_token).balanceOf(address(this)));
+        IVault(vault).reportAdditionalToken(_token);
+    }
+
+    /// @dev Withdraw the non protected token, used for sweeping it out
+    /// @notice this is the version that just sends the assets to governance
     function withdrawOther(address _asset) external override whenNotPaused {
         _onlyVault();
         _onlyNotProtectedTokens(_asset);
-
         IERC20Upgradeable(_asset).safeTransfer(vault, IERC20Upgradeable(_asset).balanceOf(address(this)));
-
     }
 
     /// ===== Permissioned Actions: Authoized Contract Pausers =====
@@ -246,20 +260,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @notice also check for this to be used exclusively on harvest, exclusively on protectedTokens
     function _processExtraToken(address _token, uint256 _amount) internal {
         IERC20Upgradeable(_token).safeTransfer(vault, _amount);
-        IVault(vault).reportAdditionalToken(_token);
-    }
-
-    // TODO: Add a function that would allow to emit tokens to tree directly
-    // e.g. airdrop or donation
-    // Discussion: https://discord.com/channels/785315893960900629/837083557557305375
-    /// @dev The counterpart to _processExtraToken
-    /// @notice this is for the tokens you didn't expect the strat to receive
-    /// @notice instead of sweeping them, just emit so it saves time while offering security guarantees
-    /// @notice This is not a rug vector as it can't use protected tokens
-    function emitNonProtectedToken(address _token) external override {
-        _onlyVault();
-        _onlyNotProtectedTokens(_token);
-        IERC20Upgradeable(_token).safeTransfer(vault, IERC20Upgradeable(_token).balanceOf(address(this)));
         IVault(vault).reportAdditionalToken(_token);
     }
 
