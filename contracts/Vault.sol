@@ -83,6 +83,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     uint256 public lastHarvestAmount; // amount harvested during last harvest
     uint256 public assetsAtLastHarvest; // assets for which the harvest took place.
 
+    mapping (address => uint256) public additionalTokensEarned;
+
     /// Fees ///
     /// @notice all fees will be in bps
 
@@ -291,6 +293,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     function reportAdditionalToken(address _token) external whenNotPaused {
         require(msg.sender == strategy, "onlyStrategy");
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
+
+        additionalTokensEarned[_token] += tokenBalance;
 
         // We may have more, but we still report only what the strat sent
         uint256 governanceRewardsFee = _calculateFee(tokenBalance, performanceFeeGovernance);

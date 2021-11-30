@@ -19,6 +19,7 @@ def test_report_an_extra_token(strategy, badgerTree, strategist, treasury, vault
   initial_tree_balance = extra_token.balanceOf(badgerTree)
   initial_treasury_balance = extra_token.balanceOf(treasury)
   initial_strategist_balance = extra_token.balanceOf(strategist)
+  prev_earned = vault.additionalTokensEarned(extra_token)
 
   ## Send the gift and report it
   amount = 1e18
@@ -44,7 +45,45 @@ def test_report_an_extra_token(strategy, badgerTree, strategist, treasury, vault
   assert extra_token.balanceOf(treasury) == initial_treasury_balance + fee_gov
   assert extra_token.balanceOf(strategist) == initial_strategist_balance + fee_strat
 
+  ## Verify that onChain APY tracking works
+  assert vault.additionalTokensEarned(extra_token) == prev_earned + amount
 
+def test_emit_additional_token_from_vault(strategist, governance, vault, deployer, badgerTree):
+    """
+    Emit an extra token that was unplanned to tree (and take per fees)
+    """
+    mint_amount = 10e18
+    extra_token = MockToken.deploy({"from": deployer})
+    extra_token.initialize(
+        [vault], [mint_amount]
+    )
+
+    gov_fee = vault.performanceFeeGovernance()
+    strat_fee = vault.performanceFeeStrategist()
+    max = vault.MAX_BPS()
+
+    prev_gov_bal = extra_token.balanceOf(governance)
+    prev_strat_bal = extra_token.balanceOf(strategist)
+    prev_badger_tree_bal = extra_token.balanceOf(badgerTree)
+
+    prev_earned = vault.additionalTokensEarned(extra_token)
+
+    vault.emitNonProtectedToken(extra_token, {"from": strategist})
+
+    gov_tokens = mint_amount * gov_fee / max
+    strat_tokens = mint_amount * strat_fee / max
+    tree_tokens = mint_amount - gov_tokens - strat_tokens
+
+    assert extra_token.balanceOf(governance) - prev_gov_bal  == gov_tokens
+    assert extra_token.balanceOf(strategist) - prev_strat_bal == strat_tokens
+    assert extra_token.balanceOf(badgerTree) - prev_badger_tree_bal == tree_tokens
+
+    ## Verify that onChain APY tracking works
+    assert vault.additionalTokensEarned(extra_token) == prev_earned + mint_amount
+
+
+
+## Withdraw operation / Sweeps
 def test_withdraw_another_token_from_strat(strategy, strategist, governance, vault, deployer):
     mint_amount = 10e18
     extra_token = MockToken.deploy({"from": deployer})
@@ -76,32 +115,7 @@ def test_withdraw_another_token_from_vault(strategist, governance, vault, deploy
 
     assert after_gov_bal - prev_gov_bal == mint_amount
 
-def test_emit_additional_token_from_vault(strategist, governance, vault, deployer, badgerTree):
-    mint_amount = 10e18
-    extra_token = MockToken.deploy({"from": deployer})
-    extra_token.initialize(
-        [vault], [mint_amount]
-    )
-
-    gov_fee = vault.performanceFeeGovernance()
-    strat_fee = vault.performanceFeeStrategist()
-    max = vault.MAX_BPS()
-
-    prev_gov_bal = extra_token.balanceOf(governance)
-    prev_strat_bal = extra_token.balanceOf(strategist)
-    prev_badger_tree_bal = extra_token.balanceOf(badgerTree)
-
-    vault.emitNonProtectedToken(extra_token, {"from": strategist})
-
-    gov_tokens = mint_amount * gov_fee / max
-    strat_tokens = mint_amount * strat_fee / max
-    tree_tokens = mint_amount - gov_tokens - strat_tokens
-
-    assert extra_token.balanceOf(governance) - prev_gov_bal  == gov_tokens
-    assert extra_token.balanceOf(strategist) - prev_strat_bal == strat_tokens
-    assert extra_token.balanceOf(badgerTree) - prev_badger_tree_bal == tree_tokens
-
-
+## Security Checks
 def test_security_try_rugging_want(deployer, governance, vault, strategy, want):
   ## Try to rug want via withdrawOther
   mint_amount = 1e18
