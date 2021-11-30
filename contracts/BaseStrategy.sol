@@ -241,10 +241,25 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @dev Report additional token income to the Vault, handles fees and sends directly to tree
     /// @notice This is how you emit tokens in V1.5
     /// @notice After calling this function, the tokens are gone, sent to fee receivers and badgerTree
-    /// @notice This is arguably a rug vector as it allows to move funds to the tree
+    /// @notice This is a rug vector as it allows to move funds to the tree
     /// @notice for this reason I highly recommend you verify the tree is the badgerTree from the registry
+    /// @notice also check for this to be used exclusively on harvest, exclusively on protectedTokens
     function _processExtraToken(address _token, uint256 _amount) internal {
         IERC20Upgradeable(_token).safeTransfer(vault, _amount);
+        IVault(vault).reportAdditionalToken(_token);
+    }
+
+    // TODO: Add a function that would allow to emit tokens to tree directly
+    // e.g. airdrop or donation
+    // Discussion: https://discord.com/channels/785315893960900629/837083557557305375
+    /// @dev The counterpart to _processExtraToken
+    /// @notice this is for the tokens you didn't expect the strat to receive
+    /// @notice instead of sweeping them, just emit so it saves time while offering security guarantees
+    /// @notice This is not a rug vector as it can't use protected tokens
+    function emitNonProtectedToken(address _token) external override {
+        _onlyVault();
+        _onlyNotProtectedTokens(_token);
+        IERC20Upgradeable(_token).safeTransfer(vault, IERC20Upgradeable(_token).balanceOf(address(this)));
         IVault(vault).reportAdditionalToken(_token);
     }
 

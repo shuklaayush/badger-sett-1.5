@@ -42,7 +42,7 @@ def test_vault_deployment(deployer, governance, keeper, guardian, strategist, ba
     assert vault.performanceFeeStrategist() == performanceFeeStrategist
     assert vault.withdrawalFee() == withdrawalFee
     assert vault.managementFee() == managementFee
-    assert vault.MAX() == 10_000
+    assert vault.MAX_BPS() == 10_000
     assert vault.maxPerformanceFee() == 3_000
     assert vault.maxWithdrawalFee() == 100
 

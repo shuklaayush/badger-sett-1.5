@@ -405,7 +405,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         IStrategy(strategy).withdrawToVault();
     }
 
-    /// @notice can only be called by governance or strategist
+    /// @dev Used to withdraw an extra token and send it to governance
     function sweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
         IStrategy(strategy).withdrawOther(_token);
@@ -413,6 +413,13 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         // Safe because `withdrawOther` will revert on protected tokens  
         // Done this way works for both a donation to strategy or to vault
         IERC20Upgradeable(_token).safeTransfer(governance, IERC20Upgradeable(_token).balanceOf(address(this)));
+    }
+    
+    /// @dev Used to emit an extra token (e.g. airdrop), take fees and send to badgerTree for emission
+    /// @notice This function is just calling `emitNonProtectedToken` on the BaseStrategy see the code there for details
+    function emitNonProtectedToken(address _token) external {
+        _onlyGovernanceOrStrategist();
+        IStrategy(strategy).emitNonProtectedToken(_token);
     }
 
     /// @notice Transfer the underlying available to be claimed to the strategy

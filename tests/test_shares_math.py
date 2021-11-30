@@ -164,7 +164,7 @@ def test_withdrawalAll(
     assert delta_user == expected_withdrawn
 
     delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
-    withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX()
+    withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX_BPS()
     # vault balance should decrease propotionally
     assert delta_vault == withdraw_amount - withdrawal_fee
     ## i.e vault has retained the withdrawal fees
@@ -209,7 +209,7 @@ def test_withdrawSome(
     assert delta_user == expected_withdrawn
 
     delta_vault = vault_balance_before_withdraw - vault_balance_after_withdraw
-    withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX()
+    withdrawal_fee = withdraw_amount * vault.withdrawalFee() / vault.MAX_BPS()
     # vault balance should decrease propotionally
     assert delta_vault == withdraw_amount - withdrawal_fee
     ## i.e vault has retained the withdrawal fees

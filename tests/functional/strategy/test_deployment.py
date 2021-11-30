@@ -48,4 +48,4 @@ def test_strategy_deployment(deployer, governance, keeper, guardian, strategist,
     # Params
 
     assert strategy.withdrawalMaxDeviationThreshold() == 50
-    assert strategy.MAX() == 10_000
+    assert strategy.MAX_BPS() == 10_000

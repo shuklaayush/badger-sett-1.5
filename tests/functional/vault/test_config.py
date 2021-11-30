@@ -49,8 +49,8 @@ def test_setGuardian(deployed_vault, deployer, governance, rando):
 def test_setMin(deployed_vault, governance, rando):
 
     # setting min > MAX should revert
-    with brownie.reverts("min should be <= MAX"):
-        deployed_vault.setMin(deployed_vault.MAX() + 1_000, {"from": governance})
+    with brownie.reverts("min should be <= MAX_BPS"):
+        deployed_vault.setMin(deployed_vault.MAX_BPS() + 1_000, {"from": governance})
 
     # setting min
     deployed_vault.setMin(1_000, {"from": governance})
@@ -67,7 +67,7 @@ def test_setMaxPerformanceFee(deployed_vault, governance, strategist, rando):
     # setting maxPeformanceFees > MAX should fail
     with brownie.reverts("excessive-performance-fee"):
         deployed_vault.setMaxPerformanceFee(
-            deployed_vault.MAX() + 1_000, {"from": governance}
+            deployed_vault.MAX_BPS() + 1_000, {"from": governance}
         )
 
     # setting min
@@ -88,7 +88,7 @@ def test_setMaxWithdrawalFee(deployed_vault, governance, strategist, rando):
     # setting maxWithdrawalFee > MAX should fail
     with brownie.reverts("excessive-withdrawal-fee"):
         deployed_vault.setMaxWithdrawalFee(
-            deployed_vault.MAX() + 1_000, {"from": governance}
+            deployed_vault.MAX_BPS() + 1_000, {"from": governance}
         )
 
     # setting setMaxWithdrawalFee
@@ -109,7 +109,7 @@ def test_setMaxManagementFee(deployed_vault, governance, strategist, rando):
     # setting maxManagementFee > MAX should fail
     with brownie.reverts("excessive-management-fee"):
         deployed_vault.setMaxManagementFee(
-            deployed_vault.MAX() + 1_000, {"from": governance}
+            deployed_vault.MAX_BPS() + 1_000, {"from": governance}
         )
 
     # setting setMaxWithdrawalFee

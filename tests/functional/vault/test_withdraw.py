@@ -90,7 +90,7 @@ def test_withdraw(withdraw_setup, deployer, governance, rando):
 
     assert (
         balance_vault_before_withdraw - balance_vault_after_withdraw
-        == withdraw_amount - vault.withdrawalFee() * withdraw_amount / vault.MAX()
+        == withdraw_amount - vault.withdrawalFee() * withdraw_amount / vault.MAX_BPS()
     )
 
 
@@ -116,7 +116,7 @@ def test_withdrawAll(withdraw_setup, deployer, governance, rando):
 
     assert (
         balance_vault_after_withdraw
-        - depositAmount * vault.withdrawalFee() / vault.MAX()
+        - depositAmount * vault.withdrawalFee() / vault.MAX_BPS()
         == 0
     )
 
@@ -152,6 +152,6 @@ def test_withdrawOther(withdraw_setup, deployer, governance, rando):
 
     assert (
         balance_vault_after_withdraw
-        - depositAmount * vault.withdrawalFee() / vault.MAX()
+        - depositAmount * vault.withdrawalFee() / vault.MAX_BPS()
         == 0
     )

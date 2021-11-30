@@ -18,4 +18,6 @@ interface IStrategy {
     function withdrawOther(address _asset) external;
 
     function balanceOfRewards() external view returns (uint256);
+
+    function emitNonProtectedToken(address _token) external;
 }

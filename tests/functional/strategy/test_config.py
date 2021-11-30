@@ -25,5 +25,5 @@ def test_setWithdrawalMaxDeviationThreshold(deploy_complete, governance, rando):
     # setting more that MAX should fail
     with brownie.reverts("base-strategy/excessive-max-deviation-threshold"):
         strategy.setWithdrawalMaxDeviationThreshold(
-            2 * strategy.MAX(), {"from": governance}
+            2 * strategy.MAX_BPS(), {"from": governance}
         )
