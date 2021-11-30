@@ -176,7 +176,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     /// ===== View Functions =====
 
-    function version() public view returns (string memory) {
+    function version() external view returns (string memory) {
         return "1.5";
     }
 
