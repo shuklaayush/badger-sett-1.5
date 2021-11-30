@@ -139,13 +139,6 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// ===== Permissioned Actions: Governance =====
 
-    function setVault(address _vault) external {
-        // I think we'll remove this
-        // Make strat unable to change vault so that it can't be used to swap / rug
-        _onlyGovernance();
-        vault = _vault;
-    }
-
     function setWithdrawalMaxDeviationThreshold(uint256 _threshold) external {
         _onlyGovernance();
         require(_threshold <= MAX_BPS, "base-strategy/excessive-max-deviation-threshold");
