@@ -9,6 +9,7 @@ import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol
 import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 import "./lib/SettAccessControl.sol";
 
@@ -57,7 +58,7 @@ import {BadgerGuestListAPI} from "../interfaces/yearn/BadgerGuestlistApi.sol";
     * All goverance related fees goes to treasury
 */
 
-contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
+contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
@@ -257,7 +258,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
         uint256 _harvestedAmount,
         uint256 _harvestTime,
         uint256 _assetsAtHarvest
-    ) external whenNotPaused {
+    ) external whenNotPaused nonReentrant {
         require(msg.sender == strategy, "onlyStrategy"); // dev: onlystrategy
 
         // NOTE: May be best to just get the result of balance().sub(_harvestedAmount)
@@ -290,7 +291,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// NOTE: non want rewards would remain in the strategy and can be withdrawn using
     // This function is called after the strat sends us the tokens
     // We have to receive the tokens as those are protected and no-one can pull those funds
-    function reportAdditionalToken(address _token) external whenNotPaused {
+    function reportAdditionalToken(address _token) external whenNotPaused nonReentrant {
         require(msg.sender == strategy, "onlyStrategy");
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
@@ -462,7 +463,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
     /// @dev Calculate the number of shares to issue for a given deposit
     /// @dev This is based on the realized value of underlying assets between Sett & associated Strategy
     // @dev deposit for msg.sender
-    function _deposit(uint256 _amount) internal {
+    function _deposit(uint256 _amount) internal nonReentrant {
         _depositFor(msg.sender, _amount);
     }
 
@@ -496,7 +497,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable {
 
     // No rebalance implementation for lower fees and faster swaps
     /// @notice Processes withdrawal fee if present
-    function _withdraw(uint256 _shares) internal virtual {
+    function _withdraw(uint256 _shares) internal nonReentrant {
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
 
