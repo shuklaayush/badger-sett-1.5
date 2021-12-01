@@ -312,16 +312,20 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// ===== Permissioned Actions: Governance =====
 
+    /// @dev Changes the treasury, recipient of management and performanceFeeGovernance
     function setTreasury(address _treasury) external whenNotPaused {
         _onlyGovernance();
         treasury = _treasury;
     }
 
+    /// @dev Changes the Strategy
+    /// @notice This is arguably a rug vector, pay extreme attention to the next strategy being set
+    /// @notice Changing the strategy should happen via timelock
     function setStrategy(address _strategy) external whenNotPaused {
         _onlyGovernance();
         /// NOTE: Migrate funds if settings strategy when already existing one
         if (strategy != address(0)) {
-            require(IStrategy(strategy).balanceOf() == 0, "Please withdrawAll before changing strat");
+            require(IStrategy(strategy).balanceOf() == 0, "Please withdrawToVault before changing strat");
         }
         strategy = _strategy;
     }
@@ -368,35 +372,41 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// ===== Permissioned Functions: Trusted Actors =====
 
+    /// @dev Changes the guestList, used to gate or limit deposits
     /// @notice can only be called by governance or strategist
     function setGuestList(address _guestList) external whenNotPaused {
         _onlyGovernanceOrStrategist();
         guestList = BadgerGuestListAPI(_guestList);
     }
 
-    /// @notice can only be called by governance or strategist
+    /// @dev Sets the withdrawalFee, which is taken in want at the time of withdrawin
+    /// @dev the fee taken in want is then used to issue shares
+    /// @notice can also be called by strategist because bounds are set by governance
     function setWithdrawalFee(uint256 _withdrawalFee) external whenNotPaused {
         _onlyGovernanceOrStrategist();
         require(_withdrawalFee <= maxWithdrawalFee, "base-strategy/excessive-withdrawal-fee");
         withdrawalFee = _withdrawalFee;
     }
 
-    /// @notice can only be called by governance or strategist
+    /// @dev Sets the performance fee for the strategist, taken at time of report
+    /// @notice can also be called by strategist because bounds are set by governance
     function setPerformanceFeeStrategist(uint256 _performanceFeeStrategist) external whenNotPaused {
         _onlyGovernanceOrStrategist();
         require(_performanceFeeStrategist <= maxPerformanceFee, "base-strategy/excessive-strategist-performance-fee");
         performanceFeeStrategist = _performanceFeeStrategist;
     }
 
-    /// @notice can only be called by governance or strategist
+    /// @dev Sets the performance fee for the governance, taken at time of report
+    /// @notice Governance fees are paid to treasury
+    /// @notice can also be called by strategist because bounds are set by governance
     function setPerformanceFeeGovernance(uint256 _performanceFeeGovernance) external whenNotPaused {
         _onlyGovernanceOrStrategist();
         require(_performanceFeeGovernance <= maxPerformanceFee, "base-strategy/excessive-governance-performance-fee");
         performanceFeeGovernance = _performanceFeeGovernance;
     }
 
-    /// @notice Set management fees
-    /// @notice Can only be changed by governance or strategist
+    /// @notice Set management fees, which are calculated during reports and issued to treasury
+    /// @notice can also be called by strategist because bounds are set by governance
     function setManagementFee(uint256 _fees) external whenNotPaused {
         _onlyGovernanceOrStrategist();
         require(_fees <= maxManagementFee, "excessive-management-fee");
@@ -405,6 +415,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @dev Withdraws all funds from Strategy and deposits into vault
     /// @notice can only be called by governance or strategist
+    /// @notice This is basically withdrawAll
+    /// @notice We renamed it due to withdrawAll being used to allow a user to withdraw all their funds
     function withdrawToVault() external {
         _onlyGovernanceOrStrategist();
         IStrategy(strategy).withdrawToVault();
@@ -427,7 +439,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         IStrategy(strategy).emitNonProtectedToken(_token);
     }
 
-    /// @notice Transfer the underlying available to be claimed to the strategy
+    /// @dev Transfer the underlying available to be claimed to the strategy
     /// @notice The strategy will use for yield-generating activities
     function earn() external whenNotPaused {
         require(!pausedDeposit); // dev: deposits are paused, we don't earn as well
@@ -438,21 +450,26 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         IStrategy(strategy).earn();
     }
 
+    /// @dev Pauses deposits
+    /// @notice Deposits have an extra check to be paused, pause() will instead always pause everything
     function pauseDeposits() external {
         _onlyAuthorizedPausers();
         pausedDeposit = true;
     }
-
+    
+    /// @dev Resume deposits
     function unpauseDeposits() external {
         _onlyGovernance();
         pausedDeposit = false;
     }
 
+    /// @dev Pauses everything
     function pause() external {
         _onlyAuthorizedPausers();
         _pause();
     }
 
+    /// @dev Unpauses everything
     function unpause() external {
         _onlyGovernance();
         _unpause();
