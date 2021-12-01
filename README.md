@@ -123,3 +123,11 @@ Replace by setTreasury
 
 ## badgerTree is in the Vault
 Set in the vault and transfered when reported by the strat
+
+
+
+## IMPORTANT
+
+It it extremely important that governance is a timelock, as some changes (changing strategies) can be used with malicious intent
+
+DO NOT trust these contracts, unless `governance` is a timelock with a delay of over a day (typically 2 days)
