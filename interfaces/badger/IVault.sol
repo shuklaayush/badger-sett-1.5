@@ -6,9 +6,7 @@ interface IVault {
     function rewards() external view returns (address);
 
     function report(
-        uint256 _harvestedAmount,
-        uint256 _harvestTime,
-        uint256 _assetsAtLastHarvest
+        uint256 _harvestedAmount
     ) external;
 
     function reportAdditionalToken(address _token) external;

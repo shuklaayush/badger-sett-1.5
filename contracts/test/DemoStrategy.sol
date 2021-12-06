@@ -65,7 +65,7 @@ contract DemoStrategy is BaseStrategy {
         // No-op as we don't do anything with funds
         // use autoCompoundRatio here to convert rewards to want ...
         // keep this to get paid!
-        // _reportToVault(earned, block.timestamp, balanceOfPool());
+        // _reportToVault(earned);
 
         // Nothing harvested, we have 2 tokens, return both 0s
         harvested = new TokenAmount[](2);
@@ -82,7 +82,7 @@ contract DemoStrategy is BaseStrategy {
 
         // Amount of want autocompounded after harvest in terms of want
         // keep this to get paid!
-        _reportToVault(amount, block.timestamp, balanceOfPool());
+        _reportToVault(amount);
 
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, amount);

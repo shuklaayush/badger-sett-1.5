@@ -100,7 +100,7 @@ def test_report_failed(vault, strategy, governance, rando, keeper, mint_amount):
 
     # report should fail report function is not called from strategy
     with brownie.reverts("onlyStrategy"):
-        vault.report(1e18, 0, 0, {"from": rando})
+        vault.report(1e18, {"from": rando})
 
     # harvest should fail when called by rando
     with brownie.reverts("onlyAuthorizedActors"):
@@ -110,7 +110,7 @@ def test_report_failed(vault, strategy, governance, rando, keeper, mint_amount):
 def test_report(vault, strategy, want, deployer, governance, depositAmount, mint_amount):
 
     total_supply_before_harvest = vault.totalSupply()
-    balanceOfPool_before_harvest = strategy.balanceOfPool()
+    balanceBeforeHarvest = vault.balance()
 
     ### Harvesting and reporting
 
@@ -121,10 +121,13 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount, mint
 
     feeGovernance = (mintAmount * vault.performanceFeeGovernance()) / MAX_BPS
     feeStrategist = (mintAmount * vault.performanceFeeStrategist()) / MAX_BPS
+    
 
     setup_mint(strategy, want, mint_amount)
 
     pricePerFullShare_before_fees = vault.getPricePerFullShare()
+
+
 
     strategy.test_harvest(
         mint_amount,
@@ -145,7 +148,7 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount, mint
     pricePerFullShare_after_fees = vault.getPricePerFullShare()
 
     assert vault.lastHarvestAmount() == mintAmount
-    assert vault.assetsAtLastHarvest() == balanceOfPool_before_harvest
+    assert vault.assetsAtLastHarvest() == balanceBeforeHarvest
     assert vault.lifeTimeEarned() == mintAmount
     print("Harvest time: ", vault.lastHarvestedAt())
 
@@ -164,7 +167,7 @@ def test_report(vault, strategy, want, deployer, governance, depositAmount, mint
 def test_multiple_reports(vault, strategy, want, deployer, governance, depositAmount, mint_amount):
 
     total_supply_before_harvest = vault.totalSupply()
-    balanceOfPool_before_harvest = strategy.balanceOfPool()
+    balanceBeforeHarvest = vault.balance()
 
     ### Harvesting and reporting
 
@@ -198,7 +201,7 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
     pricePerFullShare_after_fees = vault.getPricePerFullShare()
 
     assert vault.lastHarvestAmount() == mintAmount
-    assert vault.assetsAtLastHarvest() == balanceOfPool_before_harvest
+    assert vault.assetsAtLastHarvest() == balanceBeforeHarvest
     assert vault.lifeTimeEarned() == mintAmount
     print("Harvest time: ", vault.lastHarvestedAt())
 
@@ -209,6 +212,8 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
         (pricePerFullShare_before_fees - pricePerFullShare_after_fees),
         (feeGovernance + feeStrategist + management_fee) * earned_to_deposit_ratio,
     )
+
+    balanceBeforeHarvest = vault.balance()
 
     # Mint some more want to the strategy to represent 2nd harvest
 
@@ -223,7 +228,7 @@ def test_multiple_reports(vault, strategy, want, deployer, governance, depositAm
     pricePerFullShare_after_fees = vault.getPricePerFullShare()
 
     assert vault.lastHarvestAmount() == mintAmount
-    assert vault.assetsAtLastHarvest() == balanceOfPool_before_harvest
+    assert vault.assetsAtLastHarvest() == balanceBeforeHarvest
     assert vault.lifeTimeEarned() == mintAmount * 2
     print("Harvest time: ", vault.lastHarvestedAt())
 

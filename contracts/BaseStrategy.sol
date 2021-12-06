@@ -269,14 +269,10 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev function to report harvest to vault
     /// @param _harvestedAmount: amount of want token autocompounded during harvest
-    /// @param _harvestTime: timestamp of harvest
-    /// @param _assetsAtLastHarvest: assets in pool for which the harvest took place.
     function _reportToVault(
-        uint256 _harvestedAmount,
-        uint256 _harvestTime,
-        uint256 _assetsAtLastHarvest
+        uint256 _harvestedAmount
     ) internal whenNotPaused {
-        IVault(vault).report(_harvestedAmount, _harvestTime, _assetsAtLastHarvest);
+        IVault(vault).report(_harvestedAmount);
     }
 
     /// @dev Report additional token income to the Vault, handles fees and sends directly to tree

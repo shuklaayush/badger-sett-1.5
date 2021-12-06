@@ -258,20 +258,16 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice you are trusting the strategy to report the correct amount
     // TODO: It would be best to have a check here to ensure the profit is correct
     // Guessing thsi may help:
-    // balanceOf() >= _assetsAtHarvest.add(_harvestedAmount)
+    // balanceOf() >= assetsAtHarvest.add(_harvestedAmount)
     function report(
-        uint256 _harvestedAmount,
-        uint256 _harvestTime,
-        uint256 _assetsAtHarvest
+        uint256 _harvestedAmount
     ) external whenNotPaused nonReentrant {
         require(msg.sender == strategy, "onlyStrategy"); // dev: onlystrategy
 
-        // NOTE: May be best to just get the result of balance().sub(_harvestedAmount)
-        // NOTE: Doesn't give a guarantee of accuracy, nor does it implement the report for you
-        // NOTE: However it provides a baseline guarantee of the strat not overestimating yield
-        require(IStrategy(strategy).balanceOf() >= _assetsAtHarvest.add(_harvestedAmount)); // dev: strat overpromising
+        uint256 harvestTime = block.timestamp;
+        uint256 assetsAtHarvest = balance().sub(_harvestedAmount); // Must be less than or equal or revert
 
-        _handleFees(_harvestedAmount, _harvestTime);
+        _handleFees(_harvestedAmount, harvestTime);
 
         // Updated lastHarvestAmount
         lastHarvestAmount = _harvestedAmount;
@@ -281,16 +277,16 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         // having 0 for assets will inflate APY
         // Instead, have the last harvest report with the previous assets
         // And if you end up harvesting again, that report will have both 0s
-        if (_assetsAtHarvest != 0) {
-            assetsAtLastHarvest = _assetsAtHarvest;
-        } else if (_assetsAtHarvest == 0 && _harvestedAmount == 0) {
+        if (assetsAtHarvest != 0) {
+            assetsAtLastHarvest = assetsAtHarvest;
+        } else if (assetsAtHarvest == 0 && _harvestedAmount == 0) {
             // If zero
             assetsAtLastHarvest = 0;
         }
 
         lifeTimeEarned += _harvestedAmount;
         // Update time either way
-        lastHarvestedAt = _harvestTime;
+        lastHarvestedAt = harvestTime;
 
         emit Harvested(address(token), _harvestedAmount, block.number, block.timestamp);
     }
@@ -587,9 +583,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// @dev called by function report to handle minting of
-    function _handleFees(uint256 _harvestedAmount, uint256 _harvestTime) internal {
+    function _handleFees(uint256 _harvestedAmount, uint256 harvestTime) internal {
         (uint256 feeStrategist, uint256 feeGovernance) = _calculatePerformanceFee(_harvestedAmount);
-        uint256 duration = _harvestTime.sub(lastHarvestedAt);
+        uint256 duration = harvestTime.sub(lastHarvestedAt);
 
         // Management fee is calculated against the assets before harvest, to make it fair to depositors
         uint256 management_fee = managementFee > 0 ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX_BPS) : 0;
