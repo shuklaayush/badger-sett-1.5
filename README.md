@@ -2,59 +2,35 @@
 
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
-## TODO
 
-- Test Pause
-- Test Permissions
-  Remove all the clutter from functional tests
-  Bulk all permissions test separately
 
-- Test Math
-  -> Check it's all there
+# Badger Vaults 1.5
 
-  TODO TODO TODO
-  All the math for shares needs to be tested by re-doing the snapshot manager
-  Also, migrate the math for shares to be used everywhere (in tests)
+A simplified architecture for Vaults, that uses exclusively:
+Vault -> Handle Deposits, accounting and emission of events
+Strategy -> Uses funds to generate yield on them
 
-CHANGE
-All withdrawal should be == not >=
+With additional extension from the original Badger Sett Fork:
+- Contracts are upgradeable
+- All contracts Pausable
+- Deposits can be paused separately
+- Handling cases of Strategy that only emits funds
 
-> = means the vault is loosing money and the user is gaining
-> We cannot socialize lossess
+With additional new feature:
+- Performance Fees, issued as shares
+- Management and Withdrawal fees, also issued as shares
+- Ability to emit to the badger tree directly
+- Remove the controller
+- Settings are in the vaults, and the strategy has simpler / leaner bytecode
 
-## Overview
 
-### Vault
+# Additional Docs
+See the User Stories:
+https://mint-salesman-909.notion.site/Badger-Vaults-1-5-User-Stories-2eae32b1eebc4892a6188f6aa9b17e5a
 
-- Tracks shares for deposits
-- Tracks it's active `strategy`
-- Deposits and invests in strategy via `earn`
-- Allows to withdraw via `withdraw`
-- Removed Controller
-  - Removed harvest from vault (only on strategy)
-- Params added to track autocompounded rewards (lifeTimeEarned, lastHarvestedAt, lastHarvestAmount, assetsAtLastHarvest)
-  this would work in sync with autoCompoundRatio to help us track harvests better.
-- Fees
-  - Strategy would report the autocompounded harvest amount to the vault
-  - Calculation performanceFeeGovernance, performanceFeeStrategist, withdrawalFee, managementFee moved to the vault.
-  - Vault mints shares for performanceFees and managementFee to the respective recipient (treasury, strategist)
-  - withdrawal fees is transferred to the rewards address set
-- Permission:
-  - Strategist can now set performance, withdrawal and management fees
-  - Governance will determine maxPerformanceFee, maxWithdrawalFee, maxManagementFee that can be set to prevent rug of funds.
-- Strategy would take the actors from the vault it is connected to
-- All goverance related fees goes to treasury
+See the Overview:
+https://mint-salesman-909.notion.site/Badger-Vaults-1-5-Overview-ab9c64a076af4ba3913d1430c01d8f6e
 
-### Strategy
-
-- No controller as middleman. The Strategy directly interacts with the vault
-- withdrawToVault would withdraw all the funds from the strategy and move it into vault
-- strategy would take the actors from the vault it is connected to
-  - SettAccessControl removed
-- fees calculation for autocompounding rewards moved to vault
-- autoCompoundRatio param added to keep a track in which ratio harvested rewards are being autocompounded
-- Strategy.withdrawAll to move all funds to the Vault
-- Fees calculation moved to want for autocompounded part, strategy only calculates fees for reward part which is not autocompounded.
 
 ## Tests
 
@@ -124,9 +100,12 @@ Replace by setTreasury
 ## badgerTree is in the Vault
 Set in the vault and transfered when reported by the strat
 
+## Harvest and Tend return a list of tokens
+The list is to be interpreted as the `protectedTokens` and the actual enforcing has to be done by the Strategist
 
 
-## IMPORTANT
+
+## SECURITY!!! IMPORTANT
 
 It it extremely important that governance is a timelock, as some changes (changing strategies) can be used with malicious intent
 
