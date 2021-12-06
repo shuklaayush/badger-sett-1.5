@@ -56,6 +56,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
+    /// @dev Initializer for the BaseStrategy
+    /// @notice Make sure to call it from your specific Strategy
     function __BaseStrategy_init(address _vault) public initializer whenNotPaused {
         __Pausable_init();
 
@@ -68,31 +70,39 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     // ===== Modifiers =====
 
+    /// @dev For functions that only the governance should be able to call 
+    /// @notice most of the time setting setters, or to rescue / sweep funds
     function _onlyGovernance() internal view {
         require(msg.sender == governance(), "onlyGovernance");
     }
 
+    /// @dev For functions that only known bening entities should call
     function _onlyGovernanceOrStrategist() internal view {
         require(msg.sender == strategist() || msg.sender == governance(), "onlyGovernanceOrStrategist");
     }
 
+    /// @dev For functions that only known bening entities should call
     function _onlyAuthorizedActors() internal view {
         require(msg.sender == keeper() || msg.sender == governance(), "onlyAuthorizedActors");
     }
 
+    /// @dev For functions that only the vault should use
     function _onlyVault() internal view {
         require(msg.sender == vault, "onlyVault");
     }
 
+    /// @dev Modifier used to check if the function is being called by a bening entity
     function _onlyAuthorizedActorsOrVault() internal view {
         require(msg.sender == keeper() || msg.sender == governance() || msg.sender == vault, "onlyAuthorizedActorsOrVault");
     }
 
+    /// @dev Modifier used exclusively for pausing
     function _onlyAuthorizedPausers() internal view {
         require(msg.sender == guardian() || msg.sender == governance(), "onlyPausers");
     }
 
     /// ===== View Functions =====
+    /// @dev Returns the version of the BaseStrategy 
     function baseStrategyVersion() external view returns (string memory) {
         return "1.5";
     }
@@ -108,6 +118,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         return balanceOfWant().add(balanceOfPool());
     }
 
+    /// @dev Returns the boolean that tells whether this strategy is supposed to be tended or not
+    /// @notice This is basically a constant, the harvest bots checks if this is true and in that case will call `tend`
     function isTendable() external view virtual returns (bool) {
         return false;
     }
@@ -123,34 +135,44 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         return false;
     }
 
+    /// @dev gets the governance
     function governance() public view returns (address) {
         return IVault(vault).governance();
     }
 
+    /// @dev gets the strategist
     function strategist() public view returns (address) {
         return IVault(vault).strategist();
     }
 
+    /// @dev gets the keeper
     function keeper() public view returns (address) {
         return IVault(vault).keeper();
     }
 
+    /// @dev gets the guardian
     function guardian() public view returns (address) {
         return IVault(vault).guardian();
     }
 
     /// ===== Permissioned Actions: Governance =====
-
+    
+    /// @dev Allows to change withdrawalMaxDeviationThreshold
+    /// @notice Anytime a withdrawal is done, the vault uses the current assets `vault.balance()` to calculate the value of each share
+    /// @notice When the strategy calls `_withdraw` it uses this variable as a slippage check against the actual funds withdrawn
     function setWithdrawalMaxDeviationThreshold(uint256 _threshold) external {
         _onlyGovernance();
         require(_threshold <= MAX_BPS, "base-strategy/excessive-max-deviation-threshold");
         withdrawalMaxDeviationThreshold = _threshold;
     }
 
+    /// @dev Calls deposit, see below
     function earn() external override whenNotPaused {
         deposit();
     }
 
+    /// @dev Causes the strategy to `_deposit` the idle want sitting in the strategy
+    /// @notice Is basically the same as tend, except without custom code for it 
     function deposit() public virtual whenNotPaused {
         _onlyAuthorizedActorsOrVault();
         uint256 _amount = IERC20Upgradeable(want).balanceOf(address(this));
@@ -219,11 +241,15 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// ===== Permissioned Actions: Authoized Contract Pausers =====
 
+    /// @dev Pause the contract
+    /// @notice Check the `onlyWhenPaused` modifier for functionality that is blocked when pausing
     function pause() external {
         _onlyAuthorizedPausers();
         _pause();
     }
 
+    /// @dev Unpause the contract
+    /// @notice while a guardian can also pause, only governance (multisig with timelock) can unpause
     function unpause() external {
         _onlyGovernance();
         _unpause();
@@ -297,7 +323,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @dev Realize returns from positions
     /// @dev Returns can be reinvested into positions, or distributed in another fashion
     /// @return harvested : total amount harvested
-    function harvest() external virtual returns (uint256 harvested);
+    function harvest() external virtual returns (uint256[] memory harvested);
 
     /// @dev User-friendly name for this strategy for purposes of convenient reading
     /// @return Name of the strategy
