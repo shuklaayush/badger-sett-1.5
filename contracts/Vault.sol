@@ -63,6 +63,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
+    uint256 constant ONE_ETH = 1e18;
+
+    /// ===== Storage Variables ====
+
     IERC20Upgradeable public token; // Token used for deposits
     BadgerGuestListAPI public guestList; // guestlist when vault is in experiment/ guarded state
 
@@ -88,11 +92,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// Fees ///
     /// @notice all fees will be in bps
-
-    uint256 public performanceFeeGovernance;
-    uint256 public performanceFeeStrategist;
-    uint256 public withdrawalFee;
-    uint256 public managementFee;
+    uint256 public performanceFeeGovernance; // Perf fee sent to `treasury`
+    uint256 public performanceFeeStrategist; // Perf fee sent to `strategist`
+    uint256 public withdrawalFee; // fee issued to `treasury` on withdrawal 
+    uint256 public managementFee; // fee issued to `treasury` on report (typically on harvest, but only if strat is autocompounding)
 
     uint256 public maxPerformanceFee; // maximum allowed performance fees
     uint256 public maxWithdrawalFee; // maximum allowed withdrawal fees
@@ -100,16 +103,20 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     uint256 public min; // NOTE: in BPS, minimum amount of token to deposit into strategy when earn is called
 
-    // Constants
+    /// ===== Contants ====
     uint256 public constant MAX_BPS = 10_000;
     uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
+    /// ===== Modifiers ====
+    // Emitted when a token is sent to the badgerTree for emissions
     event TreeDistribution(
         address indexed token,
         uint256 amount,
         uint256 indexed blockNumber,
         uint256 timestamp
     );
+
+    // Emitted during a report, when there has been an increase in pricePerFullShare (ppfs)
     event Harvested(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
 
     function initialize(
@@ -174,16 +181,16 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// ===== View Functions =====
-
+    
     function version() external view returns (string memory) {
         return "1.5";
     }
 
     function getPricePerFullShare() public view virtual returns (uint256) {
         if (totalSupply() == 0) {
-            return 1e18;
+            return ONE_ETH;
         }
-        return balance().mul(1e18).div(totalSupply());
+        return balance().mul(ONE_ETH).div(totalSupply());
     }
 
     /// @notice Return the total balance of the underlying token within the system
