@@ -301,7 +301,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     // We have to receive the tokens as those are protected and no-one can pull those funds
     function reportAdditionalToken(address _token) external whenNotPaused nonReentrant {
         require(msg.sender == strategy, "onlyStrategy");
-        require(token != _token, "No want");
+        require(address(token) != _token, "No want");
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
         additionalTokensEarned[_token] += tokenBalance;

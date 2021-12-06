@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
@@ -323,9 +324,9 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @dev Realize returns from positions
     /// @dev Returns can be reinvested into positions, or distributed in another fashion
     /// @return harvested : total amount harvested
-    function harvest() external virtual returns (uint256[] memory harvested);
+    function harvest() external virtual override returns (TokenAmount[] memory harvested);
 
-    function tend() external virtual returns (uint256[] memory tended);
+    function tend() external virtual override returns (TokenAmount[] memory tended);
 
     /// @dev User-friendly name for this strategy for purposes of convenient reading
     /// @return Name of the strategy
@@ -337,8 +338,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev Calculate the total amount of rewards accured.
     /// @notice if there are multiple reward tokens this function should take all of them into account
-    /// @return the amount of rewards accured
-    function balanceOfRewards() public view virtual override returns (uint256);
+    /// @return rewards - the TokenAmount of rewards accured
+    function balanceOfRewards() external view virtual override returns (TokenAmount[] memory rewards);
 
     uint256[49] private __gap;
 }

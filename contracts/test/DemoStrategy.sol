@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import {BaseStrategy} from "../BaseStrategy.sol";
 
@@ -8,6 +9,8 @@ contract DemoStrategy is BaseStrategy {
     // address public want; // Inherited from BaseStrategy
     // address public lpComponent; // Token that represents ownership in a pool, not always used
     // address public reward; // Token we farm
+
+    address constant public BADGER = 0x3472A5A71965499acd81997a54BBA8D852C6E53d; 
 
     /// @notice set using setAutoCompoundRatio()
     // uint256 public autoCompoundRatio = 10_000; // Inherited from BaseStrategy - percentage of rewards converted to want
@@ -41,7 +44,7 @@ contract DemoStrategy is BaseStrategy {
     function getProtectedTokens() public view virtual override returns (address[] memory) {
         address[] memory protectedTokens = new address[](2);
         protectedTokens[0] = want;
-        protectedTokens[1] = 0x3472A5A71965499acd81997a54BBA8D852C6E53d;
+        protectedTokens[1] = BADGER;
         return protectedTokens;
     }
 
@@ -57,7 +60,7 @@ contract DemoStrategy is BaseStrategy {
         return _amount;
     }
 
-    function harvest() external override whenNotPaused returns (uint256[] memory harvested) {
+    function harvest() external override whenNotPaused returns (TokenAmount[] memory harvested) {
         _onlyAuthorizedActors();
         // No-op as we don't do anything with funds
         // use autoCompoundRatio here to convert rewards to want ...
@@ -65,45 +68,46 @@ contract DemoStrategy is BaseStrategy {
         // _reportToVault(earned, block.timestamp, balanceOfPool());
 
         // Nothing harvested, we have 2 tokens, return both 0s
-        harvested = new uint256[](2);
-        harvested[0] = 0;
-        harvested[1] = 0;
+        harvested = new TokenAmount[](2);
+        harvested[0] = TokenAmount(want, 0);
+        harvested[1] = TokenAmount(BADGER, 0);
         return harvested;
     }
 
     /// @dev function to test harvest -
     // NOTE: want of 1 ether would be minted directly to DemoStrategy and this function would be called
     /// @param amount how much was minted to report
-    function test_harvest(uint256 amount) external whenNotPaused returns (uint256[] memory harvested) {
+    function test_harvest(uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
         _onlyAuthorizedActors();
 
         // Amount of want autocompounded after harvest in terms of want
         // keep this to get paid!
         _reportToVault(amount, block.timestamp, balanceOfPool());
 
-        harvested = new uint256[](2);
-        harvested[0] = amount;
-        harvested[1] = 0; // Nothing harvested for Badger
+        harvested = new TokenAmount[](2);
+        harvested[0] = TokenAmount(want, amount);
+        harvested[1] = TokenAmount(BADGER, 0); // Nothing harvested for Badger
         return harvested;
     }
 
-    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (uint256[] memory harvested){
+    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested){
         _onlyAuthorizedActors();
 
         // Note: This breaks if you don't send amount to the strat
         _processExtraToken(token, amount);
 
-        harvested = new uint256[](2);
-        harvested[0] = 0; // Nothing harvested for want
-        harvested[1] = amount; // We emitted amount here
+        harvested = new TokenAmount[](2);
+        harvested[0] = TokenAmount(want, 0); // Nothing harvested for want
+        harvested[1] = TokenAmount(BADGER, amount); 
         return harvested;
     }
 
     // Example tend is a no-op which returns the values, could also just revert
-    function tend() public override returns (uint256[] memory tended){
-        tended = new uint256[](2);
-        tended[0] = 0; 
-        tended[1] = 0;
+    function tend() external override returns (TokenAmount[] memory tended){
+        // Nothing tended
+        tended = new TokenAmount[](2);
+        tended[0] = TokenAmount(want, 0);
+        tended[1] = TokenAmount(BADGER, 0); 
         return tended;
     }
 
@@ -111,7 +115,11 @@ contract DemoStrategy is BaseStrategy {
         return 0;
     }
 
-    function balanceOfRewards() public view override returns (uint256) {
-        return 0;
+    function balanceOfRewards() external view override returns (TokenAmount[] memory rewards) {
+        // Rewards are 0
+        rewards = new TokenAmount[](2);
+        rewards[0] = TokenAmount(want, 0);
+        rewards[1] = TokenAmount(BADGER, 0); 
+        return rewards;
     }
 }
