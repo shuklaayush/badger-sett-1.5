@@ -256,10 +256,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for autocompounded rewards
     /// @notice you are trusting the strategy to report the correct amount
-    // TODO: It would be best to have a check here to ensure the profit is correct
-    // Guessing thsi may help:
-    // balanceOf() >= assetsAtHarvest.add(_harvestedAmount)
-    function report(
+    function reportHarvest(
         uint256 _harvestedAmount
     ) external whenNotPaused nonReentrant {
         require(msg.sender == strategy, "onlyStrategy"); // dev: onlystrategy

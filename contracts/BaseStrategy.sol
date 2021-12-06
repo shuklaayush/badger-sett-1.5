@@ -272,7 +272,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     function _reportToVault(
         uint256 _harvestedAmount
     ) internal whenNotPaused {
-        IVault(vault).report(_harvestedAmount);
+        IVault(vault).reportHarvest(_harvestedAmount);
     }
 
     /// @dev Report additional token income to the Vault, handles fees and sends directly to tree

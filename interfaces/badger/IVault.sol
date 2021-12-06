@@ -5,7 +5,7 @@ pragma solidity ^0.6.12;
 interface IVault {
     function rewards() external view returns (address);
 
-    function report(
+    function reportHarvest(
         uint256 _harvestedAmount
     ) external;
 
