@@ -325,6 +325,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @return harvested : total amount harvested
     function harvest() external virtual returns (uint256[] memory harvested);
 
+    function tend() external virtual returns (uint256[] memory tended);
+
     /// @dev User-friendly name for this strategy for purposes of convenient reading
     /// @return Name of the strategy
     function getName() external pure virtual returns (string memory);

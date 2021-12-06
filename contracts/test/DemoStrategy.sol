@@ -37,6 +37,7 @@ contract DemoStrategy is BaseStrategy {
         return "DemoStrategy";
     }
 
+
     function getProtectedTokens() public view virtual override returns (address[] memory) {
         address[] memory protectedTokens = new address[](2);
         protectedTokens[0] = want;
@@ -56,33 +57,54 @@ contract DemoStrategy is BaseStrategy {
         return _amount;
     }
 
-    function harvest() external override whenNotPaused returns (uint256 harvested) {
+    function harvest() external override whenNotPaused returns (uint256[] memory harvested) {
         _onlyAuthorizedActors();
         // No-op as we don't do anything with funds
         // use autoCompoundRatio here to convert rewards to want ...
         // keep this to get paid!
         // _reportToVault(earned, block.timestamp, balanceOfPool());
-        return 0;
+
+        // Nothing harvested, we have 2 tokens, return both 0s
+        harvested = new uint256[](2);
+        harvested[0] = 0;
+        harvested[1] = 0;
+        return harvested;
     }
 
     /// @dev function to test harvest -
     // NOTE: want of 1 ether would be minted directly to DemoStrategy and this function would be called
     /// @param amount how much was minted to report
-    function test_harvest(uint256 amount) external whenNotPaused returns (uint256 harvested) {
+    function test_harvest(uint256 amount) external whenNotPaused returns (uint256[] memory harvested) {
         _onlyAuthorizedActors();
 
         // Amount of want autocompounded after harvest in terms of want
         // keep this to get paid!
         _reportToVault(amount, block.timestamp, balanceOfPool());
 
+        harvested = new uint256[](2);
+        harvested[0] = amount;
+        harvested[1] = 0; // Nothing harvested for Badger
         return harvested;
     }
 
-    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (uint256 emitted){
+    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (uint256[] memory harvested){
         _onlyAuthorizedActors();
 
         // Note: This breaks if you don't send amount to the strat
         _processExtraToken(token, amount);
+
+        harvested = new uint256[](2);
+        harvested[0] = 0; // Nothing harvested for want
+        harvested[1] = amount; // We emitted amount here
+        return harvested;
+    }
+
+    // Example tend is a no-op which returns the values, could also just revert
+    function tend() public override returns (uint256[] memory tended){
+        tended = new uint256[](2);
+        tended[0] = 0; 
+        tended[1] = 0;
+        return tended;
     }
 
     function balanceOfPool() public view override returns (uint256) {
