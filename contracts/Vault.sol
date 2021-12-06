@@ -104,13 +104,13 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     uint256 public constant MAX_BPS = 10_000;
     uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
-    event FullPricePerShareUpdated(uint256 value, uint256 indexed timestamp, uint256 indexed blockNumber);
     event TreeDistribution(
         address indexed token,
         uint256 amount,
         uint256 indexed blockNumber,
         uint256 timestamp
     );
+    event Harvested(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
 
     function initialize(
         address _token,
@@ -165,8 +165,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         maxManagementFee = 200; // 2% maximum management fee
 
         min = 10_000; // initial value of min
-
-        emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
     }
 
     /// ===== Modifiers ====
@@ -268,6 +266,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         _handleFees(_harvestedAmount, _harvestTime);
 
+        // Updated lastHarvestAmount
         lastHarvestAmount = _harvestedAmount;
 
         // if we withdrawAll
@@ -277,14 +276,16 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         // And if you end up harvesting again, that report will have both 0s
         if (_assetsAtHarvest != 0) {
             assetsAtLastHarvest = _assetsAtHarvest;
-        } else if (_assetsAtHarvest == 0 && lastHarvestAmount == 0) {
+        } else if (_assetsAtHarvest == 0 && _harvestedAmount == 0) {
+            // If zero
             assetsAtLastHarvest = 0;
         }
 
-        lifeTimeEarned += lastHarvestAmount;
+        lifeTimeEarned += _harvestedAmount;
+        // Update time either way
         lastHarvestedAt = _harvestTime;
 
-        emit FullPricePerShareUpdated(getPricePerFullShare(), now, block.number);
+        emit Harvested(address(token), _harvestedAmount, block.number, block.timestamp);
     }
 
     /// @dev assigns harvest's variable and mints shares to governance and strategist for fees for non want rewards
