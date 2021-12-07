@@ -186,6 +186,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         return "1.5";
     }
 
+    /// @dev Return the price of a share, denominated in ONE_ETH
     function getPricePerFullShare() public view virtual returns (uint256) {
         if (totalSupply() == 0) {
             return ONE_ETH;
