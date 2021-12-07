@@ -345,7 +345,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice Can only be changed by governance
     function setMaxWithdrawalFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= MAX_BPS, "excessive-withdrawal-fee");
+        require(_fees <= MAX_BPS, "Excessive withdrawal fee");
         maxWithdrawalFee = _fees;
     }
 
@@ -353,7 +353,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice Can only be changed by governance
     function setMaxPerformanceFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= MAX_BPS, "excessive-performance-fee");
+        require(_fees <= MAX_BPS, "Excessive performance fee");
         maxPerformanceFee = _fees;
     }
 
@@ -361,7 +361,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice Can only be changed by governance
     function setMaxManagementFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
-        require(_fees <= MAX_BPS, "excessive-management-fee");
+        require(_fees <= MAX_BPS, "Excessive management fee");
         maxManagementFee = _fees;
     }
 
@@ -387,7 +387,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice can also be called by strategist because bounds are set by governance
     function setWithdrawalFee(uint256 _withdrawalFee) external whenNotPaused {
         _onlyGovernanceOrStrategist();
-        require(_withdrawalFee <= maxWithdrawalFee, "base-strategy/excessive-withdrawal-fee");
+        require(_withdrawalFee <= maxWithdrawalFee, "Excessive withdrawal fee");
         withdrawalFee = _withdrawalFee;
     }
 
@@ -395,7 +395,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice can also be called by strategist because bounds are set by governance
     function setPerformanceFeeStrategist(uint256 _performanceFeeStrategist) external whenNotPaused {
         _onlyGovernanceOrStrategist();
-        require(_performanceFeeStrategist <= maxPerformanceFee, "base-strategy/excessive-strategist-performance-fee");
+        require(_performanceFeeStrategist <= maxPerformanceFee, "Excessive strategist performance fee");
         performanceFeeStrategist = _performanceFeeStrategist;
     }
 
@@ -404,7 +404,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice can also be called by strategist because bounds are set by governance
     function setPerformanceFeeGovernance(uint256 _performanceFeeGovernance) external whenNotPaused {
         _onlyGovernanceOrStrategist();
-        require(_performanceFeeGovernance <= maxPerformanceFee, "base-strategy/excessive-governance-performance-fee");
+        require(_performanceFeeGovernance <= maxPerformanceFee, "Excessive governance performance fee");
         performanceFeeGovernance = _performanceFeeGovernance;
     }
 
@@ -412,7 +412,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice can also be called by strategist because bounds are set by governance
     function setManagementFee(uint256 _fees) external whenNotPaused {
         _onlyGovernanceOrStrategist();
-        require(_fees <= maxManagementFee, "excessive-management-fee");
+        require(_fees <= maxManagementFee, "Excessive management fee");
         managementFee = _fees;
     }
 
@@ -499,7 +499,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal virtual {
         if (address(guestList) != address(0)) {
-            require(guestList.authorized(msg.sender, _amount, proof), "guest-list-authorization");
+            require(guestList.authorized(msg.sender, _amount, proof), "GuestList: Not Authorized");
         }
         _deposit(_amount);
     }
@@ -510,7 +510,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         bytes32[] memory proof
     ) internal virtual {
         if (address(guestList) != address(0)) {
-            require(guestList.authorized(_recipient, _amount, proof), "guest-list-authorization");
+            require(guestList.authorized(_recipient, _amount, proof), "GuestList: Not Authorized");
         }
         _depositFor(_recipient, _amount);
     }
