@@ -76,7 +76,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     address public guardian; // guardian of vault and strategy
     address public treasury; // set by governance ... any fees go there
 
-    address public badgerTree;
+    address public badgerTree; // Address we send tokens too via reportAdditionalTokens
 
     /// @dev name and symbol prefixes for lpcomponent token of vault
     string internal constant _defaultNamePrefix = "Badger Sett ";
