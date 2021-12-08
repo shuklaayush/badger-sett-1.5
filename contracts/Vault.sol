@@ -428,6 +428,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev Used to withdraw an extra token and send it to governance
     function sweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
+        require(address(token) != _token, "No want");
         IStrategy(strategy).withdrawOther(_token);
         // Send all `_token` we have
         // Safe because `withdrawOther` will revert on protected tokens  
