@@ -187,7 +187,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// @dev Return the price of a share, denominated in ONE_ETH
-    function getPricePerFullShare() public view virtual returns (uint256) {
+    function getPricePerFullShare() public view returns (uint256) {
         if (totalSupply() == 0) {
             return ONE_ETH;
         }
@@ -196,14 +196,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @notice Return the total balance of the underlying token within the system
     /// @notice Sums the balance in the Sett and the Strategy
-    function balance() public view virtual returns (uint256) {
+    function balance() public view returns (uint256) {
         return token.balanceOf(address(this)).add(IStrategy(strategy).balanceOf());
     }
 
     /// @notice Defines how much of the Setts' underlying can be borrowed by the Strategy for use
     /// @notice Custom logic in here for how much the vault allows to be borrowed
     /// @notice Sets minimum required on-hand to keep small withdrawals cheap
-    function available() public view virtual returns (uint256) {
+    function available() public view returns (uint256) {
         return token.balanceOf(address(this)).mul(min).div(MAX_BPS);
     }
 
@@ -488,7 +488,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _depositFor(msg.sender, _amount);
     }
 
-    function _depositFor(address recipient, uint256 _amount) internal virtual {
+    function _depositFor(address recipient, uint256 _amount) internal {
         require(!pausedDeposit); // dev: deposits are paused
 
         uint256 _pool = balance();
@@ -498,7 +498,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _mintSharesFor(recipient, _after.sub(_before), _pool);
     }
 
-    function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal virtual {
+    function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal {
         if (address(guestList) != address(0)) {
             require(guestList.authorized(msg.sender, _amount, proof), "GuestList: Not Authorized");
         }
@@ -509,7 +509,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         address _recipient,
         uint256 _amount,
         bytes32[] memory proof
-    ) internal virtual {
+    ) internal {
         if (address(guestList) != address(0)) {
             require(guestList.authorized(_recipient, _amount, proof), "GuestList: Not Authorized");
         }
