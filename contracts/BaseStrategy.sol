@@ -190,7 +190,10 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
         _withdrawAll();
 
-        _transferToVault(IERC20Upgradeable(want).balanceOf(address(this)));
+        balance = IERC20Upgradeable(want).balanceOf(address(this));
+        _transferToVault(balance);
+
+        return balance;
     }
 
     /// @notice Withdraw partial funds from the strategy, unrolling from strategy positions as necessary
