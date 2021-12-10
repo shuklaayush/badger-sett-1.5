@@ -277,7 +277,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         // And if you end up harvesting again, that report will have both 0s
         if (assetsAtHarvest != 0) {
             assetsAtLastHarvest = assetsAtHarvest;
-        } else if (assetsAtHarvest == 0 && _harvestedAmount == 0) {
+        } else if (_harvestedAmount == 0) {
             // If zero
             assetsAtLastHarvest = 0;
         }
