@@ -7,7 +7,6 @@ import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
@@ -152,6 +151,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         // Initializing the lpcomponent token
         __ERC20_init(name, symbol);
+        // Initialize the other contracts
+        __Pausable_init();
+        __ReentrancyGuard_init();
 
         token = IERC20Upgradeable(_token);
         governance = _governance;
@@ -298,7 +300,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         require(address(token) != _token, "No want");
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
-        additionalTokensEarned[_token] = additionalTokensEarned.add(tokenBalance);
+        additionalTokensEarned[_token] = additionalTokensEarned[_token].add(tokenBalance);
 
         // We may have more, but we still report only what the strat sent
         uint256 governanceRewardsFee = _calculateFee(tokenBalance, performanceFeeGovernance);
