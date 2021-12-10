@@ -282,7 +282,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
             assetsAtLastHarvest = 0;
         }
 
-        lifeTimeEarned += _harvestedAmount;
+        lifeTimeEarned = lifeTimeEarned.add(_harvestedAmount);
         // Update time either way
         lastHarvestedAt = harvestTime;
 
@@ -298,7 +298,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         require(address(token) != _token, "No want");
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
-        additionalTokensEarned[_token] += tokenBalance;
+        additionalTokensEarned[_token] = additionalTokensEarned.add(tokenBalance);
 
         // We may have more, but we still report only what the strat sent
         uint256 governanceRewardsFee = _calculateFee(tokenBalance, performanceFeeGovernance);
@@ -588,7 +588,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         // Management fee is calculated against the assets before harvest, to make it fair to depositors
         uint256 management_fee = managementFee > 0 ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX_BPS) : 0;
-        uint256 totalGovernanceFee = feeGovernance + management_fee;
+        uint256 totalGovernanceFee = feeGovernance.add(management_fee);
 
         // Pool size is the size of the pool minus the fees, this way 
         // it's equivalent to sending the tokens as rewards after the harvest
