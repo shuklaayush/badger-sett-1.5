@@ -60,6 +60,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @dev Initializer for the BaseStrategy
     /// @notice Make sure to call it from your specific Strategy
     function __BaseStrategy_init(address _vault) public initializer whenNotPaused {
+        require(_vault != address(0), "Address 0");
         __Pausable_init();
 
         vault = _vault;
@@ -127,6 +128,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev Used to verify if a token can be transfered / sweeped (as it's not part of the strategy)
     function isProtectedToken(address token) public view returns (bool) {
+        require(token != address(0), "Address 0");
+
         address[] memory protectedTokens = getProtectedTokens();
         for (uint256 i = 0; i < protectedTokens.length; i++) {
             if (token == protectedTokens[i]) {
@@ -201,6 +204,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @dev If it fails to recover sufficient funds (defined by withdrawalMaxDeviationThreshold), the withdrawal should fail so that this unexpected behavior can be investigated
     function withdraw(uint256 _amount) external virtual override whenNotPaused {
         _onlyVault();
+        require(_amount != 0, "Amount 0");
 
         // Withdraw from strategy positions, typically taking from any idle want first.
         _withdrawSome(_amount);
@@ -229,6 +233,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @notice this is for the tokens you didn't expect the strat to receive
     /// @notice instead of sweeping them, just emit so it saves time while offering security guarantees
     /// @notice This is not a rug vector as it can't use protected tokens
+    /// @notice No address(0) check because _onlyNotProtectedTokens does it
     function emitNonProtectedToken(address _token) external override {
         _onlyVault();
         _onlyNotProtectedTokens(_token);
@@ -238,6 +243,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev Withdraw the non protected token, used for sweeping it out
     /// @notice this is the version that just sends the assets to governance
+    /// @notice No address(0) check because _onlyNotProtectedTokens does it
     function withdrawOther(address _asset) external override whenNotPaused {
         _onlyVault();
         _onlyNotProtectedTokens(_asset);
@@ -286,6 +292,9 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @notice for this reason I highly recommend you verify the tree is the badgerTree from the registry
     /// @notice also check for this to be used exclusively on harvest, exclusively on protectedTokens
     function _processExtraToken(address _token, uint256 _amount) internal {
+        require(_token != address(0), "Token 0");
+        require(_amount != 0, "Amount 0");
+
         IERC20Upgradeable(_token).safeTransfer(vault, _amount);
         IVault(vault).reportAdditionalToken(_token);
     }

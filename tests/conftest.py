@@ -162,6 +162,7 @@ def vault(deployed):
 def strategy(deployed):
     return deployed.strategy
 
+
 @pytest.fixture
 def badgerTree(deployed):
     return deployed.badgerTree
@@ -258,6 +259,13 @@ def setup_share_math(deployer, vault, want, governance):
 
     return DotMap(depositAmount=depositAmount)
 
+
+@pytest.fixture
+def strategy_two(deployer, vault, want):
+    strategy = DemoStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [want])
+    
+    return strategy
 
 ## Forces reset before each test
 @pytest.fixture(autouse=True)

@@ -212,7 +212,7 @@ def test_sett_pausing_permissions(deployer, vault, strategy, want):
     vault.withdrawAll({"from": deployer})
 
 
-def test_sett_config_permissions(deployer, vault, strategy, want):
+def test_sett_config_permissions(deployer, vault, strategy, want, strategy_two):
     state_setup(deployer, vault, vault, strategy, want)
     randomUser = accounts[8]
     # End Setup
@@ -229,17 +229,17 @@ def test_sett_config_permissions(deployer, vault, strategy, want):
 
     # setStrategy
     with brownie.reverts("onlyGovernance"):
-        vault.setStrategy(AddressZero, {"from": randomUser})
+        vault.setStrategy(strategy_two, {"from": randomUser})
 
     if strategy.balanceOf() == 0:
-        vault.setStrategy(AddressZero, {"from": validActor})
+        vault.setStrategy(strategy_two, {"from": validActor})
     else:
         with brownie.reverts():
-            vault.setStrategy(AddressZero, {"from": validActor})
+            vault.setStrategy(strategy_two, {"from": validActor})
         vault.withdrawAll({"from": deployer})
-        vault.setStrategy(AddressZero, {"from": validActor})
+        vault.setStrategy(strategy_two, {"from": validActor})
 
-    assert vault.strategy() == AddressZero
+    assert vault.strategy() == strategy_two.address
 
     # setStrategist
     with brownie.reverts("onlyGovernance"):

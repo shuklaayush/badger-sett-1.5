@@ -146,6 +146,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         uint256[4] memory _feeConfig
     ) public initializer whenNotPaused {
         require(_token != address(0)); // dev: _token address should not be zero
+        require(_governance != address(0)); // dev: _governance address should not be zero
+        require(_keeper != address(0)); // dev: _keeper address should not be zero
+        require(_guardian != address(0)); // dev: _guardian address should not be zero
+        require(_treasury != address(0)); // dev: _treasury address should not be zero
+        require(_strategist != address(0)); // dev: _strategist address should not be zero
+        require(_badgerTree != address(0)); // dev: _badgerTree address should not be zero
 
         string memory name;
         string memory symbol;
@@ -335,6 +341,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev Changes the treasury, recipient of management and performanceFeeGovernance
     function setTreasury(address _treasury) external whenNotPaused {
         _onlyGovernance();
+        require(_treasury != address(0), "Address 0");
+
         treasury = _treasury;
         emit SetTreasury(_treasury);
     }
@@ -344,6 +352,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice Changing the strategy should happen via timelock
     function setStrategy(address _strategy) external whenNotPaused {
         _onlyGovernance();
+        require(_strategy != address(0), "Address 0");
+
+
         /// NOTE: Migrate funds if settings strategy when already existing one
         if (strategy != address(0)) {
             require(IStrategy(strategy).balanceOf() == 0, "Please withdrawToVault before changing strat");
@@ -357,6 +368,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setToEarnBps(uint256 _newToEarnBps) external whenNotPaused {
         _onlyGovernance();
         require(_newToEarnBps <= MAX_BPS, "toEarnBps should be <= MAX_BPS");
+
         toEarnBps = _newToEarnBps;
         emit SetToEarnBps(_newToEarnBps);
     }
@@ -366,6 +378,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setMaxWithdrawalFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
         require(_fees <= MAX_BPS, "Excessive withdrawal fee");
+
         maxWithdrawalFee = _fees;
         emit SetMaxWithdrawalFee(_fees);
     }
@@ -375,6 +388,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setMaxPerformanceFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
         require(_fees <= MAX_BPS, "Excessive performance fee");
+
         maxPerformanceFee = _fees;
         emit SetMaxPerformanceFee(_fees);
     }
@@ -384,6 +398,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setMaxManagementFee(uint256 _fees) external whenNotPaused {
         _onlyGovernance();
         require(_fees <= MAX_BPS, "Excessive management fee");
+
         maxManagementFee = _fees;
         emit SetMaxManagementFee(_fees);
     }
@@ -393,6 +408,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setGuardian(address _guardian) external whenNotPaused {
         _onlyGovernance();
         require(_guardian != address(0), "Address cannot be 0x0");
+        
         guardian = _guardian;
         emit SetGuardian(_guardian);
     }
@@ -457,6 +473,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev Used to withdraw an extra token and send it to governance
     function sweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
+        require(_token != address(0), "Token 0");
         require(address(token) != _token, "No want");
         IStrategy(strategy).withdrawOther(_token);
         // Send all `_token` we have
@@ -469,6 +486,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice This function is just calling `emitNonProtectedToken` on the BaseStrategy see the code there for details
     function emitNonProtectedToken(address _token) external {
         _onlyGovernanceOrStrategist();
+        require(_token != address(0), "Token 0");
         IStrategy(strategy).emitNonProtectedToken(_token);
     }
 
@@ -521,14 +539,16 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _depositFor(msg.sender, _amount);
     }
 
-    function _depositFor(address recipient, uint256 _amount) internal nonReentrant {
+    function _depositFor(address _recipient, uint256 _amount) internal nonReentrant {
+        require(_recipient != address(0), "Address 0");
+        require(_amount != 0, "Amount 0");
         require(!pausedDeposit); // dev: deposits are paused
 
         uint256 _pool = balance();
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 _after = token.balanceOf(address(this));
-        _mintSharesFor(recipient, _after.sub(_before), _pool);
+        _mintSharesFor(_recipient, _after.sub(_before), _pool);
     }
 
     function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal {
@@ -552,6 +572,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     // No rebalance implementation for lower fees and faster swaps
     /// @notice Processes withdrawal fee if present
     function _withdraw(uint256 _shares) internal nonReentrant {
+        require(_shares != 0, "0 Shares");
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
 
