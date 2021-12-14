@@ -585,7 +585,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @dev called by function report to handle minting of
     function _handleFees(uint256 _harvestedAmount, uint256 harvestTime) internal {
-        (uint256 feeStrategist, uint256 feeGovernance) = _calculatePerformanceFee(_harvestedAmount);
+        (uint256 feeGovernance, uint256 feeStrategist) = _calculatePerformanceFee(_harvestedAmount);
         uint256 duration = harvestTime.sub(lastHarvestedAt);
 
         // Management fee is calculated against the assets before harvest, to make it fair to depositors
