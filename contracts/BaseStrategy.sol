@@ -55,6 +55,8 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
+    event SetWithdrawalMaxDeviationThreshold(uint256 nawMaxDeviationThreshold);
+
     /// @dev Initializer for the BaseStrategy
     /// @notice Make sure to call it from your specific Strategy
     function __BaseStrategy_init(address _vault) public initializer whenNotPaused {
@@ -163,6 +165,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
         _onlyGovernance();
         require(_threshold <= MAX_BPS, "base-strategy/excessive-max-deviation-threshold");
         withdrawalMaxDeviationThreshold = _threshold;
+        emit SetWithdrawalMaxDeviationThreshold(_threshold);
     }
 
     /// @dev Calls deposit, see below

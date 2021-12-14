@@ -106,7 +106,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     uint256 public constant MAX_BPS = 10_000;
     uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
-    /// ===== Modifiers ====
+    /// ===== Events ====
     // Emitted when a token is sent to the badgerTree for emissions
     event TreeDistribution(
         address indexed token,
@@ -117,6 +117,21 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     // Emitted during a report, when there has been an increase in pricePerFullShare (ppfs)
     event Harvested(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
+
+    event SetTreasury(address indexed newTreasury);
+    event SetStrategy(address indexed newStrategy);
+    event SetToEarnBps(uint256 newEarnToBps);
+    event SetMaxWithdrawalFee(uint256 newMaxWithdrawalFee);
+    event SetMaxPerformanceFee(uint256 newMaxPerformanceFee);
+    event SetMaxManagementFee(uint256 newMaxManagementFee);
+    event SetGuardian(address indexed newGuardian);
+    event SetGuestList(address indexed newGuestList);
+    event SetWithdrawalFee(uint256 newWithdrawalFee);
+    event SetPerformanceFeeStrategist(uint256 newPerformanceFeeStrategist);
+    event SetPerformanceFeeGovernance(uint256 newPerformanceFeeGovernance);
+    event SetManagementFee(uint256 newManagementFee);
+    event PauseDeposits(address pausedBy);
+    event UnpauseDeposits(address pausedBy);
 
     function initialize(
         address _token,
@@ -321,6 +336,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setTreasury(address _treasury) external whenNotPaused {
         _onlyGovernance();
         treasury = _treasury;
+        emit SetTreasury(_treasury);
     }
 
     /// @dev Changes the Strategy
@@ -333,6 +349,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
             require(IStrategy(strategy).balanceOf() == 0, "Please withdrawToVault before changing strat");
         }
         strategy = _strategy;
+        emit SetStrategy(_strategy);
     }
 
     /// @notice Set minimum threshold of underlying that must be deposited in strategy
@@ -341,6 +358,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernance();
         require(_newToEarnBps <= MAX_BPS, "toEarnBps should be <= MAX_BPS");
         toEarnBps = _newToEarnBps;
+        emit SetToEarnBps(_newToEarnBps);
     }
 
     /// @notice Set maxWithdrawalFee
@@ -349,6 +367,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernance();
         require(_fees <= MAX_BPS, "Excessive withdrawal fee");
         maxWithdrawalFee = _fees;
+        emit SetMaxWithdrawalFee(_fees);
     }
 
     /// @notice Set maxPerformanceFee
@@ -357,6 +376,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernance();
         require(_fees <= MAX_BPS, "Excessive performance fee");
         maxPerformanceFee = _fees;
+        emit SetMaxPerformanceFee(_fees);
     }
 
     /// @notice Set maxPerformanceFee
@@ -365,6 +385,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernance();
         require(_fees <= MAX_BPS, "Excessive management fee");
         maxManagementFee = _fees;
+        emit SetMaxManagementFee(_fees);
     }
 
     /// @notice Change guardian address
@@ -373,6 +394,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernance();
         require(_guardian != address(0), "Address cannot be 0x0");
         guardian = _guardian;
+        emit SetGuardian(_guardian);
     }
 
     /// ===== Permissioned Functions: Trusted Actors =====
@@ -382,6 +404,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setGuestList(address _guestList) external whenNotPaused {
         _onlyGovernanceOrStrategist();
         guestList = BadgerGuestListAPI(_guestList);
+        emit SetGuestList(_guestList);
     }
 
     /// @dev Sets the withdrawalFee, which is taken in want at the time of withdrawin
@@ -391,6 +414,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernanceOrStrategist();
         require(_withdrawalFee <= maxWithdrawalFee, "Excessive withdrawal fee");
         withdrawalFee = _withdrawalFee;
+        emit SetWithdrawalFee(_withdrawalFee);
     }
 
     /// @dev Sets the performance fee for the strategist, taken at time of report
@@ -399,6 +423,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernanceOrStrategist();
         require(_performanceFeeStrategist <= maxPerformanceFee, "Excessive strategist performance fee");
         performanceFeeStrategist = _performanceFeeStrategist;
+        emit SetPerformanceFeeStrategist(_performanceFeeStrategist);
     }
 
     /// @dev Sets the performance fee for the governance, taken at time of report
@@ -408,6 +433,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernanceOrStrategist();
         require(_performanceFeeGovernance <= maxPerformanceFee, "Excessive governance performance fee");
         performanceFeeGovernance = _performanceFeeGovernance;
+        emit SetPerformanceFeeGovernance(_performanceFeeGovernance);
     }
 
     /// @notice Set management fees, which are calculated during reports and issued to treasury
@@ -416,6 +442,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyGovernanceOrStrategist();
         require(_fees <= maxManagementFee, "Excessive management fee");
         managementFee = _fees;
+        emit SetManagementFee(_fees);
     }
 
     /// @dev Withdraws all funds from Strategy and deposits into vault
@@ -461,21 +488,25 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function pauseDeposits() external {
         _onlyAuthorizedPausers();
         pausedDeposit = true;
+        emit PauseDeposits(msg.sender);
     }
     
     /// @dev Resume deposits
     function unpauseDeposits() external {
         _onlyGovernance();
         pausedDeposit = false;
+        emit UnpauseDeposits(msg.sender);
     }
 
     /// @dev Pauses everything
+    /// @notice Emits event Paused(address account); from OZ Parent Contract
     function pause() external {
         _onlyAuthorizedPausers();
         _pause();
     }
 
     /// @dev Unpauses everything
+    /// @notice Emits event Unpaused(address account); from OZ Parent Contract
     function unpause() external {
         _onlyGovernance();
         _unpause();
