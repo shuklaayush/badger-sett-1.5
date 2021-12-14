@@ -3,8 +3,6 @@ from dotmap import DotMap
   Set of functions to calculate shares burned, fees, and want withdrawn or deposited
 """
 
-
-## TODO: Move this code in tests so it's used there as well
 MAX_BPS = 10_000
 SECS_PER_YEAR = 31_556_952
 
