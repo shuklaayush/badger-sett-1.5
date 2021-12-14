@@ -222,10 +222,10 @@ def test_sett_config_permissions(deployer, vault, strategy, want):
 
     # setMin
     with brownie.reverts("onlyGovernance"):
-        vault.setMin(0, {"from": randomUser})
+        vault.setToEarnBps(0, {"from": randomUser})
 
-    vault.setMin(0, {"from": validActor})
-    assert vault.min() == 0
+    vault.setToEarnBps(0, {"from": validActor})
+    assert vault.toEarnBps() == 0
 
     # setStrategy
     with brownie.reverts("onlyGovernance"):

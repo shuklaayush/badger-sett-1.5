@@ -49,17 +49,17 @@ def test_setGuardian(deployed_vault, deployer, governance, rando):
 def test_setMin(deployed_vault, governance, rando):
 
     # setting min > MAX should revert
-    with brownie.reverts("min should be <= MAX_BPS"):
-        deployed_vault.setMin(deployed_vault.MAX_BPS() + 1_000, {"from": governance})
+    with brownie.reverts("toEarnBps should be <= MAX_BPS"):
+        deployed_vault.setToEarnBps(deployed_vault.MAX_BPS() + 1_000, {"from": governance})
 
     # setting min
-    deployed_vault.setMin(1_000, {"from": governance})
+    deployed_vault.setToEarnBps(1_000, {"from": governance})
 
-    assert deployed_vault.min() == 1_000
+    assert deployed_vault.toEarnBps() == 1_000
 
     # setting min from random user should fail
     with brownie.reverts():
-        deployed_vault.setMin(1_000, {"from": rando})
+        deployed_vault.setToEarnBps(1_000, {"from": rando})
 
 
 def test_setMaxPerformanceFee(deployed_vault, governance, strategist, rando):
@@ -233,7 +233,7 @@ def test_config_pause_unpause(deployed_vault, governance, strategist, rando):
         deployed_vault.setGuestList(rando, {"from": governance})
 
     with brownie.reverts("Pausable: paused"):
-        deployed_vault.setMin(100, {"from": governance})
+        deployed_vault.setToEarnBps(100, {"from": governance})
 
     with brownie.reverts("Pausable: paused"):
         deployed_vault.setGuardian(rando, {"from": governance})
@@ -260,7 +260,7 @@ def test_config_pause_unpause(deployed_vault, governance, strategist, rando):
     deployed_vault.unpause({"from": governance})
     deployed_vault.setStrategy(rando, {"from": governance})
     deployed_vault.setGuestList(rando, {"from": governance})
-    deployed_vault.setMin(100, {"from": governance})
+    deployed_vault.setToEarnBps(100, {"from": governance})
     deployed_vault.setGuardian(rando, {"from": governance})
     deployed_vault.setMaxPerformanceFee(8_000, {"from": governance})
     deployed_vault.setMaxWithdrawalFee(8_000, {"from": governance})

@@ -37,7 +37,7 @@ def test_vault_deployment(deployer, governance, keeper, guardian, strategist, ba
     assert vault.treasury() == governance
 
     # Params
-    assert vault.min() == 10_000
+    assert vault.toEarnBps() == 10_000
     assert vault.performanceFeeGovernance() == performanceFeeGovernance
     assert vault.performanceFeeStrategist() == performanceFeeStrategist
     assert vault.withdrawalFee() == withdrawalFee

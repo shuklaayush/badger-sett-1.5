@@ -100,7 +100,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     uint256 public maxWithdrawalFee; // maximum allowed withdrawal fees
     uint256 public maxManagementFee; // maximum allowed management fees
 
-    uint256 public min; // NOTE: in BPS, minimum amount of token to deposit into strategy when earn is called
+    uint256 public toEarnBps; // NOTE: in BPS, minimum amount of token to deposit into strategy when earn is called
 
     /// ===== Contants ====
     uint256 public constant MAX_BPS = 10_000;
@@ -173,7 +173,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         maxWithdrawalFee = 100; // 1% maximum withdrawal fee
         maxManagementFee = 200; // 2% maximum management fee
 
-        min = 10_000; // initial value of min
+        toEarnBps = 10_000; // initial value of toEarnBps
     }
 
     /// ===== Modifiers ====
@@ -206,7 +206,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice Custom logic in here for how much the vault allows to be borrowed
     /// @notice Sets minimum required on-hand to keep small withdrawals cheap
     function available() public view returns (uint256) {
-        return token.balanceOf(address(this)).mul(min).div(MAX_BPS);
+        return token.balanceOf(address(this)).mul(toEarnBps).div(MAX_BPS);
     }
 
     /// ===== Public Actions =====
@@ -337,10 +337,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @notice Set minimum threshold of underlying that must be deposited in strategy
     /// @notice Can only be changed by governance
-    function setMin(uint256 _min) external whenNotPaused {
+    function setToEarnBps(uint256 _newToEarnBps) external whenNotPaused {
         _onlyGovernance();
-        require(_min <= MAX_BPS, "min should be <= MAX_BPS");
-        min = _min;
+        require(_newToEarnBps <= MAX_BPS, "toEarnBps should be <= MAX_BPS");
+        toEarnBps = _newToEarnBps;
     }
 
     /// @notice Set maxWithdrawalFee
