@@ -35,6 +35,10 @@ def test_strategy_deployment(deployer, governance, keeper, guardian, strategist,
     # NOTE: Vault starts unpaused
 
     strategy = DemoStrategy.deploy({"from": deployer})
+
+    with brownie.reverts("Address 0"):
+        strategy.initialize(AddressZero, [token])
+
     strategy.initialize(vault, [token])
     # NOTE: Strategy starts unpaused
 
