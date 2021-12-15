@@ -473,8 +473,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev Used to withdraw an extra token and send it to governance
     function sweepExtraToken(address _token) external {
         _onlyGovernanceOrStrategist();
-        require(_token != address(0), "Token 0");
         require(address(token) != _token, "No want");
+
         IStrategy(strategy).withdrawOther(_token);
         // Send all `_token` we have
         // Safe because `withdrawOther` will revert on protected tokens  
@@ -486,7 +486,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice This function is just calling `emitNonProtectedToken` on the BaseStrategy see the code there for details
     function emitNonProtectedToken(address _token) external {
         _onlyGovernanceOrStrategist();
-        require(_token != address(0), "Token 0");
+
         IStrategy(strategy).emitNonProtectedToken(_token);
     }
 
@@ -573,6 +573,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice Processes withdrawal fee if present
     function _withdraw(uint256 _shares) internal nonReentrant {
         require(_shares != 0, "0 Shares");
+
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
 
