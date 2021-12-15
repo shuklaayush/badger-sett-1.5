@@ -172,6 +172,12 @@ def test_withdraw_lossy(withdraw_setup, deployer, governance):
 
     withdraw_amount = depositAmount
 
+    loss_bps = 10_000
+    strategy.setLossBps(loss_bps, {"from": governance})
+
+    with brownie.reverts("withdraw-exceed-max-deviation-threshold"):
+        vault.withdraw(withdraw_amount, {"from": deployer})
+
     loss_bps = 10
     strategy.setLossBps(loss_bps, {"from": governance})
 
