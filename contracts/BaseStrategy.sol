@@ -105,7 +105,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// ===== View Functions =====
     /// @dev Returns the version of the BaseStrategy 
-    function baseStrategyVersion() external view returns (string memory) {
+    function baseStrategyVersion() external pure returns (string memory) {
         return "1.5";
     }
 
@@ -122,7 +122,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev Returns the boolean that tells whether this strategy is supposed to be tended or not
     /// @notice This is basically a constant, the harvest bots checks if this is true and in that case will call `tend`
-    function isTendable() external view virtual returns (bool) {
+    function isTendable() external pure virtual returns (bool) {
         return false;
     }
 
@@ -189,7 +189,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     // ===== Permissioned Actions: Vault =====
 
     /// @notice Vault-only function to Withdraw partial funds, normally used with a vault withdrawal
-    function withdrawToVault() external override whenNotPaused returns (uint256 balance) {
+    function withdrawToVault() external override whenNotPaused returns (uint256) {
         _onlyVault();
 
         _withdrawAll();
@@ -314,7 +314,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @notice Specify tokens used in yield process, should not be available to withdraw via withdrawOther()
     /// @param _asset: address of asset
-    function _onlyNotProtectedTokens(address _asset) internal {
+    function _onlyNotProtectedTokens(address _asset) internal view {
         require(!isProtectedToken(_asset), "_onlyNotProtectedTokens");
     }
 
