@@ -119,3 +119,40 @@ def test_depositAll(deposit_setup, deployer, governance):
 
     with brownie.reverts("Pausable: paused"):
         vault.depositAll({"from": deployer})
+
+
+def test_nonreentrant(deployer, governance, keeper, guardian, strategist, badgerTree, randomUser):
+    token = MaliciousToken.deploy({"from": deployer})
+    token.initialize(
+        [deployer.address, randomUser.address], [100 * 10 ** 18, 100 * 10 ** 18]
+    )
+
+    # NOTE: change strategist
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        badgerTree,
+        "",
+        "",
+        [
+            0,
+            0,
+            0,
+            0,
+        ],
+    )
+
+    strategy = DemoStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [token])
+
+    vault.setStrategy(strategy, {"from": governance})
+
+    depositAmount = token.balanceOf(deployer)
+
+    with brownie.reverts("ReentrancyGuard: reentrant call"):
+        vault.deposit(depositAmount, {"from": deployer})

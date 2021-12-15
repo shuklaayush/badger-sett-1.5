@@ -28,4 +28,7 @@ interface IVault {
     function guardian() external view returns (address);
 
     function strategist() external view returns (address);
+
+    // External
+    function deposit(uint256 _amount) external;
 }
