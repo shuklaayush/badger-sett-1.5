@@ -157,18 +157,20 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         string memory symbol;
 
         // If they are non empty string we'll use the custom names
-        if (keccak256(abi.encodePacked(_name)) != keccak256("") && keccak256(abi.encodePacked(_symbol)) != keccak256("")) {
+        // Else just add the default prefix
+        IERC20Detailed namedToken = IERC20Detailed(_token);
+
+        if(keccak256(abi.encodePacked(_name)) != keccak256("")) {
             name = _name;
+        } else {
+            name = string(abi.encodePacked(_defaultNamePrefix, namedToken.name()));
+        }
+
+        if (keccak256(abi.encodePacked(_symbol)) != keccak256("")) {
             symbol = _symbol;
         } else {
-            // Else just add the default prefix
-            IERC20Detailed namedToken = IERC20Detailed(_token);
-            string memory tokenName = namedToken.name();
-            string memory tokenSymbol = namedToken.symbol();
-
-            name = string(abi.encodePacked(_defaultNamePrefix, tokenName));
-            symbol = string(abi.encodePacked(_symbolSymbolPrefix, tokenSymbol));
-        }
+            symbol = string(abi.encodePacked(_symbolSymbolPrefix, namedToken.symbol()));
+         }
 
         // Initializing the lpcomponent token
         __ERC20_init(name, symbol);
