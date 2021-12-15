@@ -216,6 +216,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         require(msg.sender == guardian || msg.sender == governance, "onlyPausers");
     }
 
+    function _onlyStrategy() internal view {
+        require(msg.sender == strategy, "onlyStrategy");
+    }
+
     /// ===== View Functions =====
     
     function version() external view returns (string memory) {
@@ -297,7 +301,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function reportHarvest(
         uint256 _harvestedAmount
     ) external nonReentrant {
-        require(msg.sender == strategy, "onlyStrategy"); // dev: onlystrategy
+        _onlyStrategy();
 
         uint256 harvestTime = block.timestamp;
         uint256 assetsAtHarvest = balance().sub(_harvestedAmount); // Must be less than or equal or revert
@@ -332,7 +336,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     // We have to receive the tokens as those are protected and no-one can pull those funds
     /// @notice Pausing on this function happens at the strategy level as harvest will be paused
     function reportAdditionalToken(address _token) external nonReentrant {
-        require(msg.sender == strategy, "onlyStrategy");
+        _onlyStrategy();
         require(address(token) != _token, "No want");
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
@@ -416,7 +420,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setGuardian(address _guardian) external {
         _onlyGovernance();
         require(_guardian != address(0), "Address cannot be 0x0");
-        
+
         guardian = _guardian;
         emit SetGuardian(_guardian);
     }
