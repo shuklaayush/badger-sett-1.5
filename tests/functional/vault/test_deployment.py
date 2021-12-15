@@ -47,25 +47,24 @@ def test_vault_deployment(deployer, governance, keeper, guardian, strategist, ba
     assert vault.maxWithdrawalFee() == 100
 
 
-def test_vault_deployment_badTokenAddress(
-    deployer, governance, keeper, guardian, strategist, badgerTree
+def test_vault_deployment_badArgument(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
 ):
     vault = Vault.deploy({"from": deployer})
-    with brownie.reverts("dev: _token address should not be zero"):
-        vault.initialize(
-            AddressZero,
-            governance,
-            keeper,
-            guardian,
-            governance,
-            strategist,
-            badgerTree,
-            "",
-            "",
-            [
-                performanceFeeGovernance,
-                performanceFeeStrategist,
-                withdrawalFee,
-                managementFee,
-            ],
-        )
+    default_address_args = [token, governance, keeper, guardian, governance, strategist, badgerTree]
+
+    for i in range(len(default_address_args)):
+        address_args = [default_address_args[j] if j != i else AddressZero for j in range(len(default_address_args))]
+        
+        with brownie.reverts():
+            vault.initialize(
+                *address_args,
+                "",
+                "",
+                [
+                    performanceFeeGovernance,
+                    performanceFeeStrategist,
+                    withdrawalFee,
+                    managementFee,
+                ],
+            )

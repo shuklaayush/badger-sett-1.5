@@ -7,7 +7,7 @@ import pytest
 
 
 @pytest.fixture
-def withdraw_setup(deploy_complete, deployer, governance, rando, keeper):
+def withdraw_setup(deploy_complete, deployer, governance, randomUser, keeper):
 
     want = deploy_complete.want
     vault = deploy_complete.vault
@@ -34,7 +34,7 @@ def withdraw_setup(deploy_complete, deployer, governance, rando, keeper):
     )
 
 
-def test_withdrawToVault(withdraw_setup, deployer, governance, rando):
+def test_withdrawToVault(withdraw_setup, deployer, governance, randomUser):
 
     want = withdraw_setup.want
     vault = withdraw_setup.deployed_vault
@@ -48,7 +48,7 @@ def test_withdrawToVault(withdraw_setup, deployer, governance, rando):
     # should fail if msg.sender != strategist/governance
 
     with brownie.reverts("onlyGovernanceOrStrategist"):
-        vault.withdrawToVault({"from": rando})
+        vault.withdrawToVault({"from": randomUser})
 
     # withdrawToVault should fail if strategy is paused
     strategy.pause({"from": governance})
@@ -66,7 +66,7 @@ def test_withdrawToVault(withdraw_setup, deployer, governance, rando):
     )
 
 
-def test_withdraw(withdraw_setup, deployer, governance, rando):
+def test_withdraw(withdraw_setup, deployer, governance, randomUser):
 
     want = withdraw_setup.want
     vault = withdraw_setup.deployed_vault
@@ -93,8 +93,11 @@ def test_withdraw(withdraw_setup, deployer, governance, rando):
         == withdraw_amount - vault.withdrawalFee() * withdraw_amount / vault.MAX_BPS()
     )
 
+    with brownie.reverts("0 Shares"):
+        vault.withdraw(0, {"from": deployer})
 
-def test_withdrawAll(withdraw_setup, deployer, governance, rando):
+
+def test_withdrawAll(withdraw_setup, deployer, governance, randomUser):
 
     want = withdraw_setup.want
     vault = withdraw_setup.deployed_vault
@@ -121,7 +124,7 @@ def test_withdrawAll(withdraw_setup, deployer, governance, rando):
     )
 
 
-def test_withdrawOther(withdraw_setup, deployer, governance, rando):
+def test_withdrawOther(withdraw_setup, deployer, governance, randomUser):
 
     want = withdraw_setup.want
     vault = withdraw_setup.deployed_vault
@@ -134,7 +137,7 @@ def test_withdrawOther(withdraw_setup, deployer, governance, rando):
     # Creating another token
     token2 = MockToken.deploy({"from": deployer})
     token2.initialize(
-        [deployer.address, rando.address], [100 * 10 ** 18, 100 * 10 ** 18]
+        [deployer.address, randomUser.address], [100 * 10 ** 18, 100 * 10 ** 18]
     )
 
     # sending token2 to strategy
@@ -144,7 +147,7 @@ def test_withdrawOther(withdraw_setup, deployer, governance, rando):
     # should fail if msg.sender != strategist/governance
 
     with brownie.reverts("onlyGovernanceOrStrategist"):
-        vault.sweepExtraToken(token2.address, {"from": rando})
+        vault.sweepExtraToken(token2.address, {"from": randomUser})
 
     vault.withdrawAll({"from": deployer})
 
@@ -154,4 +157,29 @@ def test_withdrawOther(withdraw_setup, deployer, governance, rando):
         balance_vault_after_withdraw
         - depositAmount * vault.withdrawalFee() / vault.MAX_BPS()
         == 0
+    )
+
+
+def test_withdraw_lossy(withdraw_setup, deployer, governance):
+    want = withdraw_setup.want
+
+    vault = withdraw_setup.deployed_vault
+    strategy = withdraw_setup.strategy
+    depositAmount = withdraw_setup.depositAmount
+
+    vault.setWithdrawalFee(0, {"from": governance})
+
+    balance_deployer_before = want.balanceOf(deployer)
+
+    withdraw_amount = depositAmount
+
+    loss_bps = 10
+    strategy.setLossBps(loss_bps, {"from": governance})
+
+    vault.withdraw(withdraw_amount, {"from": deployer})
+
+    balance_deployer_after = want.balanceOf(deployer)
+
+    assert (
+        balance_deployer_after - balance_deployer_before == withdraw_amount * (1 - loss_bps / 10_000)
     )

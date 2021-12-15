@@ -4,7 +4,7 @@ from brownie import *
 from helpers.constants import AddressZero
 
 
-def test_setWithdrawalMaxDeviationThreshold(deploy_complete, governance, rando):
+def test_setWithdrawalMaxDeviationThreshold(deploy_complete, governance, randomUser):
 
     strategy = deploy_complete.strategy
     withdrawalMaxDeviationThreshold = 100
@@ -12,7 +12,7 @@ def test_setWithdrawalMaxDeviationThreshold(deploy_complete, governance, rando):
     # withdrawalMaxDeviationThreshold from random user should fail
     with brownie.reverts("onlyGovernance"):
         strategy.setWithdrawalMaxDeviationThreshold(
-            withdrawalMaxDeviationThreshold, {"from": rando}
+            withdrawalMaxDeviationThreshold, {"from": randomUser}
         )
 
     # setting withdrawalMaxDeviationThreshold

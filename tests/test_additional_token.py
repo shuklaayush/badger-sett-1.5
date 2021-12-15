@@ -3,9 +3,10 @@ What happens if we gift a random token to the strat?
 """
 import brownie
 from brownie import accounts, interface, MockToken
+from helpers.constants import AddressZero
 
 
-def test_report_an_extra_token(strategy, badgerTree, strategist, treasury, vault):
+def test_report_an_extra_token(strategy, badgerTree, strategist, treasury, vault, keeper):
   """
   Proves that the strat using `_processExtraToken` will handle perf fee as well as send to tree
   """
@@ -24,7 +25,7 @@ def test_report_an_extra_token(strategy, badgerTree, strategist, treasury, vault
   ## Send the gift and report it
   amount = 1e18
   extra_token.transfer(strategy, amount, {"from": donator})
-  strategy.test_harvest_only_emit(extra_token, amount, {"from": strategist})
+  strategy.test_harvest_only_emit(extra_token, amount, {"from": keeper})
 
   ## There was a net positive balance increase
   assert extra_token.balanceOf(badgerTree) > initial_tree_balance
@@ -81,6 +82,9 @@ def test_emit_additional_token_from_vault(strategist, governance, vault, deploye
     ## Verify that onChain APY tracking works
     assert vault.additionalTokensEarned(extra_token) == prev_earned + mint_amount
 
+    with brownie.reverts("Token 0"):
+        vault.emitNonProtectedToken(AddressZero, {"from": strategist})
+
 
 
 ## Withdraw operation / Sweeps
@@ -98,6 +102,9 @@ def test_withdraw_another_token_from_strat(strategy, strategist, governance, vau
     after_gov_bal = extra_token.balanceOf(governance)
 
     assert after_gov_bal - prev_gov_bal == mint_amount
+
+    with brownie.reverts("Token 0"):
+        vault.sweepExtraToken(AddressZero, {"from": strategist})
 
 
 def test_withdraw_another_token_from_vault(strategist, governance, vault, deployer):

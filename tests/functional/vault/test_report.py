@@ -26,14 +26,7 @@ def setup_report(deploy_complete, deployer, governance):
     # no inital shares of deployer
     assert vault.balanceOf(deployer) == 0
 
-    depositAmount = int(want.balanceOf(deployer) * 0.1)
-    assert depositAmount > 0
-
     want.approve(vault.address, MaxUint256, {"from": deployer})
-
-    # Deposit and earn
-    vault.deposit(depositAmount, {"from": deployer})
-    vault.earn({"from": governance})
 
     return DotMap(
         vault=vault, strategy=strategy, want=want, depositAmount=depositAmount
@@ -64,17 +57,22 @@ def depositAmount(setup_report):
 def mint_amount():
     return 1e18
 
-def setup_mint(strategy, want, mint_amount):
-    ## Transfer some want to strategy which will represent harvest
-    before_mint = strategy.balanceOf()
-    want.mint(strategy, mint_amount)
-    after_mint = strategy.balanceOf()
+def setup_mint(strategy, token, mint_amount):
+    # Mint additional tokens for strategy
+    before_mint = token.balanceOf(strategy)
+    token.mint(strategy, mint_amount)
+    after_mint = token.balanceOf(strategy)
     assert after_mint - before_mint == mint_amount
 
     return mint_amount
 
+def test_report_failed(vault, strategy, want, deployer, governance, randomUser, keeper, mint_amount):
+    depositAmount = int(want.balanceOf(deployer) * 0.1)
+    assert depositAmount > 0
 
-def test_report_failed(vault, strategy, governance, rando, keeper, mint_amount):
+    # Deposit and earn
+    vault.deposit(depositAmount, {"from": deployer})
+    vault.earn({"from": governance})
 
     ## report should fail when vault is paused
     # Pausing vault
@@ -100,8 +98,63 @@ def test_report_failed(vault, strategy, governance, rando, keeper, mint_amount):
 
     # report should fail report function is not called from strategy
     with brownie.reverts("onlyStrategy"):
-        vault.reportHarvest(1e18, {"from": rando})
+        vault.reportHarvest(1e18, {"from": randomUser})
 
-    # harvest should fail when called by rando
+    # harvest should fail when called by randomUser
     with brownie.reverts("onlyAuthorizedActors"):
-        strategy.test_harvest(mint_amount, {"from": rando})
+        strategy.test_harvest(mint_amount, {"from": randomUser})
+
+
+def test_harvest_no_balance(strategy, vault, keeper, want, mint_amount):
+    strategy.test_empty_harvest({"from": keeper})
+    assert vault.assetsAtLastHarvest() == 0
+
+    setup_mint(strategy, want, mint_amount)
+
+    strategy.test_harvest(mint_amount, {"from": keeper})
+    assert vault.assetsAtLastHarvest() == 0
+
+
+def test_report_additional_token_failed(vault, strategy, governance, want, deployer, randomUser, keeper, token, mint_amount):
+    depositAmount = int(want.balanceOf(deployer) * 0.1)
+    assert depositAmount > 0
+
+    # Deposit and earn
+    vault.deposit(depositAmount, {"from": deployer})
+    vault.earn({"from": governance})
+
+    setup_mint(strategy, token, mint_amount)
+
+    ## report should fail when vault is paused
+    # Pausing vault
+    vault.pause({"from": governance})
+
+    assert vault.paused() == True
+
+    with brownie.reverts("Pausable: paused"):
+        strategy.test_harvest_only_emit(token, mint_amount, {"from": keeper})
+
+    vault.unpause({"from": governance})
+
+    ## report should fail when strategy is paused
+    # Pausing strategy
+    strategy.pause({"from": governance})
+
+    assert strategy.paused() == True
+
+    with brownie.reverts("Pausable: paused"):
+        strategy.test_harvest_only_emit(token, mint_amount, {"from": keeper})
+
+    strategy.unpause({"from": governance})
+
+    # report should fail report function is not called from strategy
+    with brownie.reverts("onlyStrategy"):
+        vault.reportAdditionalToken(token, {"from": randomUser})
+
+    # should fail if trying to report want as additional token
+    with brownie.reverts("No want"):
+        vault.reportAdditionalToken(vault.token(), {"from": strategy})
+
+    # harvest should fail when called by randomUser
+    with brownie.reverts("onlyAuthorizedActors"):
+        strategy.test_harvest_only_emit(token, mint_amount, {"from": randomUser})

@@ -88,6 +88,56 @@ def test_add_remove_guestlist(deployer, governance, randomUser, vault, guestlist
     vault.deposit(depositAmount, {"from": randomUser})
 
 
+## Test where you deposit when guestlist is set
+def test_deposit_guestlist(deployer, governance, randomUser, vault, guestlist, want):
+    # Adding deployer to guestlist
+    guestlist.setGuests([deployer], [True], {"from": governance})
+
+    # Sets guestlist on Vault (Requires Vault's governance)
+    vault.setGuestList(guestlist.address, {"from": governance})
+
+    depositAmount = (
+        1e18 if want.balanceOf(deployer) >= 1e18 else want.balanceOf(deployer)
+    )
+
+    assert depositAmount != 0
+
+    # Deposit
+    want.approve(vault, MaxUint256, {"from": deployer})
+
+    before_shares = want.balanceOf(vault)
+
+    assert before_shares == 0
+
+    vault.deposit(depositAmount // 10, [], {"from": deployer})
+
+    after_shares = want.balanceOf(vault)
+
+    assert after_shares == depositAmount // 10
+
+    before_shares = want.balanceOf(vault)
+
+    # Burn to reduce balance
+    want.burn(deployer, want.balanceOf(deployer) - depositAmount // 10, {"from": deployer})
+
+    before_shares = want.balanceOf(vault)
+
+    vault.depositAll([], {"from": deployer})
+
+    after_shares = want.balanceOf(vault)
+
+    assert after_shares - before_shares == depositAmount // 10
+
+    # Deposit from user who is not in guestlist should fail
+    want.approve(vault, MaxUint256, {"from": randomUser})
+    depositAmount = (
+        1e18 if want.balanceOf(randomUser) >= 1e18 else want.balanceOf(randomUser)
+    )
+    assert depositAmount != 0
+
+    vault.depositFor(deployer, depositAmount, [], {"from": randomUser})
+
+
 ## Test with guestlist -> user Limit
 def test_userlimit_guestlist(deployer, governance, randomUser, vault, guestlist, want):
     # NOTE: userCap = 2e18 set at tests/conftest.py function deployed_gueslist

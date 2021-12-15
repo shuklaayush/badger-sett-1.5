@@ -4,11 +4,8 @@ from helpers.constants import MaxUint256, AddressZero
 from helpers.time import days
 
 
-def state_setup(deployer, sett, vault, strategy, want):
+def state_setup(deployer, vault, strategy, want, keeper):
     startingBalance = want.balanceOf(deployer)
-
-    settKeeper = accounts.at(vault.keeper(), force=True)
-    strategyKeeper = accounts.at(strategy.keeper(), force=True)
 
     tendable = strategy.isTendable()
 
@@ -22,15 +19,15 @@ def state_setup(deployer, sett, vault, strategy, want):
     chain.sleep(days(1))
     chain.mine()
 
-    vault.earn({"from": settKeeper})
+    vault.earn({"from": keeper})
 
     chain.sleep(days(1))
     chain.mine()
 
     if tendable:
-        strategy.tend({"from": strategyKeeper})
+        strategy.tend({"from": keeper})
 
-    strategy.harvest({"from": strategyKeeper})
+    strategy.harvest({"from": keeper})
 
     chain.sleep(days(1))
     chain.mine()
@@ -42,8 +39,8 @@ def state_setup(deployer, sett, vault, strategy, want):
     accounts.at(vault, force=True)
 
 
-def test_strategy_action_permissions(deployer, vault, strategy, want):
-    state_setup(deployer, vault, vault, strategy, want)
+def test_strategy_action_permissions(deployer, vault, strategy, want, keeper):
+    state_setup(deployer, vault, strategy, want, keeper)
 
     tendable = strategy.isTendable()
 
@@ -107,9 +104,9 @@ def test_strategy_action_permissions(deployer, vault, strategy, want):
                 vault.sweepExtraToken(vault, {"from": actor})
 
 
-def test_strategy_pausing_permissions(deployer, vault, strategy, want):
+def test_strategy_pausing_permissions(deployer, vault, strategy, want, keeper):
     # Setup
-    state_setup(deployer, vault, vault, strategy, want)
+    state_setup(deployer, vault, strategy, want, keeper)
     randomUser = accounts[8]
     # End Setup
 
@@ -140,13 +137,11 @@ def test_strategy_pausing_permissions(deployer, vault, strategy, want):
 
     strategy.pause({"from": strategy.guardian()})
 
-    strategyKeeper = accounts.at(strategy.keeper(), force=True)
-
     with brownie.reverts("Pausable: paused"):
-        strategy.harvest({"from": strategyKeeper})
+        strategy.harvest({"from": keeper})
     if strategy.isTendable():
         with brownie.reverts("Pausable: paused"):
-            strategy.tend({"from": strategyKeeper})
+            strategy.tend({"from": keeper})
 
     strategy.unpause({"from": authorizedUnpausers[0]})
 
@@ -154,14 +149,14 @@ def test_strategy_pausing_permissions(deployer, vault, strategy, want):
     vault.withdraw(1, {"from": deployer})
     vault.withdrawAll({"from": deployer})
 
-    strategy.harvest({"from": strategyKeeper})
+    strategy.harvest({"from": keeper})
     if strategy.isTendable():
-        strategy.tend({"from": strategyKeeper})
+        strategy.tend({"from": keeper})
 
 
-def test_sett_pausing_permissions(deployer, vault, strategy, want):
+def test_sett_pausing_permissions(deployer, vault, strategy, want, keeper):
     # Setup
-    state_setup(deployer, vault, vault, strategy, want)
+    state_setup(deployer, vault, strategy, want, keeper)
     randomUser = accounts[8]
     # End Setup
 
@@ -191,10 +186,8 @@ def test_sett_pausing_permissions(deployer, vault, strategy, want):
     with brownie.reverts("onlyGovernance"):
         vault.unpause({"from": randomUser})
 
-    settKeeper = accounts.at(vault.keeper(), force=True)
-
     with brownie.reverts("Pausable: paused"):
-        vault.earn({"from": settKeeper})
+        vault.earn({"from": keeper})
     with brownie.reverts("Pausable: paused"):
         vault.withdrawAll({"from": deployer})
     with brownie.reverts("Pausable: paused"):
@@ -207,13 +200,13 @@ def test_sett_pausing_permissions(deployer, vault, strategy, want):
     vault.unpause({"from": authorizedUnpausers[0]})
 
     vault.deposit(1, {"from": deployer})
-    vault.earn({"from": settKeeper})
+    vault.earn({"from": keeper})
     vault.withdraw(1, {"from": deployer})
     vault.withdrawAll({"from": deployer})
 
 
-def test_sett_config_permissions(deployer, vault, strategy, want, strategy_two):
-    state_setup(deployer, vault, vault, strategy, want)
+def test_sett_config_permissions(deployer, vault, strategy, want, governance, keeper, strategy_two):
+    state_setup(deployer, vault, strategy, want, keeper)
     randomUser = accounts[8]
     # End Setup
 
@@ -228,6 +221,9 @@ def test_sett_config_permissions(deployer, vault, strategy, want, strategy_two):
     assert vault.toEarnBps() == 0
 
     # setStrategy
+    with brownie.reverts("Address 0"):
+        vault.setStrategy(AddressZero, {"from": governance})
+
     with brownie.reverts("onlyGovernance"):
         vault.setStrategy(strategy_two, {"from": randomUser})
 
@@ -254,10 +250,16 @@ def test_sett_config_permissions(deployer, vault, strategy, want, strategy_two):
     vault.setKeeper(validActor, {"from": validActor})
     assert vault.keeper() == validActor
 
+    with brownie.reverts("onlyGovernance"):
+        vault.setGovernance(randomUser, {"from": randomUser})
 
-def test_sett_earn_permissions(deployer, vault, strategy, want):
+    vault.setGovernance(randomUser, {"from": validActor})
+    assert vault.governance() == randomUser
+
+
+def test_sett_earn_permissions(deployer, vault, strategy, want, keeper):
     # Setup
-    state_setup(deployer, vault, vault, strategy, want)
+    state_setup(deployer, vault, strategy, want, keeper)
     randomUser = accounts[8]
     # End Setup
 

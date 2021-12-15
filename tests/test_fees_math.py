@@ -1,6 +1,7 @@
 import brownie
 from brownie import *
 
+from helpers.constants import AddressZero
 from helpers.utils import approx
 from helpers.shares_math import get_performance_fees_shares, get_report_fees
 from dotmap import DotMap
@@ -213,3 +214,45 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
         delta_governance_shares,
         1,
     )
+
+
+def test_zero_fee(
+    setup_share_math,
+    strategy,
+    want,
+    governance,
+    vault,
+    mint_amount
+):
+    """
+        This is the more proper test for shares issuance
+    """
+
+    ## Get settings
+    treasury = vault.treasury()
+    strategist = vault.strategist()
+
+    ## Initial Values
+    strategist_shares_before = vault.balanceOf(strategist)
+    governance_shares_before = vault.balanceOf(treasury)
+
+    ## Mint 1 ETH of want
+    setup_mint(strategy, want, mint_amount)
+
+    vault.setPerformanceFeeGovernance(0, {"from": governance})
+    vault.setManagementFee(0, {"from": governance})
+
+    # If strategist address is 0, then there won't be any strategiest performance fee
+    vault.setStrategist(AddressZero, {"from": governance})
+
+    ## Run the actual operation
+    strategy.test_harvest(
+        mint_amount,
+        {"from": governance}
+    )  # test_harvest to report harvest value to vault which will take respective fees
+
+    strategist_shares_after = vault.balanceOf(strategist)
+    governance_shares_after = vault.balanceOf(treasury)
+
+    assert strategist_shares_after == strategist_shares_before
+    assert governance_shares_after == governance_shares_before
