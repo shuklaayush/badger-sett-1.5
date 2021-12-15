@@ -102,7 +102,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     uint256 public toEarnBps; // NOTE: in BPS, minimum amount of token to deposit into strategy when earn is called
 
-    /// ===== Contants ====
+    /// ===== Constants ====
     uint256 public constant MAX_BPS = 10_000;
     uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
@@ -181,7 +181,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
             symbol = _symbol;
         } else {
             symbol = string(abi.encodePacked(_symbolSymbolPrefix, namedToken.symbol()));
-         }
+        }
 
         // Initializing the lpcomponent token
         __ERC20_init(name, symbol);
@@ -624,11 +624,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @dev function to process an arbitrary fee
     /// @return fee : amount of fees to take
-    function _calculateFee(uint256 amount, uint256 feeBps) internal pure returns (uint256 fee) {
+    function _calculateFee(uint256 amount, uint256 feeBps) internal pure returns (uint256) {
         if (feeBps == 0) {
             return 0;
         }
-        fee = amount.mul(feeBps).div(MAX_BPS);
+        uint256 fee = amount.mul(feeBps).div(MAX_BPS);
         return fee;
     }
 
@@ -636,11 +636,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function _calculatePerformanceFee(uint256 _amount)
         internal
         view
-        returns (uint256 governancePerformanceFee, uint256 strategistPerformanceFee)
+        returns (uint256, uint256)
     {
-        governancePerformanceFee = _calculateFee(_amount, performanceFeeGovernance);
+        uint256 governancePerformanceFee = _calculateFee(_amount, performanceFeeGovernance);
 
-        strategistPerformanceFee = _calculateFee(_amount, performanceFeeStrategist);
+        uint256 strategistPerformanceFee = _calculateFee(_amount, performanceFeeStrategist);
 
         return (governancePerformanceFee, strategistPerformanceFee);
     }
@@ -651,7 +651,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         uint256 _amount,
         uint256 _pool
     ) internal {
-        uint256 shares = 0;
+        uint256 shares;
         if (totalSupply() == 0) {
             shares = _amount;
         } else {
