@@ -176,7 +176,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// @notice When the strategy calls `_withdraw` it uses this variable as a slippage check against the actual funds withdrawn
     function setWithdrawalMaxDeviationThreshold(uint256 _threshold) external {
         _onlyGovernance();
-        require(_threshold <= MAX_BPS, "base-strategy/excessive-max-deviation-threshold");
+        require(_threshold <= MAX_BPS, "_threshold should be <= MAX_BPS");
         withdrawalMaxDeviationThreshold = _threshold;
         emit SetWithdrawalMaxDeviationThreshold(_threshold);
     }
@@ -231,7 +231,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
             uint256 diff = _diff(_amount, _postWithdraw);
 
             // Require that difference between expected and actual values is less than the deviation threshold percentage
-            require(diff <= _amount.mul(withdrawalMaxDeviationThreshold).div(MAX_BPS), "base-strategy/withdraw-exceed-max-deviation-threshold");
+            require(diff <= _amount.mul(withdrawalMaxDeviationThreshold).div(MAX_BPS), "withdraw-exceed-max-deviation-threshold");
         }
 
         // Return the amount actually withdrawn if less than amount requested
@@ -317,7 +317,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
     /// @notice Utility function to diff two numbers, expects higher value in first position
     function _diff(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(a >= b, "diff/expected-higher-number-in-first-position");
+        require(a >= b, "a should be >= b");
         return a.sub(b);
     }
 
