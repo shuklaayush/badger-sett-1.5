@@ -1,6 +1,6 @@
 import brownie
 from brownie import *
-from helpers.constants import MaxUint256
+from helpers.constants import AddressZero, MaxUint256
 
 from dotmap import DotMap
 import pytest
@@ -121,6 +121,16 @@ def test_report_additional_token_failed(vault, strategy, governance, want, deplo
     vault.earn({"from": governance})
 
     setup_mint(strategy, token, mint_amount)
+
+    with brownie.reverts("Not want, use _reportToVault"):
+        strategy.test_harvest_only_emit(want, mint_amount, {"from": keeper})
+
+    with brownie.reverts("Address 0"):
+        strategy.test_harvest_only_emit(AddressZero, mint_amount, {"from": keeper})
+
+    # Creating another token
+    with brownie.reverts("Amount 0"):
+        strategy.test_harvest_only_emit(token, 0, {"from": keeper})
 
     ## report should fail when vault is paused
     # Pausing vault
