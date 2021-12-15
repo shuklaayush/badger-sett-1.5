@@ -293,7 +293,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @notice also check for this to be used exclusively on harvest, exclusively on protectedTokens
     function _processExtraToken(address _token, uint256 _amount) internal {
         require(_token != want, "Not want, use _reportToVault");
-        require(_token != address(0), "Token 0");
+        require(_token != address(0), "Address 0");
         require(_amount != 0, "Amount 0");
 
         IERC20Upgradeable(_token).safeTransfer(vault, _amount);
