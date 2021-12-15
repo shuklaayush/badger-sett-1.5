@@ -558,10 +558,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal {
-        if (address(guestList) != address(0)) {
-            require(guestList.authorized(msg.sender, _amount, proof), "GuestList: Not Authorized");
-        }
-        _deposit(_amount);
+        _depositForWithAuthorization(msg.sender, _amount, proof);
     }
 
     function _depositForWithAuthorization(
