@@ -519,7 +519,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @notice The strategy will use for yield-generating activities
     /// @notice Pause is enforced at the Strategy level (this allows to still earn yield when the Vault is paused)
     function earn() external {
-        require(!pausedDeposit); // dev: deposits are paused, we don't earn as well
+        require(!pausedDeposit, "pausedDeposit"); // dev: deposits are paused, we don't earn as well
         _onlyAuthorizedActors();
 
         uint256 _bal = available();
@@ -569,7 +569,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function _depositFor(address _recipient, uint256 _amount) internal nonReentrant {
         require(_recipient != address(0), "Address 0");
         require(_amount != 0, "Amount 0");
-        require(!pausedDeposit); // dev: deposits are paused
+        require(!pausedDeposit, "pausedDeposit"); // dev: deposits are paused
 
         uint256 _pool = balance();
         uint256 _before = token.balanceOf(address(this));
