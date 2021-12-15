@@ -329,7 +329,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
     /// @notice Specify tokens used in yield process, should not be available to withdraw via withdrawOther()
     /// @param _asset: address of asset
-    function _onlyNotProtectedTokens(address _asset) internal {
+    function _onlyNotProtectedTokens(address _asset) internal view {
         require(!isProtectedToken(_asset), "_onlyNotProtectedTokens");
     }
 

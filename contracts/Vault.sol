@@ -222,7 +222,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// ===== View Functions =====
     
-    function version() external view returns (string memory) {
+    function version() external pure returns (string memory) {
         return "1.5";
     }
 
