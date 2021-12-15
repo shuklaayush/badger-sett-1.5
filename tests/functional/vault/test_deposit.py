@@ -1,6 +1,6 @@
 import brownie
 from brownie import *
-from helpers.constants import MaxUint256
+from helpers.constants import MaxUint256, AddressZero
 
 from dotmap import DotMap
 import pytest
@@ -43,6 +43,9 @@ def test_deposit(deposit_setup, deployer, governance):
 
     assert balance_after_deposit - balance_before_deposit == depositAmount
 
+    with brownie.reverts("Amount 0"):
+        vault.deposit(0, {"from": deployer})
+
     # Test deposit when vault is paused
     vault.pause({"from": governance})
 
@@ -51,22 +54,39 @@ def test_deposit(deposit_setup, deployer, governance):
     with brownie.reverts("Pausable: paused"):
         vault.deposit(depositAmount, {"from": deployer})
 
+    vault.unpause({"from": governance})
 
-def test_depositFor(deposit_setup, deployer, governance, rando):
+    assert vault.paused() == False
+
+    # Test deposit when deposits are paused
+    vault.pauseDeposits({"from": governance})
+
+    assert vault.pausedDeposit() == True
+
+    with brownie.reverts("pausedDeposit"):
+        vault.deposit(depositAmount, {"from": deployer})
+
+    vault.unpauseDeposits({"from": governance})
+
+
+def test_depositFor(deposit_setup, deployer, governance, randomUser):
     vault = deposit_setup.deployed_vault
     want = deposit_setup.want
     depositAmount = deposit_setup.depositAmount
 
-    # Test depositFor rando user
+    # Test depositFor randomUser user
     balance_before_deposit = vault.balance()
 
-    vault.depositFor(rando, depositAmount, {"from": deployer})
+    vault.depositFor(randomUser, depositAmount, {"from": deployer})
 
     balance_after_deposit = vault.balance()
 
     assert balance_after_deposit - balance_before_deposit == depositAmount
-    # check if balance is deposited for rando
-    assert vault.balanceOf(rando) == depositAmount
+    # check if balance is deposited for randomUser
+    assert vault.balanceOf(randomUser) == depositAmount
+
+    with brownie.reverts("Address 0"):
+        vault.depositFor(AddressZero, depositAmount, {"from": deployer})
 
     # Test deposit when vault is paused
     vault.pause({"from": governance})
@@ -74,7 +94,7 @@ def test_depositFor(deposit_setup, deployer, governance, rando):
     assert vault.paused() == True
 
     with brownie.reverts("Pausable: paused"):
-        vault.depositFor(rando, depositAmount, {"from": deployer})
+        vault.depositFor(randomUser, depositAmount, {"from": deployer})
 
 
 def test_depositAll(deposit_setup, deployer, governance):

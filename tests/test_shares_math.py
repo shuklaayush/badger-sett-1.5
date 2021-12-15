@@ -30,6 +30,8 @@ def test_deposit_no_initial_shares(deployer, vault, want):
     # no inital shares of deployer
     assert vault.balanceOf(deployer) == 0
 
+    assert vault.getPricePerFullShare() == 1e18
+
     depositAmount = int(want.balanceOf(deployer) * 0.8)
     assert depositAmount > 0
 

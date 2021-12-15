@@ -3,14 +3,19 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+
 import {BaseStrategy} from "../BaseStrategy.sol";
 
 contract DemoStrategy is BaseStrategy {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+
     // address public want; // Inherited from BaseStrategy
     // address public lpComponent; // Token that represents ownership in a pool, not always used
     // address public reward; // Token we farm
 
     address constant public BADGER = 0x3472A5A71965499acd81997a54BBA8D852C6E53d; 
+    uint256 public lossBps;
 
     /// @notice set using setAutoCompoundRatio()
     // uint256 public autoCompoundRatio = 10_000; // Inherited from BaseStrategy - percentage of rewards converted to want
@@ -52,6 +57,12 @@ contract DemoStrategy is BaseStrategy {
         return true;
     }
 
+    function setLossBps(uint256 _lossBps) public {
+        _onlyGovernance();
+
+        lossBps = _lossBps;
+    }
+
     function _deposit(uint256 _amount) internal override {
         // No-op as we don't do anything
     }
@@ -61,6 +72,9 @@ contract DemoStrategy is BaseStrategy {
     }
 
     function _withdrawSome(uint256 _amount) internal override returns (uint256) {
+        if (lossBps > 0) {
+            IERC20Upgradeable(want).transfer(want, _amount.mul(lossBps).div(MAX_BPS));
+        }
         return _amount;
     }
 
@@ -83,6 +97,19 @@ contract DemoStrategy is BaseStrategy {
 
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, amount);
+        harvested[1] = TokenAmount(BADGER, 0); // Nothing harvested for Badger
+        return harvested;
+    }
+
+    function test_empty_harvest() external whenNotPaused returns (TokenAmount[] memory harvested) {
+        _onlyAuthorizedActors();
+
+        // Amount of want autocompounded after harvest in terms of want
+        // keep this to get paid!
+        _reportToVault(0);
+
+        harvested = new TokenAmount[](2);
+        harvested[0] = TokenAmount(want, 0);
         harvested[1] = TokenAmount(BADGER, 0); // Nothing harvested for Badger
         return harvested;
     }

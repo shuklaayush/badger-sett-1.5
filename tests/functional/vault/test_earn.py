@@ -6,7 +6,7 @@ from dotmap import DotMap
 import pytest
 
 
-def test_earn(deploy_complete, deployer, governance, rando, keeper):
+def test_earn(deploy_complete, deployer, governance, randomUser, keeper):
 
     want = deploy_complete.want
     vault = deploy_complete.vault
@@ -14,23 +14,23 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
 
     # Deposit
     assert want.balanceOf(deployer) > 0
-    assert want.balanceOf(rando) > 0
+    assert want.balanceOf(randomUser) > 0
 
     # no balance in vault
     assert vault.balance() == 0
 
-    # no inital shares of deployer / rando
+    # no inital shares of deployer / randomUser
     assert vault.balanceOf(deployer) == 0
-    assert vault.balanceOf(rando) == 0
+    assert vault.balanceOf(randomUser) == 0
 
     depositAmount_deployer = int(want.balanceOf(deployer) * 0.01)
     assert depositAmount_deployer > 0
 
-    depositAmount_rando = int(want.balanceOf(rando) * 0.01)
-    assert depositAmount_rando > 0
+    depositAmount_randomUser = int(want.balanceOf(randomUser) * 0.01)
+    assert depositAmount_randomUser > 0
 
     want.approve(vault.address, MaxUint256, {"from": deployer})
-    want.approve(vault.address, MaxUint256, {"from": rando})
+    want.approve(vault.address, MaxUint256, {"from": randomUser})
 
     # Deposit for deployer and earn
 
@@ -38,7 +38,7 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
 
     # Trying to call earn from unauthorized actors should fail
     with brownie.reverts("onlyAuthorizedActors"):
-        vault.earn({"from": rando})
+        vault.earn({"from": randomUser})
 
     available_before_earn = (
         vault.available()
@@ -47,9 +47,9 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
 
     assert strategy.balanceOf() == available_before_earn
 
-    # Now rando user deposits and earn
+    # Now randomUser user deposits and earn
 
-    vault.deposit(depositAmount_rando, {"from": rando})
+    vault.deposit(depositAmount_randomUser, {"from": randomUser})
 
     before_earn_balance_strat = strategy.balanceOf()
     available_before_earn = (
@@ -76,4 +76,17 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
 
     assert strategy.paused() == True
     with brownie.reverts("Pausable: paused"):
+        vault.earn({"from": governance})
+
+    vault.unpause({"from": governance})
+
+    assert vault.paused() == False
+
+    # When deposits are paused earn should fail
+
+    vault.pauseDeposits({"from": governance})
+
+    assert vault.pausedDeposit() == True
+
+    with brownie.reverts("pausedDeposit"):
         vault.earn({"from": governance})

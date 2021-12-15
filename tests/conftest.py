@@ -25,15 +25,15 @@ def deployed():
     """
     deployer = accounts[1]
 
-    strategist = deployer
-    keeper = deployer
-    guardian = deployer
+    strategist = accounts[2]
+    keeper = accounts[3]
+    guardian = accounts[4]
 
-    governance = accounts[2]
-    proxyAdmin = accounts[3]
+    governance = accounts[5]
+    proxyAdmin = accounts[6]
 
-    randomUser = accounts[9]
-    badgerTree = accounts[8]
+    badgerTree = accounts[7]
+    randomUser = accounts[8]
 
     token = MockToken.deploy({"from": deployer})
     token.initialize(
@@ -64,7 +64,6 @@ def deployed():
             managementFee,
         ],
     )
-    vault.setStrategist(deployer, {"from": governance})
     # NOTE: Vault starts unpaused
 
     strategy = DemoStrategy.deploy({"from": deployer})
@@ -197,13 +196,13 @@ def strategist(strategy):
 
 
 @pytest.fixture
-def settKeeper(vault):
+def keeper(vault):
     return accounts.at(vault.keeper(), force=True)
 
 
 @pytest.fixture
-def strategyKeeper(strategy):
-    return accounts.at(strategy.keeper(), force=True)
+def guardian(vault):
+    return accounts.at(vault.guardian(), force=True)
 
 
 @pytest.fixture
@@ -264,7 +263,7 @@ def setup_share_math(deployer, vault, want, governance):
 def strategy_two(deployer, vault, want):
     strategy = DemoStrategy.deploy({"from": deployer})
     strategy.initialize(vault, [want])
-    
+
     return strategy
 
 ## Forces reset before each test

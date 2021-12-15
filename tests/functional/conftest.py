@@ -48,12 +48,12 @@ def deployer():
 
 
 @pytest.fixture
-def governance():
+def keeper():
     yield accounts[2]
 
 
 @pytest.fixture
-def keeper():
+def strategist():
     yield accounts[3]
 
 
@@ -63,17 +63,17 @@ def guardian():
 
 
 @pytest.fixture
-def proxyAdmin():
+def governance():
     yield accounts[5]
 
 
 @pytest.fixture
-def strategist():
+def proxyAdmin():
     yield accounts[6]
 
 @pytest.fixture
-def rando():
-    yield accounts[9]
+def randomUser():
+    yield accounts[8]
 
 
 ###########################################
@@ -104,12 +104,12 @@ def deployed_vault(deployer, governance, keeper, guardian, strategist, badgerTre
 
 @pytest.fixture
 def deploy_complete(
-    deployer, governance, keeper, guardian, badger, rando, proxyAdmin, badgerTree, strategist
+    deployer, governance, keeper, guardian, randomUser, badgerTree, strategist
 ):
 
     token = MockToken.deploy({"from": deployer})
     token.initialize(
-        [deployer.address, rando.address], [100 * 10 ** 18, 100 * 10 ** 18]
+        [deployer.address, randomUser.address], [100 * 10 ** 18, 100 * 10 ** 18]
     )
     want = token
 
