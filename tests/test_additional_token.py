@@ -82,7 +82,7 @@ def test_emit_additional_token_from_vault(strategist, governance, vault, deploye
     ## Verify that onChain APY tracking works
     assert vault.additionalTokensEarned(extra_token) == prev_earned + mint_amount
 
-    with brownie.reverts("Token 0"):
+    with brownie.reverts("Address 0"):
         vault.emitNonProtectedToken(AddressZero, {"from": strategist})
 
 
@@ -103,7 +103,7 @@ def test_withdraw_another_token_from_strat(strategy, strategist, governance, vau
 
     assert after_gov_bal - prev_gov_bal == mint_amount
 
-    with brownie.reverts("Token 0"):
+    with brownie.reverts("Address 0"):
         vault.sweepExtraToken(AddressZero, {"from": strategist})
 
 
