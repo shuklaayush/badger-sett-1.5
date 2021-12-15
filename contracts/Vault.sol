@@ -560,10 +560,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @dev Calculate the number of shares to issue for a given deposit
     /// @dev This is based on the realized value of underlying assets between Sett & associated Strategy
-    // @dev deposit for msg.sender
-    function _deposit(uint256 _amount) internal {
-        _depositFor(msg.sender, _amount);
-    }
 
     /// @dev The actual deposit operation, nonReentant, take funds, issue shares
     function _depositFor(address _recipient, uint256 _amount) internal nonReentrant {
