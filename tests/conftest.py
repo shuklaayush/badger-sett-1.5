@@ -83,7 +83,7 @@ def deployed():
         performanceFeeGovernance=performanceFeeGovernance,
         performanceFeeStrategist=performanceFeeStrategist,
         withdrawalFee=withdrawalFee,
-        badgerTree=badgerTree
+        badgerTree=badgerTree,
     )
 
 
@@ -172,7 +172,6 @@ def guestlist(deployed_gueslist):
     return deployed_gueslist.guestlist
 
 
-
 ## Tokens ##
 @pytest.fixture
 def want(deployed):
@@ -208,6 +207,7 @@ def guardian(vault):
 @pytest.fixture
 def governance(deployed):
     return deployed.governance
+
 
 @pytest.fixture
 def treasury(deployed):
@@ -265,6 +265,7 @@ def strategy_two(deployer, vault, want):
     strategy.initialize(vault, [want])
 
     return strategy
+
 
 ## Forces reset before each test
 @pytest.fixture(autouse=True)

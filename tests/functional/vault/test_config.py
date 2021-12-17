@@ -3,6 +3,7 @@ from brownie import Vault
 
 from helpers.constants import AddressZero
 
+
 def test_setTreasury(deployed_vault, governance, randomUser):
 
     # setting treasury address
@@ -53,7 +54,9 @@ def test_setMin(deployed_vault, governance, randomUser):
 
     # setting min > MAX should revert
     with brownie.reverts("toEarnBps should be <= MAX_BPS"):
-        deployed_vault.setToEarnBps(deployed_vault.MAX_BPS() + 1_000, {"from": governance})
+        deployed_vault.setToEarnBps(
+            deployed_vault.MAX_BPS() + 1_000, {"from": governance}
+        )
 
     # setting min
     deployed_vault.setToEarnBps(1_000, {"from": governance})
@@ -166,7 +169,9 @@ def test_setWithdrawalFee(deployed_vault, governance, strategist, randomUser):
         )
 
 
-def test_setPerformanceFeeStrategist(deployed_vault, governance, strategist, randomUser):
+def test_setPerformanceFeeStrategist(
+    deployed_vault, governance, strategist, randomUser
+):
 
     performanceFeeStrategist = 2_000  # increasing fees to compensate good strategist.
 
@@ -195,7 +200,9 @@ def test_setPerformanceFeeStrategist(deployed_vault, governance, strategist, ran
         )
 
 
-def test_setPerformanceFeeGovernance(deployed_vault, governance, strategist, randomUser):
+def test_setPerformanceFeeGovernance(
+    deployed_vault, governance, strategist, randomUser
+):
 
     performanceFeeGovernance = 2_000
 

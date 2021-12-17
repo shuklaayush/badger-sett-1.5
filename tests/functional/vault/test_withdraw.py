@@ -186,6 +186,6 @@ def test_withdraw_lossy(withdraw_setup, deployer, governance):
 
     balance_deployer_after = want.balanceOf(deployer)
 
-    assert (
-        balance_deployer_after - balance_deployer_before == withdraw_amount * (1 - loss_bps / 10_000)
+    assert balance_deployer_after - balance_deployer_before == withdraw_amount * (
+        1 - loss_bps / 10_000
     )

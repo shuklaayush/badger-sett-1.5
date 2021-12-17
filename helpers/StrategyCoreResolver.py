@@ -1,6 +1,10 @@
 from brownie import *
 from decimal import Decimal
-from helpers.shares_math import get_withdrawal_fees_in_shares, from_shares_to_want, get_report_fees
+from helpers.shares_math import (
+    get_withdrawal_fees_in_shares,
+    from_shares_to_want,
+    get_report_fees,
+)
 
 from helpers.utils import (
     approx,
@@ -248,12 +252,14 @@ class StrategyCoreResolver:
                 before.balances("sett", "treasury") + fee,
                 1,
             )
-        
+
         # Want in the strategy should be decreased, if idle in sett is insufficient to cover withdrawal
         if params["amount"] > before.balances("want", "sett"):
             # Adjust amount based on total balance x total supply
             # Division in python is not accurate, use Decimal package to ensure division is consistent w/ division inside of EVM
-            expectedWithdraw = from_shares_to_want(shares_to_burn, ppfs_before_withdraw, vault_decimals, withdrawal_fee_bps)
+            expectedWithdraw = from_shares_to_want(
+                shares_to_burn, ppfs_before_withdraw, vault_decimals, withdrawal_fee_bps
+            )
             # Withdraw from idle in sett first
             expectedWithdraw -= before.balances("want", "sett")
             # First we attempt to withdraw from idle want in strategy
@@ -366,8 +372,6 @@ class StrategyCoreResolver:
         # self.manager.printCompare(before, after)
         # self.confirm_harvest_state(before, after, tx)
 
-
-
         ## TODO: Verify harvest, and verify that the correct amount of shares was issued against perf fees
         # 2- Use custom test and code to finish this oen
 
@@ -387,14 +391,15 @@ class StrategyCoreResolver:
             assert after.balances("want", "treasury") > before.balances(
                 "want", "treasury"
             )
-        
 
         ## Specific check to prove that gain was as modeled
         total_harvest_gain = after.get("sett.balance") - before.get("sett.balance")
         performance_fee_treasury = before.get("sett.performanceFeeGovernance")
         performance_fee_strategist = before.get("sett.performanceFeeStrategist")
         management_fee = before.get("sett.managementFee")
-        time_since_last_harvest = after.get("sett.lastHarvestedAt") - before.get("sett.lastHarvestedAt")
+        time_since_last_harvest = after.get("sett.lastHarvestedAt") - before.get(
+            "sett.lastHarvestedAt"
+        )
         total_supply_before_deposit = before.get("sett.totalSupply")
         balance_before_deposit = before.get("sett.balance")
 

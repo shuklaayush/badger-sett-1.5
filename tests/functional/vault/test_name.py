@@ -8,9 +8,12 @@ performanceFeeStrategist = 1000
 withdrawalFee = 50
 managementFee = 50
 
-def test_with_default_name(deployer, governance, keeper, guardian, strategist, badgerTree, token):
-  vault = Vault.deploy({"from": deployer})
-  vault.initialize(
+
+def test_with_default_name(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
+):
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
         token,
         governance,
         keeper,
@@ -26,38 +29,43 @@ def test_with_default_name(deployer, governance, keeper, guardian, strategist, b
             withdrawalFee,
             managementFee,
         ],
-  )
+    )
 
-  assert vault.name() == "Badger Sett " + token.name()
-  assert vault.symbol() == "b" + token.symbol()
-
-def test_with_custom_name(deployer, governance, keeper, guardian, strategist, badgerTree, token):
-  vault = Vault.deploy({"from": deployer})
-  vault.initialize(
-      token,
-      governance,
-      keeper,
-      guardian,
-      governance,
-      strategist,
-      badgerTree,
-      "Custom Name",
-      "CST",
-      [
-          performanceFeeGovernance,
-          performanceFeeStrategist,
-          withdrawalFee,
-          managementFee,
-      ],
-  )
-
-  assert vault.name() == "Custom Name"
-  assert vault.symbol() == "CST"
+    assert vault.name() == "Badger Sett " + token.name()
+    assert vault.symbol() == "b" + token.symbol()
 
 
-def test_with_custom_name_default_symbol(deployer, governance, keeper, guardian, strategist, badgerTree, token):
-  vault = Vault.deploy({"from": deployer})
-  vault.initialize(
+def test_with_custom_name(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
+):
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        badgerTree,
+        "Custom Name",
+        "CST",
+        [
+            performanceFeeGovernance,
+            performanceFeeStrategist,
+            withdrawalFee,
+            managementFee,
+        ],
+    )
+
+    assert vault.name() == "Custom Name"
+    assert vault.symbol() == "CST"
+
+
+def test_with_custom_name_default_symbol(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
+):
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
         token,
         governance,
         keeper,
@@ -73,15 +81,15 @@ def test_with_custom_name_default_symbol(deployer, governance, keeper, guardian,
             withdrawalFee,
             managementFee,
         ],
-  )
+    )
 
-  assert vault.name() == "Custom Name"
-  assert vault.symbol() == "b" + token.symbol()
+    assert vault.name() == "Custom Name"
+    assert vault.symbol() == "b" + token.symbol()
 
 
 def test_version(deployer, governance, keeper, guardian, strategist, badgerTree, token):
-  vault = Vault.deploy({"from": deployer})
-  vault.initialize(
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
         token,
         governance,
         keeper,
@@ -97,6 +105,6 @@ def test_version(deployer, governance, keeper, guardian, strategist, badgerTree,
             withdrawalFee,
             managementFee,
         ],
-  )
+    )
 
-  assert vault.version() == "1.5"
+    assert vault.version() == "1.5"

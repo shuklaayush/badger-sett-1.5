@@ -205,7 +205,9 @@ def test_sett_pausing_permissions(deployer, vault, strategy, want, keeper):
     vault.withdrawAll({"from": deployer})
 
 
-def test_sett_config_permissions(deployer, vault, strategy, want, governance, keeper, strategy_two):
+def test_sett_config_permissions(
+    deployer, vault, strategy, want, governance, keeper, strategy_two
+):
     state_setup(deployer, vault, strategy, want, keeper)
     randomUser = accounts[8]
     # End Setup

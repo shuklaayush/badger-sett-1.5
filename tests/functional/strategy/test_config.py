@@ -28,6 +28,7 @@ def test_setWithdrawalMaxDeviationThreshold(deploy_complete, governance, randomU
             2 * strategy.MAX_BPS(), {"from": governance}
         )
 
+
 def test_isProtectedToken(deploy_complete, deployer):
     strategy = deploy_complete.strategy
 
