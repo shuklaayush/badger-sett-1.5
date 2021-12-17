@@ -71,16 +71,24 @@ def governance():
 def proxyAdmin():
     yield accounts[6]
 
+
 @pytest.fixture
 def randomUser():
     yield accounts[8]
+
+
+@pytest.fixture
+def randomUser2():
+    yield accounts[9]
 
 
 ###########################################
 
 ################# Deploy #################
 @pytest.fixture
-def deployed_vault(deployer, governance, keeper, guardian, strategist, badgerTree, token):
+def deployed_vault(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
+):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
         token,
@@ -153,21 +161,22 @@ def deploy_complete(
 
 @pytest.fixture
 def deployed_gueslist(
-    deployed_vault,
+    deploy_complete,
     deployer,
     governance,
     proxyAdmin,
     keeper,
     guardian,
     strategist,
-    token,
+    randomUser,
+    randomUser2,
 ):
     """
     Deploys TestVipCappedGuestListBbtcUpgradeable.sol for testing Guest List functionality
     """
 
     # NOTE: Change accordingly
-    vaultAddr = deployed_vault.address
+    vault = deploy_complete.vault
     merkleRoot = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
     userCap = 2e18
     totalCap = 50e18
@@ -184,7 +193,7 @@ def deployed_gueslist(
     assert proxyAdmin != AddressZero
 
     # Deploy guestlist
-    guestlist = deploy_guestlist(dev, proxyAdmin, vaultAddr)
+    guestlist = deploy_guestlist(dev, proxyAdmin, vault.address)
 
     # Set guestlist parameters
     guestlist.setUserDepositCap(userCap, {"from": dev})
@@ -197,22 +206,20 @@ def deployed_gueslist(
     guestlist.transferOwnership(governance, {"from": dev})
     assert guestlist.owner() == governance
 
-    vault = deployed_vault
+    guestlist.setGuests(
+        [governance.address, dev.address, randomUser.address, randomUser2.address],
+        [True, True, False, True],
+        {"from": governance},
+    )
 
-    vault.setStrategist(deployer, {"from": governance})
-    # NOTE: Vault starts unpaused
+    vault.setGuestList(guestlist.address, {"from": governance})
 
-    performanceFeeGovernance = 1000
-    performanceFeeStrategist = 1000
-    withdrawalFee = 50
-
-    strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(vault, [token])
-    # NOTE: Strategy starts unpaused
-
-    vault.setStrategy(strategy, {"from": governance})
-
-    return DotMap(vault=vault, guestlist=guestlist, strategy=strategy)
+    return DotMap(
+        vault=deploy_complete.vault,
+        guestlist=guestlist,
+        strategy=deploy_complete.strategy,
+        want=deploy_complete.want,
+    )
 
 
 def deploy_guestlist(dev, proxyAdmin, vaultAddr):
@@ -235,7 +242,7 @@ def deploy_guestlist(dev, proxyAdmin, vaultAddr):
     guestlist_proxy = TestVipCappedGuestListBbtcUpgradeable.at(guestlist_proxy.address)
 
     # console.print("[green] Using Guestlist in conftest.py/functional")
-    console.print("[green]Guestlist was deployed at: [/green]", guestlist_proxy.address)
+    # console.print("[green]Guestlist was deployed at: [/green]", guestlist_proxy.address)
 
     return guestlist_proxy
 

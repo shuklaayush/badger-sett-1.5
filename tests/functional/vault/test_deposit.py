@@ -97,6 +97,74 @@ def test_depositFor(deposit_setup, deployer, governance, randomUser):
         vault.depositFor(randomUser, depositAmount, {"from": deployer})
 
 
+def test_depositWithAuthorization(
+    deployed_gueslist, deployer, governance, randomUser, randomUser2
+):
+    vault = deployed_gueslist.vault
+    guestlist = deployed_gueslist.guestlist
+    want = deployed_gueslist.want
+    depositAmount = int(want.balanceOf(deployer) * 0.01)
+
+    # # Test deposit for deployer who is whitelisted
+    balance_before_deposit = vault.balance()
+
+    want.approve(vault.address, MaxUint256, {"from": deployer})
+
+    # cannot deposit more than userCap
+    with brownie.reverts("GuestList: Not Authorized"):
+        vault.deposit(3e18, {"from": deployer})
+
+    # deployer is whitelisted so can deposit and depositAmount < userCap
+    vault.deposit(depositAmount, {"from": deployer})
+
+    balance_after_deposit = vault.balance()
+
+    assert balance_after_deposit - balance_before_deposit == depositAmount
+
+    # randomUser cannot deposit
+    want.approve(vault.address, MaxUint256, {"from": randomUser})
+    with brownie.reverts("GuestList: Not Authorized"):
+        vault.deposit(depositAmount, {"from": randomUser})
+
+
+def test_depositForWithAuthorization(
+    deployed_gueslist, deployer, governance, randomUser, randomUser2
+):
+    vault = deployed_gueslist.vault
+    guestlist = deployed_gueslist.guestlist
+    want = deployed_gueslist.want
+    depositAmount = int(want.balanceOf(deployer) * 0.01)
+
+    # # Test depositFor deployer who is whitelisted
+    balance_before_deposit = vault.balance()
+
+    want.approve(vault.address, MaxUint256, {"from": deployer})
+
+    # cannot deposit more than userCap
+    with brownie.reverts("GuestList: Not Authorized"):
+        vault.depositFor(deployer, 3e18, {"from": deployer})
+
+    # deployer is whitelisted so can deposit and depositAmount < userCap
+    vault.depositFor(deployer, depositAmount, {"from": deployer})
+
+    balance_after_deposit = vault.balance()
+
+    assert balance_after_deposit - balance_before_deposit == depositAmount
+
+    # depositFor where recipient is not whitelisted should fail
+    with brownie.reverts("GuestList: Not Authorized"):
+        vault.depositFor(randomUser, depositAmount, {"from": deployer})
+
+    # # depositFor where recipient is whitelisted should work
+    balance_before_deposit = vault.balance()
+    vault.depositFor(randomUser2, depositAmount, {"from": deployer})
+    balance_after_deposit = vault.balance()
+
+    assert balance_after_deposit - balance_before_deposit == depositAmount
+
+    assert vault.balanceOf(randomUser2) == depositAmount
+
+
 def test_depositAll(deposit_setup, deployer, governance):
     vault = deposit_setup.deployed_vault
     want = deposit_setup.want
@@ -121,7 +189,9 @@ def test_depositAll(deposit_setup, deployer, governance):
         vault.depositAll({"from": deployer})
 
 
-def test_nonreentrant(deployer, governance, keeper, guardian, strategist, badgerTree, randomUser):
+def test_nonreentrant(
+    deployer, governance, keeper, guardian, strategist, badgerTree, randomUser
+):
     token = MaliciousToken.deploy({"from": deployer})
     token.initialize(
         [deployer.address, randomUser.address], [100 * 10 ** 18, 100 * 10 ** 18]
