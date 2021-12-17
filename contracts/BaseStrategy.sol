@@ -209,7 +209,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
         _withdrawAll();
 
-        balance = IERC20Upgradeable(want).balanceOf(address(this));
+        uint256 balance = IERC20Upgradeable(want).balanceOf(address(this));
         _transferToVault(balance);
 
         return balance;
