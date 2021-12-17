@@ -189,7 +189,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     // ===== Permissioned Actions: Vault =====
 
     /// @notice Vault-only function to Withdraw partial funds, normally used with a vault withdrawal
-    function withdrawToVault() external override whenNotPaused returns (uint256 balance) {
+    function withdrawToVault() external override returns (uint256 balance) {
         _onlyVault();
 
         _withdrawAll();
@@ -281,7 +281,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @param _harvestedAmount: amount of want token autocompounded during harvest
     function _reportToVault(
         uint256 _harvestedAmount
-    ) internal whenNotPaused {
+    ) internal {
         IVault(vault).reportHarvest(_harvestedAmount);
     }
 
