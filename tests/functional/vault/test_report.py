@@ -138,8 +138,8 @@ def test_report_additional_token_failed(vault, strategy, governance, want, deplo
 
     assert vault.paused() == True
 
-    with brownie.reverts("Pausable: paused"):
-        strategy.test_harvest_only_emit(token, mint_amount, {"from": keeper})
+    ## Harvest still works if you pause Vault
+    strategy.test_harvest_only_emit(token, mint_amount, {"from": keeper})
 
     vault.unpause({"from": governance})
 
@@ -149,6 +149,7 @@ def test_report_additional_token_failed(vault, strategy, governance, want, deplo
 
     assert strategy.paused() == True
 
+    ## Harvest is paused if you pause Strat
     with brownie.reverts("Pausable: paused"):
         strategy.test_harvest_only_emit(token, mint_amount, {"from": keeper})
 

@@ -133,6 +133,7 @@ def deploy_complete(
         ],
     )
     vault.setStrategist(strategist, {"from": governance})
+    vault.setToEarnBps(10_000, {"from": governance}) ## Max earn bps so math is simpler
     # NOTE: Vault starts unpaused
 
     strategy = DemoStrategy.deploy({"from": deployer})

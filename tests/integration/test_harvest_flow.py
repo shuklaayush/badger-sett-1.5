@@ -144,7 +144,7 @@ def test_migrate_single_user(deployer, vault, strategy, want, governance, keeper
         chain.sleep(days(2))
         chain.mine()
 
-        strategy.tend({"from": deployer})
+        strategy.tend({"from": keeper})
 
         before = {"settWant": want.balanceOf(vault), "stratWant": strategy.balanceOf()}
 
@@ -166,7 +166,7 @@ def test_migrate_single_user(deployer, vault, strategy, want, governance, keeper
     chain.mine()
 
     if strategy.isTendable():
-        strategy.tend({"from": deployer})
+        strategy.tend({"from": keeper})
 
     chain.sleep(days(1))
     chain.mine()

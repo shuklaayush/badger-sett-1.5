@@ -56,7 +56,8 @@ def test_emit_additional_token_from_vault(strategist, governance, vault, deploye
     mint_amount = 10e18
     extra_token = MockToken.deploy({"from": deployer})
     extra_token.initialize(
-        [vault], [mint_amount]
+        [vault], [mint_amount],
+        {"from": deployer}
     )
 
     gov_fee = vault.performanceFeeGovernance()
