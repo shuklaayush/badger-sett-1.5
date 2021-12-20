@@ -50,10 +50,9 @@ def test_withdrawToVault(withdraw_setup, deployer, governance, rando):
     with brownie.reverts("onlyGovernanceOrStrategist"):
         vault.withdrawToVault({"from": rando})
 
-    # withdrawToVault should fail if strategy is paused
+    # withdrawToVault should work if strategy is paused
     strategy.pause({"from": governance})
-    with brownie.reverts("Pausable: paused"):
-        vault.withdrawToVault({"from": governance})
+    vault.withdrawToVault({"from": governance})
     strategy.unpause({"from": governance})
 
     vault.withdrawToVault({"from": governance})

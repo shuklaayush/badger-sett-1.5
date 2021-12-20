@@ -37,14 +37,15 @@ def test_vault_deployment(deployer, governance, keeper, guardian, strategist, ba
     assert vault.treasury() == governance
 
     # Params
-    assert vault.toEarnBps() == 10_000
+    assert vault.toEarnBps() == 9_500
     assert vault.performanceFeeGovernance() == performanceFeeGovernance
     assert vault.performanceFeeStrategist() == performanceFeeStrategist
     assert vault.withdrawalFee() == withdrawalFee
     assert vault.managementFee() == managementFee
     assert vault.MAX_BPS() == 10_000
     assert vault.maxPerformanceFee() == 3_000
-    assert vault.maxWithdrawalFee() == 100
+    assert vault.maxWithdrawalFee() == 200
+    assert vault.maxManagementFee() == 200
 
 
 def test_vault_deployment_badTokenAddress(

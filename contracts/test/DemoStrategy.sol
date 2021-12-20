@@ -47,6 +47,10 @@ contract DemoStrategy is BaseStrategy {
         protectedTokens[1] = BADGER;
         return protectedTokens;
     }
+    
+    function _isTendable() internal pure override returns (bool){
+        return true;
+    }
 
     function _deposit(uint256 _amount) internal override {
         // No-op as we don't do anything
@@ -60,14 +64,7 @@ contract DemoStrategy is BaseStrategy {
         return _amount;
     }
 
-    function harvest() external override whenNotPaused returns (TokenAmount[] memory harvested) {
-        _onlyAuthorizedActors();
-        // No-op as we don't do anything with funds
-        // use autoCompoundRatio here to convert rewards to want ...
-        // keep this to get paid!
-        // _reportToVault(earned);
-
-        // Nothing harvested, we have 2 tokens, return both 0s
+    function _harvest() internal override returns (TokenAmount[] memory harvested) {
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, 0);
         harvested[1] = TokenAmount(BADGER, 0);
@@ -103,7 +100,7 @@ contract DemoStrategy is BaseStrategy {
     }
 
     // Example tend is a no-op which returns the values, could also just revert
-    function tend() external override returns (TokenAmount[] memory tended){
+    function _tend() internal override returns (TokenAmount[] memory tended){
         // Nothing tended
         tended = new TokenAmount[](2);
         tended[0] = TokenAmount(want, 0);

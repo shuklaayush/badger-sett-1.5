@@ -193,8 +193,8 @@ def test_sett_pausing_permissions(deployer, vault, strategy, want):
 
     settKeeper = accounts.at(vault.keeper(), force=True)
 
-    with brownie.reverts("Pausable: paused"):
-        vault.earn({"from": settKeeper})
+
+    vault.earn({"from": settKeeper})
     with brownie.reverts("Pausable: paused"):
         vault.withdrawAll({"from": deployer})
     with brownie.reverts("Pausable: paused"):
@@ -221,7 +221,7 @@ def test_sett_config_permissions(deployer, vault, strategy, want, strategy_two):
     validActor = vault.governance()
 
     # setMin
-    with brownie.reverts("onlyGovernance"):
+    with brownie.reverts("onlyGovernanceOrStrategist"):
         vault.setToEarnBps(0, {"from": randomUser})
 
     vault.setToEarnBps(0, {"from": validActor})

@@ -11,7 +11,6 @@ import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/proxy/Initializable.sol";
 
-import "../interfaces/badger/IStrategy.sol";
 import "../interfaces/badger/IVault.sol";
 
 /*
@@ -34,7 +33,10 @@ import "../interfaces/badger/IVault.sol";
     - fees calculation for autocompounding rewards moved to vault
     - autoCompoundRatio param added to keep a track in which ratio harvested rewards are being autocompounded
 */
-abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
+
+
+
+abstract contract BaseStrategy is PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
@@ -56,6 +58,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
     event SetWithdrawalMaxDeviationThreshold(uint256 nawMaxDeviationThreshold);
+
+    // Return value for harvest, tend and balanceOfRewards
+    struct TokenAmount {
+        address token;
+        uint256 amount;
+    }
 
     /// @dev Initializer for the BaseStrategy
     /// @notice Make sure to call it from your specific Strategy
@@ -105,26 +113,28 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// ===== View Functions =====
     /// @dev Returns the version of the BaseStrategy 
-    function baseStrategyVersion() external view returns (string memory) {
+    function baseStrategyVersion() external pure returns (string memory) {
         return "1.5";
     }
 
     /// @notice Get the balance of want held idle in the Strategy
     /// @notice public because used internally for accounting
-    function balanceOfWant() public view override returns (uint256) {
+    function balanceOfWant() public view returns (uint256) {
         return IERC20Upgradeable(want).balanceOf(address(this));
     }
 
     /// @notice Get the total balance of want realized in the strategy, whether idle or active in Strategy positions.
-    function balanceOf() external view virtual override returns (uint256) {
+    function balanceOf() external view returns (uint256) {
         return balanceOfWant().add(balanceOfPool());
     }
 
     /// @dev Returns the boolean that tells whether this strategy is supposed to be tended or not
     /// @notice This is basically a constant, the harvest bots checks if this is true and in that case will call `tend`
-    function isTendable() external view virtual returns (bool) {
-        return false;
+    function isTendable() external pure returns (bool) {
+        return _isTendable();
     }
+
+    function _isTendable() internal virtual pure returns (bool);
 
     /// @dev Used to verify if a token can be transfered / sweeped (as it's not part of the strategy)
     function isProtectedToken(address token) public view returns (bool) {
@@ -172,13 +182,13 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     }
 
     /// @dev Calls deposit, see below
-    function earn() external override whenNotPaused {
+    function earn() external whenNotPaused {
         deposit();
     }
 
     /// @dev Causes the strategy to `_deposit` the idle want sitting in the strategy
     /// @notice Is basically the same as tend, except without custom code for it 
-    function deposit() public virtual whenNotPaused {
+    function deposit() public whenNotPaused {
         _onlyAuthorizedActorsOrVault();
         uint256 _amount = IERC20Upgradeable(want).balanceOf(address(this));
         if (_amount > 0) {
@@ -189,7 +199,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     // ===== Permissioned Actions: Vault =====
 
     /// @notice Vault-only function to Withdraw partial funds, normally used with a vault withdrawal
-    function withdrawToVault() external override returns (uint256 balance) {
+    /// @notice This can be called even when paused, and strategist can trigger this
+    /// @notice the idea is that this can allow recovery of funds back to the strategy faster
+    /// @notice the risk is that if _withdrawAll causes a loss this can be triggered
+    /// @notice however the loss could only be triggered once (just like if governance called)
+    /// @notice as pausing the strats would prevent earning again
+    function withdrawToVault() external returns (uint256 balance) {
         _onlyVault();
 
         _withdrawAll();
@@ -202,7 +217,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @notice Withdraw partial funds from the strategy, unrolling from strategy positions as necessary
     /// @dev If it fails to recover sufficient funds (defined by withdrawalMaxDeviationThreshold), the withdrawal should fail so that this unexpected behavior can be investigated
-    function withdraw(uint256 _amount) external virtual override whenNotPaused {
+    function withdraw(uint256 _amount) external whenNotPaused {
         _onlyVault();
         require(_amount != 0, "Amount 0");
 
@@ -234,7 +249,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @notice instead of sweeping them, just emit so it saves time while offering security guarantees
     /// @notice This is not a rug vector as it can't use protected tokens
     /// @notice No address(0) check because _onlyNotProtectedTokens does it
-    function emitNonProtectedToken(address _token) external override {
+    function emitNonProtectedToken(address _token) external {
         _onlyVault();
         _onlyNotProtectedTokens(_token);
         IERC20Upgradeable(_token).safeTransfer(vault, IERC20Upgradeable(_token).balanceOf(address(this)));
@@ -244,7 +259,7 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
     /// @dev Withdraw the non protected token, used for sweeping it out
     /// @notice this is the version that just sends the assets to governance
     /// @notice No address(0) check because _onlyNotProtectedTokens does it
-    function withdrawOther(address _asset) external override whenNotPaused {
+    function withdrawOther(address _asset) external {
         _onlyVault();
         _onlyNotProtectedTokens(_asset);
         IERC20Upgradeable(_asset).safeTransfer(vault, IERC20Upgradeable(_asset).balanceOf(address(this)));
@@ -333,10 +348,22 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev Realize returns from positions
     /// @dev Returns can be reinvested into positions, or distributed in another fashion
-    /// @return harvested : total amount harvested
-    function harvest() external virtual override returns (TokenAmount[] memory harvested);
+    /// @return harvested : total amount harvested for each token, returned as a TokenAmount
+    function harvest() external whenNotPaused returns (TokenAmount[] memory harvested) {
+        _onlyAuthorizedActors();
+        return _harvest();
+    }
 
-    function tend() external virtual override returns (TokenAmount[] memory tended);
+    function _harvest() internal virtual returns (TokenAmount[] memory harvested);
+
+    function tend() external whenNotPaused returns (TokenAmount[] memory tended) {
+        _onlyAuthorizedActors();
+
+        return _tend();
+    }
+
+    function _tend() internal virtual returns (TokenAmount[] memory tended);
+
 
     /// @dev User-friendly name for this strategy for purposes of convenient reading
     /// @return Name of the strategy
@@ -344,12 +371,12 @@ abstract contract BaseStrategy is IStrategy, PausableUpgradeable {
 
     /// @dev Balance of want currently held in strategy positions
     /// @return balance of want held in strategy positions
-    function balanceOfPool() public view virtual override returns (uint256);
+    function balanceOfPool() public view virtual returns (uint256);
 
     /// @dev Calculate the total amount of rewards accured.
     /// @notice if there are multiple reward tokens this function should take all of them into account
     /// @return rewards - the TokenAmount of rewards accured
-    function balanceOfRewards() external view virtual override returns (TokenAmount[] memory rewards);
+    function balanceOfRewards() external view virtual returns (TokenAmount[] memory rewards);
 
     uint256[49] private __gap;
 }

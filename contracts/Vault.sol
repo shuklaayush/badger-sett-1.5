@@ -106,9 +106,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     uint256 public constant MAX_BPS = 10_000;
     uint256 public constant SECS_PER_YEAR = 31_556_952; // 365.2425 days
 
-    uint256 public constant WITHDRAWAL_FEE_HARD_CAP = 100; // Never higher than 1%
+    uint256 public constant WITHDRAWAL_FEE_HARD_CAP = 200; // Never higher than 2%
     uint256 public constant PERFORMANCE_FEE_HARD_CAP = 3_000; // Never higher than 30% // 30% maximum performance fee // We usually do 20, so this is insanely high already
-    uint256 public constant MANAGEMENT_FEE_HARD_CAP = 200;
+    uint256 public constant MANAGEMENT_FEE_HARD_CAP = 200; // Never higher than 2%
 
     /// ===== Events ====
     // Emitted when a token is sent to the badgerTree for emissions
@@ -158,13 +158,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         require(_badgerTree != address(0)); // dev: _badgerTree address should not be zero
 
         // Check for fees being reasonable (see below for interpretation)
-        require(_feeConfig[0] <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeGovernance to high");
-        require(_feeConfig[1] <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeStrategist to high");
-        require(_feeConfig[2] <= WITHDRAWAL_FEE_HARD_CAP, "withdrawalFee to high");
-        require(_feeConfig[3] <= MANAGEMENT_FEE_HARD_CAP, "managementFee to high");
+        require(_feeConfig[0] <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeGovernance too high");
+        require(_feeConfig[1] <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeStrategist too high");
+        require(_feeConfig[2] <= WITHDRAWAL_FEE_HARD_CAP, "withdrawalFee too high");
+        require(_feeConfig[3] <= MANAGEMENT_FEE_HARD_CAP, "managementFee too high");
 
         string memory name;
         string memory symbol;
+
 
         // If they are non empty string we'll use the custom names
         if (keccak256(abi.encodePacked(_name)) != keccak256("") && keccak256(abi.encodePacked(_symbol)) != keccak256("")) {
@@ -376,22 +377,13 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         emit SetStrategy(_strategy);
     }
 
-    /// @notice Set minimum threshold of underlying that must be deposited in strategy
-    /// @notice Can only be changed by governance
-    /// @notice This can only be changed when not paused as the amount set on strategy can be problematic
-    function setToEarnBps(uint256 _newToEarnBps) external whenNotPaused {
-        _onlyGovernance();
-        require(_newToEarnBps <= MAX_BPS, "toEarnBps should be <= MAX_BPS");
-
-        toEarnBps = _newToEarnBps;
-        emit SetToEarnBps(_newToEarnBps);
-    }
+    // === Setters that can be called by governance even when paused ===
 
     /// @notice Set maxWithdrawalFee
     /// @notice Can only be changed by governance
-    function setMaxWithdrawalFee(uint256 _fees) external whenNotPaused {
+    function setMaxWithdrawalFee(uint256 _fees) external {
         _onlyGovernance();
-        require(_fees <= WITHDRAWAL_FEE_HARD_CAP, "withdrawalFee to high");
+        require(_fees <= WITHDRAWAL_FEE_HARD_CAP, "withdrawalFee too high");
 
         maxWithdrawalFee = _fees;
         emit SetMaxWithdrawalFee(_fees);
@@ -399,9 +391,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @notice Set maxPerformanceFee
     /// @notice Can only be changed by governance
-    function setMaxPerformanceFee(uint256 _fees) external whenNotPaused {
+    function setMaxPerformanceFee(uint256 _fees) external {
         _onlyGovernance();
-        require(_fees <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeStrategist to high");
+        require(_fees <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeStrategist too high");
 
         maxPerformanceFee = _fees;
         emit SetMaxPerformanceFee(_fees);
@@ -409,9 +401,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @notice Set maxPerformanceFee
     /// @notice Can only be changed by governance
-    function setMaxManagementFee(uint256 _fees) external whenNotPaused {
+    function setMaxManagementFee(uint256 _fees) external {
         _onlyGovernance();
-        require(_fees <= MANAGEMENT_FEE_HARD_CAP, "managementFee to high");
+        require(_fees <= MANAGEMENT_FEE_HARD_CAP, "managementFee too high");
 
         maxManagementFee = _fees;
         emit SetMaxManagementFee(_fees);
@@ -419,7 +411,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @notice Change guardian address
     /// @notice Can only be changed by governance
-    function setGuardian(address _guardian) external whenNotPaused {
+    function setGuardian(address _guardian) external {
         _onlyGovernance();
         require(_guardian != address(0), "Address cannot be 0x0");
         
@@ -428,6 +420,17 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// ===== Permissioned Functions: Trusted Actors =====
+
+    /// @notice Set minimum threshold of underlying that must be deposited in strategy
+    /// @notice Can only be changed by governance
+    /// @notice This can only be changed when not paused as the amount set on strategy can be problematic
+    function setToEarnBps(uint256 _newToEarnBps) external whenNotPaused {
+        _onlyGovernanceOrStrategist();
+        require(_newToEarnBps <= MAX_BPS, "toEarnBps should be <= MAX_BPS");
+
+        toEarnBps = _newToEarnBps;
+        emit SetToEarnBps(_newToEarnBps);
+    } 
 
     /// @dev Changes the guestList, used to gate or limit deposits
     /// @notice can only be called by governance or strategist
@@ -475,6 +478,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         emit SetManagementFee(_fees);
     }
 
+    /// === Strategist level operations that can be done even when paused ==
+
     /// @dev Withdraws all funds from Strategy and deposits into vault
     /// @notice can only be called by governance or strategist
     /// @notice This is basically withdrawAll
@@ -482,6 +487,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function withdrawToVault() external {
         _onlyGovernanceOrStrategist();
         IStrategy(strategy).withdrawToVault();
+    }
+
+    /// @dev Used to emit an extra token (e.g. airdrop), take fees and send to badgerTree for emission
+    /// @notice This function is just calling `emitNonProtectedToken` on the BaseStrategy see the code there for details
+    function emitNonProtectedToken(address _token) external {
+        _onlyGovernanceOrStrategist();
+
+        IStrategy(strategy).emitNonProtectedToken(_token);
     }
 
     /// @dev Used to withdraw an extra token and send it to governance
@@ -495,18 +508,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         // Done this way works for both a donation to strategy or to vault
         IERC20Upgradeable(_token).safeTransfer(governance, IERC20Upgradeable(_token).balanceOf(address(this)));
     }
-    
-    /// @dev Used to emit an extra token (e.g. airdrop), take fees and send to badgerTree for emission
-    /// @notice This function is just calling `emitNonProtectedToken` on the BaseStrategy see the code there for details
-    function emitNonProtectedToken(address _token) external {
-        _onlyGovernanceOrStrategist();
-
-        IStrategy(strategy).emitNonProtectedToken(_token);
-    }
 
     /// @dev Transfer the underlying available to be claimed to the strategy
     /// @notice The strategy will use for yield-generating activities
-    function earn() external whenNotPaused {
+    /// @notice Pause is enforced at the Strategy level (this allows to still earn yield when the Vault is paused)
+    function earn() external {
         require(!pausedDeposit); // dev: deposits are paused, we don't earn as well
         _onlyAuthorizedActors();
 

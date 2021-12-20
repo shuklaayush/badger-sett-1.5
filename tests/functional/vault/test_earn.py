@@ -61,7 +61,7 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
 
     assert after_earn_balance_strat - before_earn_balance_strat == available_before_earn
 
-    # When vault is paused earn should fail
+    # When vault is paused earn still works
 
     vault.deposit(depositAmount_deployer, {"from": deployer})
 
@@ -69,5 +69,11 @@ def test_earn(deploy_complete, deployer, governance, rando, keeper):
 
     assert vault.paused() == True
 
+    vault.earn({"from": governance})
+    
+    # When strategy is paused earn is paused
+    strategy.pause({"from": governance})
+
+    assert strategy.paused() == True
     with brownie.reverts("Pausable: paused"):
         vault.earn({"from": governance})

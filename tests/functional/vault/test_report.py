@@ -76,15 +76,12 @@ def setup_mint(strategy, want, mint_amount):
 
 def test_report_failed(vault, strategy, governance, rando, keeper, mint_amount):
 
-    ## report should fail when vault is paused
+    ## Report will work if Vault is paused (strat is active)
     # Pausing vault
     vault.pause({"from": governance})
 
     assert vault.paused() == True
-
-    with brownie.reverts("Pausable: paused"):
-        strategy.test_harvest(mint_amount, {"from": keeper})
-
+    strategy.test_harvest(mint_amount, {"from": keeper})
     vault.unpause({"from": governance})
 
     ## report should fail when strategy is paused
