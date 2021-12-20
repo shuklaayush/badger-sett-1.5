@@ -559,6 +559,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _depositFor(msg.sender, _amount);
     }
 
+    /// @dev The actual deposit operation, nonReentant, take funds, issue shares
     function _depositFor(address _recipient, uint256 _amount) internal nonReentrant {
         require(_recipient != address(0), "Address 0");
         require(_amount != 0, "Amount 0");
