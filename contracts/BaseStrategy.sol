@@ -53,7 +53,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// value ranges from 0 to 10_000
     /// 0: keeping 100% harvest in reward tokens
     /// 10_000: converting all rewards tokens to want token
-    uint256 public autoCompoundRatio;
+    uint256 public autoCompoundRatio; // NOTE: I believe this is unused
 
     // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
