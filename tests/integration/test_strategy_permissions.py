@@ -278,3 +278,30 @@ def test_sett_earn_permissions(deployer, vault, strategy, want, keeper):
         chain.snapshot()
         vault.earn({"from": actor})
         chain.revert()
+
+
+def test_pause_checks(vault, strategy, governance):
+    vault.pause({"from": governance})
+    assert history[-1].events["Paused"]["account"] == governance
+
+    with brownie.reverts():
+        vault.pause({"from": governance})
+
+    strategy.pause({"from": governance})
+    assert history[-1].events["Paused"]["account"] == governance
+
+    with brownie.reverts():
+        vault.pause({"from": governance})
+
+    vault.unpause({"from": governance})
+    assert history[-1].events["Unpaused"]["account"] == governance
+
+    with brownie.reverts():
+        vault.unpause({"from": governance}) ## Can't unpause if unpaused
+    
+    strategy.unpause({"from": governance})
+    assert history[-1].events["Unpaused"]["account"] == governance
+
+    with brownie.reverts():
+        strategy.unpause({"from": governance}) ## Can't unpause if unpaused
+
