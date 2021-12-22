@@ -88,6 +88,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     uint256 public assetsAtLastHarvest; // assets for which the harvest took place.
 
     mapping (address => uint256) public additionalTokensEarned;
+    mapping (address => uint256) public lastAdditionalTokenAmount;
 
     /// Fees ///
     /// @notice all fees will be in bps
@@ -341,6 +342,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
         additionalTokensEarned[_token] = additionalTokensEarned[_token].add(tokenBalance);
+        lastAdditionalTokenAmount[_token] = tokenBalance;
 
         // We may have more, but we still report only what the strat sent
         uint256 governanceRewardsFee = _calculateFee(tokenBalance, performanceFeeGovernance);
