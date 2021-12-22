@@ -134,8 +134,8 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     event SetPerformanceFeeStrategist(uint256 newPerformanceFeeStrategist);
     event SetPerformanceFeeGovernance(uint256 newPerformanceFeeGovernance);
     event SetManagementFee(uint256 newManagementFee);
-    event PauseDeposits(address pausedBy);
-    event UnpauseDeposits(address pausedBy);
+    event PauseDeposits(address indexed pausedBy);
+    event UnpauseDeposits(address indexed pausedBy);
 
     function initialize(
         address _token,
