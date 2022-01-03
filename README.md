@@ -100,9 +100,8 @@ Replace by setTreasury
 ## badgerTree is in the Vault
 Set in the vault and transfered when reported by the strat
 
-## Harvest and Tend return a list of tokens
-The list is to be interpreted as the `protectedTokens` and the actual enforcing has to be done by the Strategist
-
+## Harvest and Tend return a list of TokenAmounts
+TokenAmount is a simple (address, uint) struct that enables generic return values
 
 
 ## SECURITY!!! IMPORTANT
