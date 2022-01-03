@@ -92,8 +92,11 @@ List of changes for Vaults 1.5 that make it breaking for some scripts
 ## No more Controller
 That's the point
 
-## setRewards is gone
-Replace by setTreasury
+## rewards and setRewards are gone
+Replace by treasury and setTreasury respectively
+
+## min and setMin are gone
+Replaced by min and setToEarnBps respectively
 
 ## Vault handles report of funds
 
