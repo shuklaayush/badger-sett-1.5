@@ -285,12 +285,13 @@ This calls `_withdrawAll` on the strategy and transfers the balance to the sett.
 
 ### `emitNonProtectedToken(address _token)` (external)
 
-Sends balance of any extra token earned by the strategy (from airdrops etc.) to the badgerTree for emissions.
+Sends balance of any extra token earned by the strategy (from airdrops, donations etc.) 
+        to the badgerTree for emissions.
         The `_token` should be different from any tokens managed by the strategy.
         This can only be called by either strategist or governance.
 
 
-See `BaseStrategy::emitNonProtectedToken` for details.
+See `BaseStrategy.emitNonProtectedToken` for details.
 
 
 ### `sweepExtraToken(address _token)` (external)
