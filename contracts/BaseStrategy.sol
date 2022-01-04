@@ -57,7 +57,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
     // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
-    event SetWithdrawalMaxDeviationThreshold(uint256 nawMaxDeviationThreshold);
+    event SetWithdrawalMaxDeviationThreshold(uint256 newMaxDeviationThreshold);
 
     // Return value for harvest, tend and balanceOfRewards
     struct TokenAmount {
