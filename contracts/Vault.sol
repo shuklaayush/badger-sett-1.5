@@ -316,7 +316,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @notice Deposits `_amount` tokens, issuing shares to `recipient`. 
     ///         Checks the guestlist to verify that `recipient` is authorized to make a deposit for the specified `_amount`.
-    ///         Note that deposits are not accepted when the Sett is paused. 
+    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
     /// @dev See `_depositForWithAuthorization` for details on guestlist authorization.
     /// @param _recipient Address to issue the Sett shares to.
     /// @param _amount Quantity of tokens to deposit. 
@@ -328,7 +328,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _depositForWithAuthorization(_recipient, _amount, proof);
     }
 
-    /// @notice Redeems amount `_shares` for an appropriate amount of tokens.
+    /// @notice Redeems `_shares` for an appropriate amount of tokens.
     ///         Note that withdrawals are not processed when the Sett is paused. 
     /// @dev See `_withdraw` for details on how withdrawals are processed.
     /// @param _shares Quantity of shares to redeem. 
@@ -661,9 +661,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// ===== Internal Implementations =====
 
-    /// @dev Calculate the number of shares to issue for a given deposit
-    /// @dev This is based on the realized value of underlying assets between Sett & associated Strategy
-    /// @dev The actual deposit operation, nonReentant, take funds, issue shares
+    /// @notice Deposits `_amount` tokens, issuing shares to `recipient`. 
+    ///         Note that deposits are not accepted when `pausedDeposit` is true. 
+    /// @dev This is the actual deposit operation.
+    ///      Deposits are based on the realized value of underlying assets between Sett & associated Strategy
+    /// @param _recipient Address to issue the Sett shares to.
+    /// @param _amount Quantity of tokens to deposit. 
     function _depositFor(address _recipient, uint256 _amount) internal nonReentrant {
         require(_recipient != address(0), "Address 0");
         require(_amount != 0, "Amount 0");
@@ -676,10 +679,13 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _mintSharesFor(_recipient, _after.sub(_before), _pool);
     }
 
+    /// @dev See `_depositWithAuthorization`
     function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal {
         _depositForWithAuthorization(msg.sender, _amount, proof);
     }
 
+    /// @dev Verifies that `_recipient` is authorized to deposit `_amount` based on the guestlist.
+    ///      See `_depositFor` for deposit details.
     function _depositForWithAuthorization(
         address _recipient,
         uint256 _amount,
@@ -691,8 +697,13 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _depositFor(_recipient, _amount);
     }
 
-    // No rebalance implementation for lower fees and faster swaps
-    /// @notice Processes withdrawal fee if present
+
+    /// @notice Redeems `_shares` for an appropriate amount of tokens.
+    /// @dev This is the actual withdraw operation.
+    ///      Withdraws from strategy positions if sett doesn't contain enough tokens to process the withdrawal. 
+    ///      Calculates withdrawal fees and issues corresponding shares to treasury.
+    ///      No rebalance implementation for lower fees and faster swaps
+    /// @param _shares Quantity of shares to redeem. 
     function _withdraw(uint256 _shares) internal nonReentrant {
         require(_shares != 0, "0 Shares");
 
@@ -720,8 +731,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _mintSharesFor(treasury, _fee, balance().sub(_fee));
     }
 
-    /// @dev function to process an arbitrary fee
-    /// @return fee : amount of fees to take
+    /// @dev Helper funciton to calculate fees.
+    /// @param amount Amount to calculate fee on.
+    /// @param feeBps The fee to be charged in basis points.
+    /// @return Amount of fees to take.
     function _calculateFee(uint256 amount, uint256 feeBps) internal pure returns (uint256) {
         if (feeBps == 0) {
             return 0;
@@ -730,7 +743,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         return fee;
     }
 
-    /// @dev used to manage the governance and strategist fee, make sure to use it to get paid!
+    /// @dev Helper funciton to calculate governance and strategist performance fees. Make sure to use it to get paid!
+    /// @param _amount Amount to calculate fee on.
+    /// @return Tuple containing amount of (governance, strategist) fees to take.
     function _calculatePerformanceFee(uint256 _amount)
         internal
         view
@@ -743,7 +758,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         return (governancePerformanceFee, strategistPerformanceFee);
     }
 
-    /// @dev mints performance fees shares for governance and strategist
+    /// @dev Helper funciton to issue shares to `recipient` based on an input `_amount` and `_pool` size.
+    /// @param recipient Address to issue shares to.
+    /// @param _amount Amount to issue shares on.
+    /// @param _pool Pool size to use while calculating amount of shares to mint.
     function _mintSharesFor(
         address recipient,
         uint256 _amount,
@@ -758,7 +776,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _mint(recipient, shares);
     }
 
-    /// @dev called by function report to handle minting of
+    /// @dev Helper function that issues shares based on performance and management fee when a harvest is reported.
+    /// @param _harvestedAmount The harvested amount to take fee on.
+    /// @param harvestTime Time of harvest (block.timestamp).
     function _handleFees(uint256 _harvestedAmount, uint256 harvestTime) internal {
         (uint256 feeGovernance, uint256 feeStrategist) = _calculatePerformanceFee(_harvestedAmount);
         uint256 duration = harvestTime.sub(lastHarvestedAt);
