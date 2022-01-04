@@ -588,10 +588,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         IStrategy(strategy).withdrawToVault();
     }
 
-    /// @notice Sends balance of any extra token earned by the strategy (from airdrops etc.) to the badgerTree for emissions.
+    /// @notice Sends balance of any extra token earned by the strategy (from airdrops, donations etc.) 
+    ///         to the badgerTree for emissions.
     ///         The `_token` should be different from any tokens managed by the strategy.
     ///         This can only be called by either strategist or governance.
-    /// @dev See `BaseStrategy::emitNonProtectedToken` for details.
+    /// @dev See `BaseStrategy.emitNonProtectedToken` for details.
     /// @param _token Address of the token to be emitted.
     function emitNonProtectedToken(address _token) external {
         _onlyGovernanceOrStrategist();
