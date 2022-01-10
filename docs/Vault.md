@@ -135,14 +135,14 @@ Used by the strategy to report a harvest to the sett.
         This can only be called by the strategy.
 
 
-This impliclty trusts that the strategy reports the correct amount.
+This implicitly trusts that the strategy reports the correct amount.
      Pausing on this function happens at the strategy level.
 
 
 ### `reportAdditionalToken(address _token)` (external)
 
 Used by the strategy to report harvest of additional tokens to the sett.
-        Charges perfromance fees on the additional tokens and transfers fees to treasury and strategist. 
+        Charges performance fees on the additional tokens and transfers fees to treasury and strategist. 
         The remaining amount is sent to badgerTree for emissions.
         Updates harvest variables for on-chain APR tracking.
         This can only be called by the strategy.
@@ -380,21 +380,21 @@ This is the actual withdraw operation.
 
 
 
-Helper funciton to calculate fees.
+Helper function to calculate fees.
 
 
 ### `_calculatePerformanceFee(uint256 _amount) → uint256, uint256` (internal)
 
 
 
-Helper funciton to calculate governance and strategist performance fees. Make sure to use it to get paid!
+Helper function to calculate governance and strategist performance fees. Make sure to use it to get paid!
 
 
 ### `_mintSharesFor(address recipient, uint256 _amount, uint256 _pool)` (internal)
 
 
 
-Helper funciton to issue shares to `recipient` based on an input `_amount` and `_pool` size.
+Helper function to issue shares to `recipient` based on an input `_amount` and `_pool` size.
 
 
 ### `_handleFees(uint256 _harvestedAmount, uint256 harvestTime)` (internal)

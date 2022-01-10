@@ -26,14 +26,14 @@ For functions that only the governance should be able to call
 Checks whether a call is from strategist or governance. 
 
 
-For functions that only known bening entities should call
+For functions that only known benign entities should call
 
 ### `_onlyAuthorizedActors()` (internal)
 
 Checks whether a call is from keeper or governance. 
 
 
-For functions that only known bening entities should call
+For functions that only known benign entities should call
 
 ### `_onlyVault()` (internal)
 
@@ -97,7 +97,7 @@ This is usually a constant. The harvest keeper would only call `tend` if this is
 ### `isProtectedToken(address token) → bool` (public)
 
 Checks whether a token is a protected token.
-        Protected tokens are managed by the strategy and can't be transfered/sweeped.
+        Protected tokens are managed by the strategy and can't be transferred/sweeped.
 
 
 
@@ -239,7 +239,7 @@ Report an harvest to the vault.
 ### `_processExtraToken(address _token, uint256 _amount)` (internal)
 
 Sends balance of an additional token (eg. reward token) earned by the strategy to the vault.
-        This should usally be called exclusively on protectedTokens.
+        This should usually be called exclusively on protectedTokens.
         Calls `Vault.reportAdditionalToken` to process fees and forward amount to badgerTree to be emitted.
 
 
@@ -260,7 +260,7 @@ Utility function to diff two numbers, expects higher value in first position
 
 
 
-Internal deposit logic to be implemented by a derived stratgy.
+Internal deposit logic to be implemented by a derived strategy.
 
 
 ### `_onlyNotProtectedTokens(address _asset)` (internal)
@@ -288,7 +288,7 @@ Internal logic for strategy migration. Should exit positions as efficiently as p
 
 
 Internal logic for partial withdrawals. Should exit positions as efficiently as possible.
-     Should idally use idle want in the strategy before attempting to exit strategy positions.
+     Should ideally use idle want in the strategy before attempting to exit strategy positions.
 
 
 ### `harvest() → struct BaseStrategy.TokenAmount[] harvested` (external)
@@ -305,7 +305,7 @@ Returns can be reinvested into positions, or distributed in another fashion.
 
 
 
-Virtual function that should be overriden with the logic for harvest. 
+Virtual function that should be overridden with the logic for harvest. 
      Should report any want or non-want gains to the vault.
      Also see `harvest`.
 
@@ -323,7 +323,7 @@ Is only called by the keeper when `isTendable` is true.
 
 
 
-Virtual function that should be overriden with the logic for tending. 
+Virtual function that should be overridden with the logic for tending. 
      Also see `tend`.
 
 ### `getName() → string` (external)
@@ -343,7 +343,7 @@ Gives the balance of want held in strategy positions.
 
 ### `balanceOfRewards() → struct BaseStrategy.TokenAmount[] rewards` (external)
 
-Gives the total amount of pending rewards accured for each token.
+Gives the total amount of pending rewards accrued for each token.
 
 
 Should take into account all reward tokens.
