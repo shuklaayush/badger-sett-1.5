@@ -54,7 +54,7 @@ import {BadgerGuestListAPI} from "../interfaces/yearn/BadgerGuestlistApi.sol";
         - Strategist can now set performance, withdrawal and management fees
         - Governance will determine maxPerformanceFee, maxWithdrawalFee, maxManagementFee that can be set to prevent rug of funds.
     * Strategy would take the actors from the vault it is connected to
-    * All goverance related fees goes to treasury
+    * All governance related fees goes to treasury
 */
 
 contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, ReentrancyGuardUpgradeable {
@@ -221,7 +221,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         withdrawalFee = _feeConfig[2];
         managementFee = _feeConfig[3];
         maxPerformanceFee = PERFORMANCE_FEE_HARD_CAP; // 30% max performance fee
-        maxWithdrawalFee = WITHDRAWAL_FEE_HARD_CAP; // 1% maximum withdrawal fee
+        maxWithdrawalFee = WITHDRAWAL_FEE_HARD_CAP; // 2% maximum withdrawal fee
         maxManagementFee = MANAGEMENT_FEE_HARD_CAP; // 2% maximum management fee
 
         toEarnBps = 9_500; // initial value of toEarnBps // 95% is invested to the strategy, 5% for cheap withdrawals
@@ -350,7 +350,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     ///         Issues shares for the treasury based on the management fee and the time elapsed since last harvest. 
     ///         Updates harvest variables for on-chain APR tracking.
     ///         This can only be called by the strategy.
-    /// @dev This impliclty trusts that the strategy reports the correct amount.
+    /// @dev This implicitly trusts that the strategy reports the correct amount.
     ///      Pausing on this function happens at the strategy level.
     /// @param _harvestedAmount Amount of underlying token harvested by the strategy.
     function reportHarvest(
@@ -386,7 +386,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// @notice Used by the strategy to report harvest of additional tokens to the sett.
-    ///         Charges perfromance fees on the additional tokens and transfers fees to treasury and strategist. 
+    ///         Charges performance fees on the additional tokens and transfers fees to treasury and strategist. 
     ///         The remaining amount is sent to badgerTree for emissions.
     ///         Updates harvest variables for on-chain APR tracking.
     ///         This can only be called by the strategy.
@@ -529,7 +529,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     ///         The new withdrawal fee should be less than `maxWithdrawalFee`.
     ///         This can be called by either governance or strategist.
     /// @dev See `_withdraw` to see how withdrawal fee is charged.
-    /// @param _withdrawalFee The new withdrwal fee.
+    /// @param _withdrawalFee The new withdrawal fee.
     function setWithdrawalFee(uint256 _withdrawalFee) external whenNotPaused {
         _onlyGovernanceOrStrategist();
         require(_withdrawalFee <= maxWithdrawalFee, "Excessive withdrawal fee");
@@ -732,7 +732,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _mintSharesFor(treasury, _fee, balance().sub(_fee));
     }
 
-    /// @dev Helper funciton to calculate fees.
+    /// @dev Helper function to calculate fees.
     /// @param amount Amount to calculate fee on.
     /// @param feeBps The fee to be charged in basis points.
     /// @return Amount of fees to take.
@@ -744,7 +744,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         return fee;
     }
 
-    /// @dev Helper funciton to calculate governance and strategist performance fees. Make sure to use it to get paid!
+    /// @dev Helper function to calculate governance and strategist performance fees. Make sure to use it to get paid!
     /// @param _amount Amount to calculate fee on.
     /// @return Tuple containing amount of (governance, strategist) fees to take.
     function _calculatePerformanceFee(uint256 _amount)
@@ -759,7 +759,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         return (governancePerformanceFee, strategistPerformanceFee);
     }
 
-    /// @dev Helper funciton to issue shares to `recipient` based on an input `_amount` and `_pool` size.
+    /// @dev Helper function to issue shares to `recipient` based on an input `_amount` and `_pool` size.
     /// @param recipient Address to issue shares to.
     /// @param _amount Amount to issue shares on.
     /// @param _pool Pool size to use while calculating amount of shares to mint.

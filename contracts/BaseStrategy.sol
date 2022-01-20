@@ -89,13 +89,13 @@ abstract contract BaseStrategy is PausableUpgradeable {
     }
 
     /// @notice Checks whether a call is from strategist or governance. 
-    /// @dev For functions that only known bening entities should call
+    /// @dev For functions that only known benign entities should call
     function _onlyGovernanceOrStrategist() internal view {
         require(msg.sender == strategist() || msg.sender == governance(), "onlyGovernanceOrStrategist");
     }
 
     /// @notice Checks whether a call is from keeper or governance. 
-    /// @dev For functions that only known bening entities should call
+    /// @dev For functions that only known benign entities should call
     function _onlyAuthorizedActors() internal view {
         require(msg.sender == keeper() || msg.sender == governance(), "onlyAuthorizedActors");
     }
@@ -149,7 +149,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
     function _isTendable() internal virtual pure returns (bool);
 
     /// @notice Checks whether a token is a protected token.
-    ///         Protected tokens are managed by the strategy and can't be transfered/sweeped.
+    ///         Protected tokens are managed by the strategy and can't be transferred/sweeped.
     /// @return Boolean indicating whether the token is a protected token.
     function isProtectedToken(address token) public view returns (bool) {
         require(token != address(0), "Address 0");
@@ -255,7 +255,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
         _withdrawSome(_amount);
         uint256 _postWithdraw = IERC20Upgradeable(want).balanceOf(address(this));
 
-        // Sanity check: Ensure we were able to retrieve sufficent want from strategy positions
+        // Sanity check: Ensure we were able to retrieve sufficient want from strategy positions
         // If we end up with less than the amount requested, make sure it does not deviate beyond a maximum threshold
         if (_postWithdraw < _amount) {
             uint256 diff = _diff(_amount, _postWithdraw);
@@ -300,7 +300,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
         IERC20Upgradeable(_asset).safeTransfer(vault, IERC20Upgradeable(_asset).balanceOf(address(this)));
     }
 
-    /// ===== Permissioned Actions: Authoized Contract Pausers =====
+    /// ===== Permissioned Actions: Authorized Contract Pausers =====
 
     /// @notice Pauses the strategy.
     ///         This can be called by either guardian or governance.
@@ -337,7 +337,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
     }
 
     /// @notice Sends balance of an additional token (eg. reward token) earned by the strategy to the vault.
-    ///         This should usally be called exclusively on protectedTokens.
+    ///         This should usually be called exclusively on protectedTokens.
     ///         Calls `Vault.reportAdditionalToken` to process fees and forward amount to badgerTree to be emitted.
     /// @dev This is how you emit tokens in V1.5
     ///      After calling this function, the tokens are gone, sent to fee receivers and badgerTree
@@ -363,7 +363,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
     // ===== Abstract Functions: To be implemented by specific Strategies =====
 
-    /// @dev Internal deposit logic to be implemented by a derived stratgy.
+    /// @dev Internal deposit logic to be implemented by a derived strategy.
     /// @param _want Amount of want token to be deposited into the strategy.
     function _deposit(uint256 _want) internal virtual;
 
@@ -381,8 +381,8 @@ abstract contract BaseStrategy is PausableUpgradeable {
     function _withdrawAll() internal virtual;
 
     /// @dev Internal logic for partial withdrawals. Should exit positions as efficiently as possible.
-    ///      Should idally use idle want in the strategy before attempting to exit strategy positions.
-    /// @param _amount Amount of want token to be withdrawm from the strategy.
+    ///      Should ideally use idle want in the strategy before attempting to exit strategy positions.
+    /// @param _amount Amount of want token to be withdrawn from the strategy.
     /// @return Withdrawn amount from the strategy.
     function _withdrawSome(uint256 _amount) internal virtual returns (uint256);
 
@@ -396,7 +396,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
         return _harvest();
     }
 
-    /// @dev Virtual function that should be overriden with the logic for harvest. 
+    /// @dev Virtual function that should be overridden with the logic for harvest. 
     ///      Should report any want or non-want gains to the vault.
     ///      Also see `harvest`.
     function _harvest() internal virtual returns (TokenAmount[] memory harvested);
@@ -412,7 +412,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
         return _tend();
     }
 
-    /// @dev Virtual function that should be overriden with the logic for tending. 
+    /// @dev Virtual function that should be overridden with the logic for tending. 
     ///      Also see `tend`.
     function _tend() internal virtual returns (TokenAmount[] memory tended);
 
@@ -426,7 +426,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// @return Balance of want held in strategy positions.
     function balanceOfPool() public view virtual returns (uint256);
 
-    /// @notice Gives the total amount of pending rewards accured for each token.
+    /// @notice Gives the total amount of pending rewards accrued for each token.
     /// @dev Should take into account all reward tokens.
     /// @return rewards An array of `TokenAmount` containing the address and amount of each reward token.
     function balanceOfRewards() external view virtual returns (TokenAmount[] memory rewards);
