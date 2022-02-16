@@ -1,4 +1,4 @@
-# Badger Vaults 1.5 - WARNING - CODE NOT AUDITED
+# Badger Vaults 1.5 - WARNING - NON FIELD TESTED - SEE AUDITS
 
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
