@@ -229,16 +229,13 @@ abstract contract BaseStrategy is PausableUpgradeable {
     ///      The risk is that if _withdrawAll causes a loss, this can be triggered.
     ///      However the loss could only be triggered once (just like if governance called)
     ///      as pausing the strats would prevent earning again.
-    /// @return balance Amount of want transferred to the vault.
-    function withdrawToVault() external returns (uint256 balance) {
+    function withdrawToVault() external {
         _onlyVault();
 
         _withdrawAll();
 
-        balance = IERC20Upgradeable(want).balanceOf(address(this));
+        uint256 balance = IERC20Upgradeable(want).balanceOf(address(this));
         _transferToVault(balance);
-
-        return balance;
     }
 
     /// @notice Withdraw partial funds from the strategy to the vault, unrolling from strategy positions as necessary.
