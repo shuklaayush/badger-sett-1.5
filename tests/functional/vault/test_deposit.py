@@ -121,10 +121,12 @@ def test_depositAll(deposit_setup, deployer, governance):
         vault.depositAll({"from": deployer})
 
 
-def test_nonreentrant(deployer, governance, keeper, guardian, strategist, badgerTree, randomUser):
+def test_nonreentrant(
+    deployer, governance, keeper, guardian, strategist, badgerTree, randomUser
+):
     token = MaliciousToken.deploy({"from": deployer})
     token.initialize(
-        [deployer.address, randomUser.address], [100 * 10 ** 18, 100 * 10 ** 18]
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
     )
 
     # NOTE: change strategist

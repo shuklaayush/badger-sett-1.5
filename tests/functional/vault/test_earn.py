@@ -70,7 +70,7 @@ def test_earn(deploy_complete, deployer, governance, randomUser, keeper):
     assert vault.paused() == True
 
     vault.earn({"from": governance})
-    
+
     # When strategy is paused earn is paused
     strategy.pause({"from": governance})
 

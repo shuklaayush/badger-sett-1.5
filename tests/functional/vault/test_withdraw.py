@@ -136,7 +136,7 @@ def test_withdrawOther(withdraw_setup, deployer, governance, randomUser):
     # Creating another token
     token2 = MockToken.deploy({"from": deployer})
     token2.initialize(
-        [deployer.address, randomUser.address], [100 * 10 ** 18, 100 * 10 ** 18]
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
     )
 
     # sending token2 to strategy
@@ -185,6 +185,6 @@ def test_withdraw_lossy(withdraw_setup, deployer, governance):
 
     balance_deployer_after = want.balanceOf(deployer)
 
-    assert (
-        balance_deployer_after - balance_deployer_before == withdraw_amount * (1 - loss_bps / 10_000)
+    assert balance_deployer_after - balance_deployer_before == withdraw_amount * (
+        1 - loss_bps / 10_000
     )

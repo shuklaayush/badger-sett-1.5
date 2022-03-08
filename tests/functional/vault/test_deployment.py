@@ -9,7 +9,9 @@ withdrawalFee = 50
 managementFee = 50
 
 # Test's vault deployment
-def test_vault_deployment(deployer, governance, keeper, guardian, strategist, badgerTree, token):
+def test_vault_deployment(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
+):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
         token,
@@ -52,11 +54,22 @@ def test_vault_deployment_badArgument(
     deployer, governance, keeper, guardian, strategist, badgerTree, token
 ):
     vault = Vault.deploy({"from": deployer})
-    default_address_args = [token, governance, keeper, guardian, governance, strategist, badgerTree]
+    default_address_args = [
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        badgerTree,
+    ]
 
     for i in range(len(default_address_args)):
-        address_args = [default_address_args[j] if j != i else AddressZero for j in range(len(default_address_args))]
-        
+        address_args = [
+            default_address_args[j] if j != i else AddressZero
+            for j in range(len(default_address_args))
+        ]
+
         with brownie.reverts():
             vault.initialize(
                 *address_args,

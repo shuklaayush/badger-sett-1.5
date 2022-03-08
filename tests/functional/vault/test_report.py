@@ -57,6 +57,7 @@ def depositAmount(setup_report):
 def mint_amount():
     return 1e18
 
+
 def setup_mint(strategy, token, mint_amount):
     # Mint additional tokens for strategy
     before_mint = token.balanceOf(strategy)
@@ -66,7 +67,10 @@ def setup_mint(strategy, token, mint_amount):
 
     return mint_amount
 
-def test_report_failed(vault, strategy, want, deployer, governance, randomUser, keeper, mint_amount):
+
+def test_report_failed(
+    vault, strategy, want, deployer, governance, randomUser, keeper, mint_amount
+):
     depositAmount = int(want.balanceOf(deployer) * 0.1)
     assert depositAmount > 0
 
@@ -112,7 +116,9 @@ def test_harvest_no_balance(strategy, vault, keeper, want, mint_amount):
     assert vault.assetsAtLastHarvest() == 0
 
 
-def test_report_additional_token_failed(vault, strategy, governance, want, deployer, randomUser, keeper, token, mint_amount):
+def test_report_additional_token_failed(
+    vault, strategy, governance, want, deployer, randomUser, keeper, token, mint_amount
+):
     depositAmount = int(want.balanceOf(deployer) * 0.1)
     assert depositAmount > 0
 

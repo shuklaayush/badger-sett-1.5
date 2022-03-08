@@ -15,6 +15,7 @@ MAX_BPS = 10_000
 def mint_amount():
     return 1e18
 
+
 def test_withdrawal_fees_are_issued_as_shares(
     setup_share_math, deployer, governance, vault, strategy, want, withdrawalFee
 ):
@@ -61,12 +62,7 @@ def setup_mint(strategy, want, mint_amount):
 
 
 def test_performance_fees_are_issued_as_shares(
-    setup_share_math,
-    strategy,
-    want,
-    governance,
-    vault,
-    mint_amount
+    setup_share_math, strategy, want, governance, vault, mint_amount
 ):
     ## Get settings
     treasury = vault.treasury()
@@ -104,8 +100,7 @@ def test_performance_fees_are_issued_as_shares(
 
     ## Run the actual operation
     strategy.test_harvest(
-        mint_amount,
-        {"from": governance}
+        mint_amount, {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
     time_of_this_harvest = vault.lastHarvestedAt()
@@ -124,7 +119,15 @@ def test_performance_fees_are_issued_as_shares(
 
     duration_of_harvest = time_of_this_harvest - time_of_prev_harvest
 
-    report_fees = get_report_fees(strat_harvest_gain, perf_fees_gov, perf_fees_strategist, management_fee, duration_of_harvest, total_supply_before_deposit, balance_before_deposit)
+    report_fees = get_report_fees(
+        strat_harvest_gain,
+        perf_fees_gov,
+        perf_fees_strategist,
+        management_fee,
+        duration_of_harvest,
+        total_supply_before_deposit,
+        balance_before_deposit,
+    )
 
     assert approx(
         report_fees.shares_perf_strategist,
@@ -139,15 +142,10 @@ def test_performance_fees_are_issued_as_shares(
 
 
 def test_performance_fees_are_issued_to_treasury_and_strategist(
-    setup_share_math,
-    strategy,
-    want,
-    governance,
-    vault,
-    mint_amount
+    setup_share_math, strategy, want, governance, vault, mint_amount
 ):
     """
-        This is the more proper test for shares issuance
+    This is the more proper test for shares issuance
     """
 
     ## Get settings
@@ -182,8 +180,7 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
 
     ## Run the actual operation
     strategy.test_harvest(
-        mint_amount,
-        {"from": governance}
+        mint_amount, {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
     time_of_this_harvest = vault.lastHarvestedAt()
@@ -202,7 +199,15 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
 
     duration_of_harvest = time_of_this_harvest - time_of_prev_harvest
 
-    report_fees = get_report_fees(strat_harvest_gain, perf_fees_gov, perf_fees_strategist, management_fee, duration_of_harvest, total_supply_before_deposit, balance_before_deposit)
+    report_fees = get_report_fees(
+        strat_harvest_gain,
+        perf_fees_gov,
+        perf_fees_strategist,
+        management_fee,
+        duration_of_harvest,
+        total_supply_before_deposit,
+        balance_before_deposit,
+    )
 
     assert approx(
         report_fees.shares_perf_strategist,
@@ -216,16 +221,9 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
     )
 
 
-def test_zero_fee(
-    setup_share_math,
-    strategy,
-    want,
-    governance,
-    vault,
-    mint_amount
-):
+def test_zero_fee(setup_share_math, strategy, want, governance, vault, mint_amount):
     """
-        This is the more proper test for shares issuance
+    This is the more proper test for shares issuance
     """
 
     ## Get settings
@@ -247,8 +245,7 @@ def test_zero_fee(
 
     ## Run the actual operation
     strategy.test_harvest(
-        mint_amount,
-        {"from": governance}
+        mint_amount, {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
     strategist_shares_after = vault.balanceOf(strategist)
