@@ -87,14 +87,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     uint256 public lastHarvestAmount; // amount harvested during last harvest
     uint256 public assetsAtLastHarvest; // assets for which the harvest took place.
 
-    mapping (address => uint256) public additionalTokensEarned;
-    mapping (address => uint256) public lastAdditionalTokenAmount;
+    mapping(address => uint256) public additionalTokensEarned;
+    mapping(address => uint256) public lastAdditionalTokenAmount;
 
     /// Fees ///
     /// @notice all fees will be in bps
     uint256 public performanceFeeGovernance; // Perf fee sent to `treasury`
     uint256 public performanceFeeStrategist; // Perf fee sent to `strategist`
-    uint256 public withdrawalFee; // fee issued to `treasury` on withdrawal 
+    uint256 public withdrawalFee; // fee issued to `treasury` on withdrawal
     uint256 public managementFee; // fee issued to `treasury` on report (typically on harvest, but only if strat is autocompounding)
 
     uint256 public maxPerformanceFee; // maximum allowed performance fees
@@ -115,12 +115,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// ===== Events ====
 
     // Emitted when a token is sent to the badgerTree for emissions
-    event TreeDistribution(
-        address indexed token,
-        uint256 amount,
-        uint256 indexed blockNumber,
-        uint256 timestamp
-    );
+    event TreeDistribution(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
 
     // Emitted during a report, when there has been an increase in pricePerFullShare (ppfs)
     event Harvested(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
@@ -153,7 +148,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @param _symbol Specify a custom sett symbol. Leave empty for default value.
     /// @param _feeConfig Values for the 4 different types of fees charges by the sett
     ///         [performanceFeeGovernance, performanceFeeStrategist, withdrawToVault, managementFee]
-    ///         Each fee should be less than the constant hard-caps defined above. 
+    ///         Each fee should be less than the constant hard-caps defined above.
     function initialize(
         address _token,
         address _governance,
@@ -183,12 +178,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         string memory name;
         string memory symbol;
 
-
         // If they are non empty string we'll use the custom names
         // Else just add the default prefix
         IERC20Detailed namedToken = IERC20Detailed(_token);
 
-        if(keccak256(abi.encodePacked(_name)) != keccak256("")) {
+        if (keccak256(abi.encodePacked(_name)) != keccak256("")) {
             name = _name;
         } else {
             name = string(abi.encodePacked(_defaultNamePrefix, namedToken.name()));
@@ -229,7 +223,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// ===== Modifiers ====
 
-    /// @notice Checks whether a call is from guardian or governance. 
+    /// @notice Checks whether a call is from guardian or governance.
     function _onlyAuthorizedPausers() internal view {
         require(msg.sender == guardian || msg.sender == governance, "onlyPausers");
     }
@@ -240,7 +234,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// ===== View Functions =====
-    
+
     /// @notice Used to track the deployed version of the contract.
     /// @return Current version of the contract.
     function version() external pure returns (string memory) {
@@ -271,55 +265,55 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// ===== Public Actions =====
 
-    /// @notice Deposits `_amount` tokens, issuing shares. 
-    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
-    /// @dev See `_depositFor` for details on how deposit is implemented. 
-    /// @param _amount Quantity of tokens to deposit. 
+    /// @notice Deposits `_amount` tokens, issuing shares.
+    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
+    /// @dev See `_depositFor` for details on how deposit is implemented.
+    /// @param _amount Quantity of tokens to deposit.
     function deposit(uint256 _amount) external whenNotPaused {
         _depositWithAuthorization(_amount, new bytes32[](0));
     }
 
-    /// @notice Deposits `_amount` tokens, issuing shares. 
+    /// @notice Deposits `_amount` tokens, issuing shares.
     ///         Checks the guestlist to verify that the calling account is authorized to make a deposit for the specified `_amount`.
-    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
     /// @dev See `_depositForWithAuthorization` for details on guestlist authorization.
-    /// @param _amount Quantity of tokens to deposit. 
+    /// @param _amount Quantity of tokens to deposit.
     /// @param proof Merkle proof to validate in the guestlist.
     function deposit(uint256 _amount, bytes32[] memory proof) external whenNotPaused {
         _depositWithAuthorization(_amount, proof);
     }
 
-    /// @notice Deposits all tokens, issuing shares. 
-    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
-    /// @dev See `_depositFor` for details on how deposit is implemented. 
+    /// @notice Deposits all tokens, issuing shares.
+    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
+    /// @dev See `_depositFor` for details on how deposit is implemented.
     function depositAll() external whenNotPaused {
         _depositWithAuthorization(token.balanceOf(msg.sender), new bytes32[](0));
     }
 
-    /// @notice Deposits all tokens, issuing shares. 
+    /// @notice Deposits all tokens, issuing shares.
     ///         Checks the guestlist to verify that the calling is authorized to make a full deposit.
-    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
     /// @dev See `_depositForWithAuthorization` for details on guestlist authorization.
     /// @param proof Merkle proof to validate in the guestlist.
     function depositAll(bytes32[] memory proof) external whenNotPaused {
         _depositWithAuthorization(token.balanceOf(msg.sender), proof);
     }
 
-    /// @notice Deposits `_amount` tokens, issuing shares to `recipient`. 
-    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
-    /// @dev See `_depositFor` for details on how deposit is implemented. 
+    /// @notice Deposits `_amount` tokens, issuing shares to `recipient`.
+    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
+    /// @dev See `_depositFor` for details on how deposit is implemented.
     /// @param _recipient Address to issue the Sett shares to.
-    /// @param _amount Quantity of tokens to deposit. 
+    /// @param _amount Quantity of tokens to deposit.
     function depositFor(address _recipient, uint256 _amount) external whenNotPaused {
         _depositForWithAuthorization(_recipient, _amount, new bytes32[](0));
     }
 
-    /// @notice Deposits `_amount` tokens, issuing shares to `recipient`. 
+    /// @notice Deposits `_amount` tokens, issuing shares to `recipient`.
     ///         Checks the guestlist to verify that `recipient` is authorized to make a deposit for the specified `_amount`.
-    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+    ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
     /// @dev See `_depositForWithAuthorization` for details on guestlist authorization.
     /// @param _recipient Address to issue the Sett shares to.
-    /// @param _amount Quantity of tokens to deposit. 
+    /// @param _amount Quantity of tokens to deposit.
     function depositFor(
         address _recipient,
         uint256 _amount,
@@ -329,15 +323,15 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// @notice Redeems `_shares` for an appropriate amount of tokens.
-    ///         Note that withdrawals are not processed when the Sett is paused. 
+    ///         Note that withdrawals are not processed when the Sett is paused.
     /// @dev See `_withdraw` for details on how withdrawals are processed.
-    /// @param _shares Quantity of shares to redeem. 
+    /// @param _shares Quantity of shares to redeem.
     function withdraw(uint256 _shares) external whenNotPaused {
         _withdraw(_shares);
     }
 
-    /// @notice Redeems all shares, issuing an appropriate amount of tokens. 
-    ///         Note that withdrawals are not processed when the Sett is paused. 
+    /// @notice Redeems all shares, issuing an appropriate amount of tokens.
+    ///         Note that withdrawals are not processed when the Sett is paused.
     /// @dev See `_withdraw` for details on how withdrawals are processed.
     function withdrawAll() external whenNotPaused {
         _withdraw(balanceOf(msg.sender));
@@ -346,16 +340,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// ===== Permissioned Actions: Strategy =====
 
     /// @notice Used by the strategy to report a harvest to the sett.
-    ///         Issues shares for the strategist and treasury based on the performance fees and harvested amount. 
-    ///         Issues shares for the treasury based on the management fee and the time elapsed since last harvest. 
+    ///         Issues shares for the strategist and treasury based on the performance fees and harvested amount.
+    ///         Issues shares for the treasury based on the management fee and the time elapsed since last harvest.
     ///         Updates harvest variables for on-chain APR tracking.
     ///         This can only be called by the strategy.
     /// @dev This implicitly trusts that the strategy reports the correct amount.
     ///      Pausing on this function happens at the strategy level.
     /// @param _harvestedAmount Amount of underlying token harvested by the strategy.
-    function reportHarvest(
-        uint256 _harvestedAmount
-    ) external nonReentrant {
+    function reportHarvest(uint256 _harvestedAmount) external nonReentrant {
         _onlyStrategy();
 
         uint256 harvestTime = block.timestamp;
@@ -386,7 +378,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// @notice Used by the strategy to report harvest of additional tokens to the sett.
-    ///         Charges performance fees on the additional tokens and transfers fees to treasury and strategist. 
+    ///         Charges performance fees on the additional tokens and transfers fees to treasury and strategist.
     ///         The remaining amount is sent to badgerTree for emissions.
     ///         Updates harvest variables for on-chain APR tracking.
     ///         This can only be called by the strategy.
@@ -439,7 +431,6 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function setStrategy(address _strategy) external whenNotPaused {
         _onlyGovernance();
         require(_strategy != address(0), "Address 0");
-
 
         /// NOTE: Migrate funds if settings strategy when already existing one
         if (strategy != address(0)) {
@@ -511,7 +502,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         toEarnBps = _newToEarnBps;
         emit SetToEarnBps(_newToEarnBps);
-    } 
+    }
 
     /// @notice Changes the guestlist address.
     ///         The guestList is used to gate or limit deposits. If no guestlist is set then anyone can deposit any amount.
@@ -588,7 +579,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         IStrategy(strategy).withdrawToVault();
     }
 
-    /// @notice Sends balance of any extra token earned by the strategy (from airdrops, donations etc.) 
+    /// @notice Sends balance of any extra token earned by the strategy (from airdrops, donations etc.)
     ///         to the badgerTree for emissions.
     ///         The `_token` should be different from any tokens managed by the strategy.
     ///         This can only be called by either strategist or governance.
@@ -611,7 +602,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         IStrategy(strategy).withdrawOther(_token);
         // Send all `_token` we have
-        // Safe because `withdrawOther` will revert on protected tokens  
+        // Safe because `withdrawOther` will revert on protected tokens
         // Done this way works for both a donation to strategy or to vault
         IERC20Upgradeable(_token).safeTransfer(governance, IERC20Upgradeable(_token).balanceOf(address(this)));
     }
@@ -637,7 +628,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         pausedDeposit = true;
         emit PauseDeposits(msg.sender);
     }
-    
+
     /// @notice Unpauses deposits.
     ///         This can only be called by governance.
     function unpauseDeposits() external {
@@ -662,12 +653,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// ===== Internal Implementations =====
 
-    /// @notice Deposits `_amount` tokens, issuing shares to `recipient`. 
-    ///         Note that deposits are not accepted when `pausedDeposit` is true. 
+    /// @notice Deposits `_amount` tokens, issuing shares to `recipient`.
+    ///         Note that deposits are not accepted when `pausedDeposit` is true.
     /// @dev This is the actual deposit operation.
     ///      Deposits are based on the realized value of underlying assets between Sett & associated Strategy
     /// @param _recipient Address to issue the Sett shares to.
-    /// @param _amount Quantity of tokens to deposit. 
+    /// @param _amount Quantity of tokens to deposit.
     function _depositFor(address _recipient, uint256 _amount) internal nonReentrant {
         require(_recipient != address(0), "Address 0");
         require(_amount != 0, "Amount 0");
@@ -698,13 +689,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _depositFor(_recipient, _amount);
     }
 
-
     /// @notice Redeems `_shares` for an appropriate amount of tokens.
     /// @dev This is the actual withdraw operation.
-    ///      Withdraws from strategy positions if sett doesn't contain enough tokens to process the withdrawal. 
+    ///      Withdraws from strategy positions if sett doesn't contain enough tokens to process the withdrawal.
     ///      Calculates withdrawal fees and issues corresponding shares to treasury.
     ///      No rebalance implementation for lower fees and faster swaps
-    /// @param _shares Quantity of shares to redeem. 
+    /// @param _shares Quantity of shares to redeem.
     function _withdraw(uint256 _shares) internal nonReentrant {
         require(_shares != 0, "0 Shares");
 
@@ -747,11 +737,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev Helper function to calculate governance and strategist performance fees. Make sure to use it to get paid!
     /// @param _amount Amount to calculate fee on.
     /// @return Tuple containing amount of (governance, strategist) fees to take.
-    function _calculatePerformanceFee(uint256 _amount)
-        internal
-        view
-        returns (uint256, uint256)
-    {
+    function _calculatePerformanceFee(uint256 _amount) internal view returns (uint256, uint256) {
         uint256 governancePerformanceFee = _calculateFee(_amount, performanceFeeGovernance);
 
         uint256 strategistPerformanceFee = _calculateFee(_amount, performanceFeeStrategist);
@@ -785,10 +771,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         uint256 duration = harvestTime.sub(lastHarvestedAt);
 
         // Management fee is calculated against the assets before harvest, to make it fair to depositors
-        uint256 management_fee = managementFee > 0 ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX_BPS) : 0;
+        uint256 management_fee = managementFee > 0
+            ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX_BPS)
+            : 0;
         uint256 totalGovernanceFee = feeGovernance.add(management_fee);
 
-        // Pool size is the size of the pool minus the fees, this way 
+        // Pool size is the size of the pool minus the fees, this way
         // it's equivalent to sending the tokens as rewards after the harvest
         // and depositing them again
         uint256 _pool = balance().sub(totalGovernanceFee).sub(feeStrategist);

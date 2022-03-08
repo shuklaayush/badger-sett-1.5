@@ -25,7 +25,9 @@ interface IStrategy {
     function withdrawOther(address _asset) external;
 
     function harvest() external returns (TokenAmount[] memory harvested);
+
     function tend() external returns (TokenAmount[] memory tended);
+
     function balanceOfRewards() external view returns (TokenAmount[] memory rewards);
 
     function emitNonProtectedToken(address _token) external;
