@@ -118,7 +118,9 @@ def test_deposit_guestlist(deployer, governance, randomUser, vault, guestlist, w
     before_shares = want.balanceOf(vault)
 
     # Burn to reduce balance
-    want.burn(deployer, want.balanceOf(deployer) - depositAmount // 10, {"from": deployer})
+    want.burn(
+        deployer, want.balanceOf(deployer) - depositAmount // 10, {"from": deployer}
+    )
 
     before_shares = want.balanceOf(vault)
 

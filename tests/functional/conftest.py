@@ -28,7 +28,7 @@ managementFee = 50
 @pytest.fixture
 def token(badger, deployer):
     token = MockToken.deploy({"from": deployer})
-    token.initialize([badger.address], [1000 * 10 ** 18])
+    token.initialize([badger.address], [1000 * 10**18])
     return token
 
 
@@ -71,6 +71,7 @@ def governance():
 def proxyAdmin():
     yield accounts[6]
 
+
 @pytest.fixture
 def randomUser():
     yield accounts[8]
@@ -80,7 +81,9 @@ def randomUser():
 
 ################# Deploy #################
 @pytest.fixture
-def deployed_vault(deployer, governance, keeper, guardian, strategist, badgerTree, token):
+def deployed_vault(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
+):
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
         token,
@@ -109,7 +112,7 @@ def deploy_complete(
 
     token = MockToken.deploy({"from": deployer})
     token.initialize(
-        [deployer.address, randomUser.address], [100 * 10 ** 18, 100 * 10 ** 18]
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
     )
     want = token
 
@@ -133,7 +136,7 @@ def deploy_complete(
         ],
     )
     vault.setStrategist(strategist, {"from": governance})
-    vault.setToEarnBps(10_000, {"from": governance}) ## Max earn bps so math is simpler
+    vault.setToEarnBps(10_000, {"from": governance})  ## Max earn bps so math is simpler
     # NOTE: Vault starts unpaused
 
     strategy = DemoStrategy.deploy({"from": deployer})
