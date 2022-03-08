@@ -14,7 +14,7 @@ contract DemoStrategy is BaseStrategy {
     // address public lpComponent; // Token that represents ownership in a pool, not always used
     // address public reward; // Token we farm
 
-    address constant public BADGER = 0x3472A5A71965499acd81997a54BBA8D852C6E53d; 
+    address public constant BADGER = 0x3472A5A71965499acd81997a54BBA8D852C6E53d;
     uint256 public lossBps;
 
     /// @notice set using setAutoCompoundRatio()
@@ -45,15 +45,14 @@ contract DemoStrategy is BaseStrategy {
         return "DemoStrategy";
     }
 
-
     function getProtectedTokens() public view virtual override returns (address[] memory) {
         address[] memory protectedTokens = new address[](2);
         protectedTokens[0] = want;
         protectedTokens[1] = BADGER;
         return protectedTokens;
     }
-    
-    function _isTendable() internal pure override returns (bool){
+
+    function _isTendable() internal pure override returns (bool) {
         return true;
     }
 
@@ -114,7 +113,7 @@ contract DemoStrategy is BaseStrategy {
         return harvested;
     }
 
-    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested){
+    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
         _onlyAuthorizedActors();
 
         // Note: This breaks if you don't send amount to the strat
@@ -122,16 +121,16 @@ contract DemoStrategy is BaseStrategy {
 
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, 0); // Nothing harvested for want
-        harvested[1] = TokenAmount(BADGER, amount); 
+        harvested[1] = TokenAmount(BADGER, amount);
         return harvested;
     }
 
     // Example tend is a no-op which returns the values, could also just revert
-    function _tend() internal override returns (TokenAmount[] memory tended){
+    function _tend() internal override returns (TokenAmount[] memory tended) {
         // Nothing tended
         tended = new TokenAmount[](2);
         tended[0] = TokenAmount(want, 0);
-        tended[1] = TokenAmount(BADGER, 0); 
+        tended[1] = TokenAmount(BADGER, 0);
         return tended;
     }
 
@@ -143,7 +142,7 @@ contract DemoStrategy is BaseStrategy {
         // Rewards are 0
         rewards = new TokenAmount[](2);
         rewards[0] = TokenAmount(want, 0);
-        rewards[1] = TokenAmount(BADGER, 0); 
+        rewards[1] = TokenAmount(BADGER, 0);
         return rewards;
     }
 }

@@ -27,7 +27,11 @@ contract MaliciousToken is ERC20Upgradeable {
         _burn(account, amount);
     }
 
-    function transferFrom(address from, address to, uint256 amount) public override returns (bool success) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override returns (bool success) {
         if (!hit) {
             hit = true;
             IVault(msg.sender).deposit(amount);
@@ -36,4 +40,3 @@ contract MaliciousToken is ERC20Upgradeable {
         return super.transferFrom(from, to, amount);
     }
 }
-
