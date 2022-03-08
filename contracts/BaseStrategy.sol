@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.12;
 
 import "@openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/math/MathUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin-contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../interfaces/badger/IVault.sol";
 
@@ -37,7 +35,6 @@ import "../interfaces/badger/IVault.sol";
 abstract contract BaseStrategy is PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
-    using SafeMathUpgradeable for uint256;
 
     uint256 public constant MAX_BPS = 10_000; // MAX_BPS in terms of BPS = 100%
 
@@ -66,7 +63,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// @notice Initializes BaseStrategy. Can only be called once.
     ///         Make sure to call it from the initializer of the derived strategy.
     /// @param _vault Address of the vault that the strategy reports to.
-    function __BaseStrategy_init(address _vault) public initializer whenNotPaused {
+    function __BaseStrategy_init(address _vault) internal onlyInitializing {
         require(_vault != address(0), "Address 0");
         __Pausable_init();
 
@@ -134,7 +131,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
     ///         This includes all want deposited to active strategy positions as well as any idle want in the strategy.
     /// @return Total balance of want managed by the strategy.
     function balanceOf() external view returns (uint256) {
-        return balanceOfWant().add(balanceOfPool());
+        return balanceOfWant() + balanceOfPool();
     }
 
     /// @notice Tells whether the strategy is supposed to be tended.
@@ -253,10 +250,10 @@ abstract contract BaseStrategy is PausableUpgradeable {
         // Sanity check: Ensure we were able to retrieve sufficient want from strategy positions
         // If we end up with less than the amount requested, make sure it does not deviate beyond a maximum threshold
         if (_postWithdraw < _amount) {
-            uint256 diff = _diff(_amount, _postWithdraw);
+            uint256 diff = _amount - _postWithdraw;
 
             // Require that difference between expected and actual values is less than the deviation threshold percentage
-            require(diff <= _amount.mul(withdrawalMaxDeviationThreshold).div(MAX_BPS), "withdraw-exceed-max-deviation-threshold");
+            require(diff <= (_amount * withdrawalMaxDeviationThreshold) / MAX_BPS, "withdraw-exceed-max-deviation-threshold");
         }
 
         // Return the amount actually withdrawn if less than amount requested
@@ -346,12 +343,6 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
         IERC20Upgradeable(_token).safeTransfer(vault, _amount);
         IVault(vault).reportAdditionalToken(_token);
-    }
-
-    /// @notice Utility function to diff two numbers, expects higher value in first position
-    function _diff(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(a >= b, "a should be >= b");
-        return a.sub(b);
     }
 
     // ===== Abstract Functions: To be implemented by specific Strategies =====
