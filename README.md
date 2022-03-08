@@ -2,17 +2,6 @@
 
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
-
-## Video Introduction
-
-Quick Developer Overview: https://youtu.be/NELwk2yrA_8
-
-Code Deep Dive: https://youtu.be/u__v-J7KTNM
-
-## Developer Documentation
-https://docs.badger.com/badger-finance/wip-vaults-1.5
-
-
 # Badger Vaults 1.5
 
 A simplified architecture for Vaults, that uses exclusively:
@@ -20,26 +9,27 @@ Vault -> Handle Deposits, accounting and emission of events
 Strategy -> Uses funds to generate yield on them
 
 With additional extension from the original Badger Sett Fork:
+
 - Contracts are upgradeable
 - All contracts Pausable
 - Deposits can be paused separately
 - Handling cases of Strategy that only emits funds
 
 With additional new feature:
+
 - Performance Fees, issued as shares
 - Management and Withdrawal fees, also issued as shares
 - Ability to emit to the badger tree directly
 - Remove the controller
 - Settings are in the vaults, and the strategy has simpler / leaner bytecode
 
-
 # Additional Docs
+
 See the User Stories:
 https://mint-salesman-909.notion.site/Badger-Vaults-1-5-User-Stories-2eae32b1eebc4892a6188f6aa9b17e5a
 
 See the Overview:
 https://mint-salesman-909.notion.site/Badger-Vaults-1-5-Overview-ab9c64a076af4ba3913d1430c01d8f6e
-
 
 ## Tests
 
@@ -92,29 +82,31 @@ black .
 
 - Add deposit hook on vault to warn the rewards contract.
 
-
-
 # Breaking Changes
 
 List of changes for Vaults 1.5 that make it breaking for some scripts
 
 ## No more Controller
+
 That's the point
 
 ## rewards and setRewards are gone
+
 Replace by treasury and setTreasury respectively
 
 ## min and setMin are gone
-Replaced by toEarnBps and setToEarnBps respectively
+
+Replaced by min and setToEarnBps respectively
 
 ## Vault handles report of funds
 
 ## badgerTree is in the Vault
+
 Set in the vault and transfered when reported by the strat
 
 ## Harvest and Tend return a list of TokenAmounts
-TokenAmount is a simple (address, uint) struct that enables generic return values
 
+TokenAmount is a simple (address, uint) struct that enables generic return values
 
 ## SECURITY!!! IMPORTANT
 
