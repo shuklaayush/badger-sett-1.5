@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 import "@openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import "./lib/SettAccessControl.sol";
 
@@ -60,7 +59,6 @@ import {BadgerGuestListAPI} from "../interfaces/yearn/BadgerGuestlistApi.sol";
 contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
-    using SafeMathUpgradeable for uint256;
 
     uint256 constant ONE_ETH = 1e18;
 
@@ -248,19 +246,19 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         if (totalSupply() == 0) {
             return ONE_ETH;
         }
-        return balance().mul(ONE_ETH).div(totalSupply());
+        return (balance() * ONE_ETH) / totalSupply();
     }
 
     /// @notice Gives the total balance of the underlying token within the sett and strategy system.
     /// @return Balance of token handled by the sett.
     function balance() public view returns (uint256) {
-        return token.balanceOf(address(this)).add(IStrategy(strategy).balanceOf());
+        return token.balanceOf(address(this)) + IStrategy(strategy).balanceOf();
     }
 
     /// @notice Defines how much of the Setts' underlying is available for strategy to borrow.
     /// @return Amount of tokens that the sett can provide to the strategy.
     function available() public view returns (uint256) {
-        return token.balanceOf(address(this)).mul(toEarnBps).div(MAX_BPS);
+        return (token.balanceOf(address(this)) * toEarnBps) / MAX_BPS;
     }
 
     /// ===== Public Actions =====
@@ -351,7 +349,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         _onlyStrategy();
 
         uint256 harvestTime = block.timestamp;
-        uint256 assetsAtHarvest = balance().sub(_harvestedAmount); // Must be less than or equal or revert
+        uint256 assetsAtHarvest = balance() - _harvestedAmount; // Must be less than or equal or revert
 
         _handleFees(_harvestedAmount, harvestTime);
 
@@ -370,7 +368,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
             assetsAtLastHarvest = 0;
         }
 
-        lifeTimeEarned = lifeTimeEarned.add(_harvestedAmount);
+        lifeTimeEarned = lifeTimeEarned + _harvestedAmount;
         // Update time either way
         lastHarvestedAt = harvestTime;
 
@@ -390,7 +388,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         require(address(token) != _token, "No want");
         uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
 
-        additionalTokensEarned[_token] = additionalTokensEarned[_token].add(tokenBalance);
+        additionalTokensEarned[_token] = additionalTokensEarned[_token] + tokenBalance;
         lastAdditionalTokenAmount[_token] = tokenBalance;
 
         // We may have more, but we still report only what the strat sent
@@ -674,7 +672,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 _after = token.balanceOf(address(this));
-        _mintSharesFor(_recipient, _after.sub(_before), _pool);
+        _mintSharesFor(_recipient, _after - _before, _pool);
     }
 
     /// @dev See `_depositWithAuthorization`
@@ -704,29 +702,29 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function _withdraw(uint256 _shares) internal nonReentrant {
         require(_shares != 0, "0 Shares");
 
-        uint256 r = (balance().mul(_shares)).div(totalSupply());
+        uint256 r = (balance() * _shares) / totalSupply();
         _burn(msg.sender, _shares);
 
         // Check balance
         uint256 b = token.balanceOf(address(this));
         if (b < r) {
-            uint256 _toWithdraw = r.sub(b);
+            uint256 _toWithdraw = r - b;
             IStrategy(strategy).withdraw(_toWithdraw);
             uint256 _after = token.balanceOf(address(this));
-            uint256 _diff = _after.sub(b);
+            uint256 _diff = _after - b;
             if (_diff < _toWithdraw) {
-                r = b.add(_diff);
+                r = b + _diff;
             }
         }
         uint256 _fee = _calculateFee(r, withdrawalFee);
 
         // Send funds to user
-        token.safeTransfer(msg.sender, r.sub(_fee));
+        token.safeTransfer(msg.sender, r - _fee);
 
         // After you burned the shares, and you have sent the funds, adding here is equivalent to depositing
         // Process withdrawal fee
         if(_fee > 0) {
-            _mintSharesFor(treasury, _fee, balance().sub(_fee));
+            _mintSharesFor(treasury, _fee, balance() - _fee);
         }
     }
 
@@ -738,7 +736,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         if (feeBps == 0) {
             return 0;
         }
-        uint256 fee = amount.mul(feeBps).div(MAX_BPS);
+        uint256 fee = (amount * feeBps) / MAX_BPS;
         return fee;
     }
 
@@ -766,7 +764,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         if (totalSupply() == 0) {
             shares = _amount;
         } else {
-            shares = (_amount.mul(totalSupply())).div(_pool);
+            shares = (_amount * totalSupply()) / _pool;
         }
 
         if(shares != 0) {
@@ -779,18 +777,16 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @param harvestTime Time of harvest (block.timestamp).
     function _handleFees(uint256 _harvestedAmount, uint256 harvestTime) internal {
         (uint256 feeGovernance, uint256 feeStrategist) = _calculatePerformanceFee(_harvestedAmount);
-        uint256 duration = harvestTime.sub(lastHarvestedAt);
+        uint256 duration = harvestTime - lastHarvestedAt;
 
         // Management fee is calculated against the assets before harvest, to make it fair to depositors
-        uint256 management_fee = managementFee > 0
-            ? managementFee.mul(balance().sub(_harvestedAmount)).mul(duration).div(SECS_PER_YEAR).div(MAX_BPS)
-            : 0;
-        uint256 totalGovernanceFee = feeGovernance.add(management_fee);
+        uint256 management_fee = managementFee > 0 ? (managementFee * (balance() - _harvestedAmount) * duration) / SECS_PER_YEAR / MAX_BPS : 0;
+        uint256 totalGovernanceFee = feeGovernance + management_fee;
 
         // Pool size is the size of the pool minus the fees, this way
         // it's equivalent to sending the tokens as rewards after the harvest
         // and depositing them again
-        uint256 _pool = balance().sub(totalGovernanceFee).sub(feeStrategist);
+        uint256 _pool = balance() - totalGovernanceFee - feeStrategist;
 
         // uint != is cheaper and equivalent to >
         if (totalGovernanceFee != 0) {
@@ -799,7 +795,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         if (feeStrategist != 0 && strategist != address(0)) {
             /// NOTE: adding feeGovernance backed to _pool as shares would have been issued for it.
-            _mintSharesFor(strategist, feeStrategist, _pool.add(totalGovernanceFee));
+            _mintSharesFor(strategist, feeStrategist, _pool + totalGovernanceFee);
         }
     }
 }

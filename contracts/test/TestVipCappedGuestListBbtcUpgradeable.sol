@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin-contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
+import "@openzeppelin-contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 
 import "../../interfaces/yearn/BadgerGuestlistApi.sol";
 import "../../interfaces/yearn/BadgerWrapperApi.sol";
@@ -25,8 +24,6 @@ import "../../interfaces/yearn/BadgerWrapperApi.sol";
  * @notice authorized function to ignore merkle proof for testing, inspiration from yearn's approach to testing guestlist https://github.com/yearn/yearn-devdocs/blob/4664fdef7d10f3a767fa651975059c44cf1cdb37/docs/developers/v2/smart-contracts/test/TestGuestList.md
  */
 contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
-    using SafeMathUpgradeable for uint256;
-
     address public wrapper;
 
     bytes32 public guestRoot;
@@ -62,11 +59,11 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
     }
 
     function remainingTotalDepositAllowed() public view returns (uint256) {
-        return totalDepositCap.sub(IERC20(wrapper).totalSupply());
+        return totalDepositCap - IERC20(wrapper).totalSupply();
     }
 
     function remainingUserDepositAllowed(address user) public view returns (uint256) {
-        return userDepositCap.sub(IERC20(wrapper).balanceOf(user));
+        return userDepositCap - IERC20(wrapper).balanceOf(user);
     }
 
     /**
