@@ -55,18 +55,18 @@ Defines how much of the Setts' underlying is available for strategy to borrow.
 
 ### `deposit(uint256 _amount)` (external)
 
-Deposits `_amount` tokens, issuing shares. 
-        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+Deposits `_amount` tokens, issuing shares.
+        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
 
 
-See `_depositFor` for details on how deposit is implemented. 
+See `_depositFor` for details on how deposit is implemented.
 
 
 ### `deposit(uint256 _amount, bytes32[] proof)` (external)
 
-Deposits `_amount` tokens, issuing shares. 
+Deposits `_amount` tokens, issuing shares.
         Checks the guestlist to verify that the calling account is authorized to make a deposit for the specified `_amount`.
-        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
 
 
 See `_depositForWithAuthorization` for details on guestlist authorization.
@@ -74,17 +74,17 @@ See `_depositForWithAuthorization` for details on guestlist authorization.
 
 ### `depositAll()` (external)
 
-Deposits all tokens, issuing shares. 
-        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+Deposits all tokens, issuing shares.
+        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
 
 
 See `_depositFor` for details on how deposit is implemented.
 
 ### `depositAll(bytes32[] proof)` (external)
 
-Deposits all tokens, issuing shares. 
+Deposits all tokens, issuing shares.
         Checks the guestlist to verify that the calling is authorized to make a full deposit.
-        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
 
 
 See `_depositForWithAuthorization` for details on guestlist authorization.
@@ -92,18 +92,18 @@ See `_depositForWithAuthorization` for details on guestlist authorization.
 
 ### `depositFor(address _recipient, uint256 _amount)` (external)
 
-Deposits `_amount` tokens, issuing shares to `recipient`. 
-        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+Deposits `_amount` tokens, issuing shares to `recipient`.
+        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
 
 
-See `_depositFor` for details on how deposit is implemented. 
+See `_depositFor` for details on how deposit is implemented.
 
 
 ### `depositFor(address _recipient, uint256 _amount, bytes32[] proof)` (external)
 
-Deposits `_amount` tokens, issuing shares to `recipient`. 
+Deposits `_amount` tokens, issuing shares to `recipient`.
         Checks the guestlist to verify that `recipient` is authorized to make a deposit for the specified `_amount`.
-        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true. 
+        Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
 
 
 See `_depositForWithAuthorization` for details on guestlist authorization.
@@ -112,7 +112,7 @@ See `_depositForWithAuthorization` for details on guestlist authorization.
 ### `withdraw(uint256 _shares)` (external)
 
 Redeems `_shares` for an appropriate amount of tokens.
-        Note that withdrawals are not processed when the Sett is paused. 
+        Note that withdrawals are not processed when the Sett is paused.
 
 
 See `_withdraw` for details on how withdrawals are processed.
@@ -120,8 +120,8 @@ See `_withdraw` for details on how withdrawals are processed.
 
 ### `withdrawAll()` (external)
 
-Redeems all shares, issuing an appropriate amount of tokens. 
-        Note that withdrawals are not processed when the Sett is paused. 
+Redeems all shares, issuing an appropriate amount of tokens.
+        Note that withdrawals are not processed when the Sett is paused.
 
 
 See `_withdraw` for details on how withdrawals are processed.
@@ -129,8 +129,8 @@ See `_withdraw` for details on how withdrawals are processed.
 ### `reportHarvest(uint256 _harvestedAmount)` (external)
 
 Used by the strategy to report a harvest to the sett.
-        Issues shares for the strategist and treasury based on the performance fees and harvested amount. 
-        Issues shares for the treasury based on the management fee and the time elapsed since last harvest. 
+        Issues shares for the strategist and treasury based on the performance fees and harvested amount.
+        Issues shares for the treasury based on the management fee and the time elapsed since last harvest.
         Updates harvest variables for on-chain APR tracking.
         This can only be called by the strategy.
 
@@ -142,7 +142,7 @@ This implicitly trusts that the strategy reports the correct amount.
 ### `reportAdditionalToken(address _token)` (external)
 
 Used by the strategy to report harvest of additional tokens to the sett.
-        Charges performance fees on the additional tokens and transfers fees to treasury and strategist. 
+        Charges performance fees on the additional tokens and transfers fees to treasury and strategist.
         The remaining amount is sent to badgerTree for emissions.
         Updates harvest variables for on-chain APR tracking.
         This can only be called by the strategy.
@@ -285,7 +285,7 @@ This calls `_withdrawAll` on the strategy and transfers the balance to the sett.
 
 ### `emitNonProtectedToken(address _token)` (external)
 
-Sends balance of any extra token earned by the strategy (from airdrops, donations etc.) 
+Sends balance of any extra token earned by the strategy (from airdrops, donations etc.)
         to the badgerTree for emissions.
         The `_token` should be different from any tokens managed by the strategy.
         This can only be called by either strategist or governance.
@@ -344,8 +344,8 @@ Unpauses everything
 
 ### `_depositFor(address _recipient, uint256 _amount)` (internal)
 
-Deposits `_amount` tokens, issuing shares to `recipient`. 
-        Note that deposits are not accepted when `pausedDeposit` is true. 
+Deposits `_amount` tokens, issuing shares to `recipient`.
+        Note that deposits are not accepted when `pausedDeposit` is true.
 
 
 This is the actual deposit operation.
@@ -371,7 +371,7 @@ Redeems `_shares` for an appropriate amount of tokens.
 
 
 This is the actual withdraw operation.
-     Withdraws from strategy positions if sett doesn't contain enough tokens to process the withdrawal. 
+     Withdraws from strategy positions if sett doesn't contain enough tokens to process the withdrawal.
      Calculates withdrawal fees and issues corresponding shares to treasury.
      No rebalance implementation for lower fees and faster swaps
 
@@ -496,10 +496,3 @@ Helper function that issues shares based on performance and management fee when 
 
 
 ### `UnpauseDeposits(address pausedBy)`
-
-
-
-
-
-
-

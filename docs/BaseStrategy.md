@@ -7,7 +7,7 @@
 
 ### `__BaseStrategy_init(address _vault)` (public)
 
-Initializes BaseStrategy. Can only be called once. 
+Initializes BaseStrategy. Can only be called once.
         Make sure to call it from the initializer of the derived strategy.
 
 
@@ -15,36 +15,36 @@ Initializes BaseStrategy. Can only be called once.
 
 ### `_onlyGovernance()` (internal)
 
-Checks whether a call is from governance. 
+Checks whether a call is from governance.
 
 
-For functions that only the governance should be able to call 
+For functions that only the governance should be able to call
      Most of the time setting setters, or to rescue/sweep funds
 
 ### `_onlyGovernanceOrStrategist()` (internal)
 
-Checks whether a call is from strategist or governance. 
+Checks whether a call is from strategist or governance.
 
 
 For functions that only known benign entities should call
 
 ### `_onlyAuthorizedActors()` (internal)
 
-Checks whether a call is from keeper or governance. 
+Checks whether a call is from keeper or governance.
 
 
 For functions that only known benign entities should call
 
 ### `_onlyVault()` (internal)
 
-Checks whether a call is from the vault. 
+Checks whether a call is from the vault.
 
 
 For functions that only the vault should use
 
 ### `_onlyAuthorizedActorsOrVault()` (internal)
 
-Checks whether a call is from keeper, governance or the vault. 
+Checks whether a call is from keeper, governance or the vault.
 
 
 Modifier used to check if the function is being called by a benign entity
@@ -143,7 +143,7 @@ This is used as a slippage check against the actual funds withdrawn from strateg
 
 Deposits any idle want in the strategy into positions.
         This can be called by either the vault, keeper or governance.
-        Note that deposits don't work when the strategy is paused. 
+        Note that deposits don't work when the strategy is paused.
 
 
 See `deposit`.
@@ -152,7 +152,7 @@ See `deposit`.
 
 Deposits any idle want in the strategy into positions.
         This can be called by either the vault, keeper or governance.
-        Note that deposits don't work when the strategy is paused. 
+        Note that deposits don't work when the strategy is paused.
 
 
 Is basically the same as tend, except without custom code for it
@@ -174,10 +174,10 @@ This can be called even when paused, and strategist can trigger this via the vau
 
 Withdraw partial funds from the strategy to the vault, unrolling from strategy positions as necessary.
         This can only be called by the vault.
-        Note that withdraws don't work when the strategy is paused. 
+        Note that withdraws don't work when the strategy is paused.
 
 
-If the strategy fails to recover sufficient funds (defined by `withdrawalMaxDeviationThreshold`), 
+If the strategy fails to recover sufficient funds (defined by `withdrawalMaxDeviationThreshold`),
      the withdrawal would fail so that this unexpected behavior can be investigated.
 
 
@@ -295,7 +295,7 @@ Internal logic for partial withdrawals. Should exit positions as efficiently as 
 
 Realize returns from strategy positions.
         This can only be called by keeper or governance.
-        Note that harvests don't work when the strategy is paused. 
+        Note that harvests don't work when the strategy is paused.
 
 
 Returns can be reinvested into positions, or distributed in another fashion.
@@ -305,7 +305,7 @@ Returns can be reinvested into positions, or distributed in another fashion.
 
 
 
-Virtual function that should be overridden with the logic for harvest. 
+Virtual function that should be overridden with the logic for harvest.
      Should report any want or non-want gains to the vault.
      Also see `harvest`.
 
@@ -313,7 +313,7 @@ Virtual function that should be overridden with the logic for harvest.
 
 Tend strategy positions as needed to maximize returns.
         This can only be called by keeper or governance.
-        Note that tend doesn't work when the strategy is paused. 
+        Note that tend doesn't work when the strategy is paused.
 
 
 Is only called by the keeper when `isTendable` is true.
@@ -323,7 +323,7 @@ Is only called by the keeper when `isTendable` is true.
 
 
 
-Virtual function that should be overridden with the logic for tending. 
+Virtual function that should be overridden with the logic for tending.
      Also see `tend`.
 
 ### `getName() → string` (external)
@@ -364,6 +364,3 @@ address token
 
 
 uint256 amount
-
-
-
