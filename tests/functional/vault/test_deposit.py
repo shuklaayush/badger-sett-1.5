@@ -129,6 +129,11 @@ def test_nonreentrant(
         [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
     )
 
+    badger = MockToken.deploy({"from": deployer})
+    badger.initialize(
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
+    )
+
     # NOTE: change strategist
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
@@ -149,8 +154,8 @@ def test_nonreentrant(
         ],
     )
 
-    strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(vault, [token])
+    strategy = MockStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [token, badger])
 
     vault.setStrategy(strategy, {"from": governance})
 

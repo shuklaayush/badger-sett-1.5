@@ -7,16 +7,13 @@ from helpers.constants import AddressZero
 
 
 def test_report_an_extra_token(
-    strategy, badgerTree, strategist, treasury, vault, keeper
+    strategy, badgerTree, strategist, treasury, vault, keeper, badger, deployer
 ):
     """
     Proves that the strat using `_processExtraToken` will handle perf fee as well as send to tree
     """
-    ## Badger Treasury
-    donator = accounts.at("0x4441776e6a5d61fa024a5117bfc26b953ad1f425", force=True)
-
     ## Badger
-    extra_token = interface.IERC20("0x3472A5A71965499acd81997a54BBA8D852C6E53d")
+    extra_token = badger
 
     ## Initial balances
     initial_tree_balance = extra_token.balanceOf(badgerTree)
@@ -26,7 +23,7 @@ def test_report_an_extra_token(
 
     ## Send the gift and report it
     amount = 1e18
-    extra_token.transfer(strategy, amount, {"from": donator})
+    extra_token.transfer(strategy, amount, {"from": deployer})
     strategy.test_harvest_only_emit(extra_token, amount, {"from": keeper})
 
     ## There was a net positive balance increase
@@ -135,24 +132,18 @@ def test_security_try_rugging_want(deployer, governance, vault, strategy, want):
 
 
 def test_security_try_rugging_protected_token(
-    deployer, governance, vault, strategy, want
+    deployer, governance, vault, strategy, want, badger
 ):
     """
     Badger is protected token for testing
     Do a donation to strat, then try rugging
     """
 
-    ## Badger Treasury
-    donator = accounts.at("0x4441776e6a5d61fa024a5117bfc26b953ad1f425", force=True)
-
-    ## Badger
-    badger = interface.IERC20("0x3472A5A71965499acd81997a54BBA8D852C6E53d")
-
     assert strategy.getProtectedTokens()[1] == badger
 
     ## Send the gift and report it
     amount = 1e18
-    badger.transfer(strategy, amount, {"from": donator})
+    badger.transfer(strategy, amount, {"from": deployer})
 
     ## Can't sweep a protected token
     with brownie.reverts():

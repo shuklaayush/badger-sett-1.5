@@ -1,7 +1,7 @@
 # Credit: https://github.com/banteg/multicall.py/blob/master/multicall/multicall.py
 from typing import List
 
-from brownie import web3
+from brownie import accounts, multicall, web3
 
 from helpers.multicall import Call
 from helpers.multicall.constants import MULTICALL_ADDRESSES
@@ -21,8 +21,12 @@ class Multicall:
             )
 
     def __call__(self):
+        if web3.eth.chainId not in MULTICALL_ADDRESSES:
+            multicall_address = multicall.deploy({"from": accounts[0]}).address
+        else:
+            multicall_address = MULTICALL_ADDRESSES[web3.eth.chain_id]
         aggregate = Call(
-            MULTICALL_ADDRESSES[web3.eth.chainId],
+            multicall_address,
             "aggregate((address,bytes)[])(uint256,bytes[])",
         )
         args = [[[call.target, call.data] for call in self.calls]]
