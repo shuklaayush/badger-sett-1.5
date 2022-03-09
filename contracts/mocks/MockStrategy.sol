@@ -86,7 +86,7 @@ contract MockStrategy is BaseStrategy {
     /// @dev function to test harvest -
     // NOTE: want of 1 ether would be minted directly to MockStrategy and this function would be called
     /// @param amount how much was minted to report
-    function test_harvest(uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
+    function mockHarvest(uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
         _onlyAuthorizedActors();
 
         // Amount of want autocompounded after harvest in terms of want
@@ -99,7 +99,7 @@ contract MockStrategy is BaseStrategy {
         return harvested;
     }
 
-    function test_empty_harvest() external whenNotPaused returns (TokenAmount[] memory harvested) {
+    function mockEmptyHarvest() external whenNotPaused returns (TokenAmount[] memory harvested) {
         _onlyAuthorizedActors();
 
         // Amount of want autocompounded after harvest in terms of want
@@ -112,7 +112,7 @@ contract MockStrategy is BaseStrategy {
         return harvested;
     }
 
-    function test_harvest_only_emit(address token, uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
+    function mockHarvestEmitOnly(address token, uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
         _onlyAuthorizedActors();
 
         // Note: This breaks if you don't send amount to the strat

@@ -83,7 +83,7 @@ def test_report_failed(
     vault.pause({"from": governance})
 
     assert vault.paused() == True
-    strategy.test_harvest(mint_amount, {"from": keeper})
+    strategy.mockHarvest(mint_amount, {"from": keeper})
     vault.unpause({"from": governance})
 
     ## report should fail when strategy is paused
@@ -93,7 +93,7 @@ def test_report_failed(
     assert strategy.paused() == True
 
     with brownie.reverts("Pausable: paused"):
-        strategy.test_harvest(mint_amount, {"from": keeper})
+        strategy.mockHarvest(mint_amount, {"from": keeper})
 
     strategy.unpause({"from": governance})
 
@@ -103,16 +103,16 @@ def test_report_failed(
 
     # harvest should fail when called by randomUser
     with brownie.reverts("onlyAuthorizedActors"):
-        strategy.test_harvest(mint_amount, {"from": randomUser})
+        strategy.mockHarvest(mint_amount, {"from": randomUser})
 
 
 def test_harvest_no_balance(strategy, vault, keeper, want, mint_amount):
-    strategy.test_empty_harvest({"from": keeper})
+    strategy.mockEmptyHarvest({"from": keeper})
     assert vault.assetsAtLastHarvest() == 0
 
     setup_mint(strategy, want, mint_amount)
 
-    strategy.test_harvest(mint_amount, {"from": keeper})
+    strategy.mockHarvest(mint_amount, {"from": keeper})
     assert vault.assetsAtLastHarvest() == 0
 
 
@@ -129,14 +129,14 @@ def test_report_additional_token_failed(
     setup_mint(strategy, token, mint_amount)
 
     with brownie.reverts("Not want, use _reportToVault"):
-        strategy.test_harvest_only_emit(want, mint_amount, {"from": keeper})
+        strategy.mockHarvestEmitOnly(want, mint_amount, {"from": keeper})
 
     with brownie.reverts("Address 0"):
-        strategy.test_harvest_only_emit(AddressZero, mint_amount, {"from": keeper})
+        strategy.mockHarvestEmitOnly(AddressZero, mint_amount, {"from": keeper})
 
     # Creating another token
     with brownie.reverts("Amount 0"):
-        strategy.test_harvest_only_emit(token, 0, {"from": keeper})
+        strategy.mockHarvestEmitOnly(token, 0, {"from": keeper})
 
     ## report should fail when vault is paused
     # Pausing vault
@@ -145,7 +145,7 @@ def test_report_additional_token_failed(
     assert vault.paused() == True
 
     ## Harvest still works if you pause Vault
-    strategy.test_harvest_only_emit(token, mint_amount, {"from": keeper})
+    strategy.mockHarvestEmitOnly(token, mint_amount, {"from": keeper})
 
     vault.unpause({"from": governance})
 
@@ -157,7 +157,7 @@ def test_report_additional_token_failed(
 
     ## Harvest is paused if you pause Strat
     with brownie.reverts("Pausable: paused"):
-        strategy.test_harvest_only_emit(token, mint_amount, {"from": keeper})
+        strategy.mockHarvestEmitOnly(token, mint_amount, {"from": keeper})
 
     strategy.unpause({"from": governance})
 
@@ -171,4 +171,4 @@ def test_report_additional_token_failed(
 
     # harvest should fail when called by randomUser
     with brownie.reverts("onlyAuthorizedActors"):
-        strategy.test_harvest_only_emit(token, mint_amount, {"from": randomUser})
+        strategy.mockHarvestEmitOnly(token, mint_amount, {"from": randomUser})
