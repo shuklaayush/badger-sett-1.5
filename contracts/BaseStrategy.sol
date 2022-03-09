@@ -2,12 +2,12 @@
 
 pragma solidity 0.8.12;
 
-import "@openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
+import "openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "openzeppelin-contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/security/PausableUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../interfaces/badger/IVault.sol";
 
