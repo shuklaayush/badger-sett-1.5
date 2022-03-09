@@ -102,7 +102,7 @@ That's the point
 Replace by treasury and setTreasury respectively
 
 ## min and setMin are gone
-Replaced by min and setToEarnBps respectively
+Replaced by toEarnBps and setToEarnBps respectively
 
 ## Vault handles report of funds
 
@@ -117,4 +117,4 @@ TokenAmount is a simple (address, uint) struct that enables generic return value
 
 It it extremely important that governance is a timelock, as some changes (changing strategies) can be used with malicious intent
 
-DO NOT trust these contracts, unless `governance` is a timelock with a delay of over a day (typically 2 days)
+DO NOT trust these contracts, unless `governance` is a timelock with a delay of at least 2 days
