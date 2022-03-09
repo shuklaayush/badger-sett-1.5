@@ -7,4 +7,6 @@ reports/
 
 node_modules/
 
+# foundry
 cache/
+out/
