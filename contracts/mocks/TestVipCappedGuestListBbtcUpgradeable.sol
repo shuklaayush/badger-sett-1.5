@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.12;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin-contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 
-import "../../interfaces/yearn/BadgerGuestlistApi.sol";
-import "../../interfaces/yearn/BadgerWrapperApi.sol";
+import "../../interfaces/erc20/IERC20.sol";
 
 /**
  * @notice A basic guest list contract for testing.

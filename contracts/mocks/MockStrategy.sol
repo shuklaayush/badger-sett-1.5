@@ -6,14 +6,13 @@ import "@openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 
 import {BaseStrategy} from "../BaseStrategy.sol";
 
-contract DemoStrategy is BaseStrategy {
+contract MockStrategy is BaseStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     // address public want; // Inherited from BaseStrategy
     // address public lpComponent; // Token that represents ownership in a pool, not always used
-    // address public reward; // Token we farm
+    address public reward; // Token we farm
 
-    address public constant BADGER = 0x3472A5A71965499acd81997a54BBA8D852C6E53d;
     uint256 public lossBps;
 
     /// @notice set using setAutoCompoundRatio()
@@ -23,10 +22,11 @@ contract DemoStrategy is BaseStrategy {
     /// @notice Proxies will set any non constant variable you declare as default value
     /// @dev add any extra changeable variable at end of initializer as shown
     /// @notice Dev must implement
-    function initialize(address _vault, address[1] memory _wantConfig) public initializer {
+    function initialize(address _vault, address[2] calldata _tokenConfig) public initializer {
         __BaseStrategy_init(_vault);
         /// @dev Add config here
-        want = _wantConfig[0];
+        want = _tokenConfig[0];
+        reward = _tokenConfig[1];
 
         autoCompoundRatio = 10_000; // Percentage of reward we reinvest into want
 
@@ -41,13 +41,13 @@ contract DemoStrategy is BaseStrategy {
     }
 
     function getName() external pure override returns (string memory) {
-        return "DemoStrategy";
+        return "MockStrategy";
     }
 
     function getProtectedTokens() public view virtual override returns (address[] memory) {
         address[] memory protectedTokens = new address[](2);
         protectedTokens[0] = want;
-        protectedTokens[1] = BADGER;
+        protectedTokens[1] = reward;
         return protectedTokens;
     }
 
@@ -79,12 +79,12 @@ contract DemoStrategy is BaseStrategy {
     function _harvest() internal override returns (TokenAmount[] memory harvested) {
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, 0);
-        harvested[1] = TokenAmount(BADGER, 0);
+        harvested[1] = TokenAmount(reward, 0);
         return harvested;
     }
 
     /// @dev function to test harvest -
-    // NOTE: want of 1 ether would be minted directly to DemoStrategy and this function would be called
+    // NOTE: want of 1 ether would be minted directly to MockStrategy and this function would be called
     /// @param amount how much was minted to report
     function test_harvest(uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
         _onlyAuthorizedActors();
@@ -95,7 +95,7 @@ contract DemoStrategy is BaseStrategy {
 
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, amount);
-        harvested[1] = TokenAmount(BADGER, 0); // Nothing harvested for Badger
+        harvested[1] = TokenAmount(reward, 0); // Nothing harvested for reward
         return harvested;
     }
 
@@ -108,7 +108,7 @@ contract DemoStrategy is BaseStrategy {
 
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, 0);
-        harvested[1] = TokenAmount(BADGER, 0); // Nothing harvested for Badger
+        harvested[1] = TokenAmount(reward, 0); // Nothing harvested for reward
         return harvested;
     }
 
@@ -120,7 +120,7 @@ contract DemoStrategy is BaseStrategy {
 
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, 0); // Nothing harvested for want
-        harvested[1] = TokenAmount(BADGER, amount);
+        harvested[1] = TokenAmount(reward, amount);
         return harvested;
     }
 
@@ -129,7 +129,7 @@ contract DemoStrategy is BaseStrategy {
         // Nothing tended
         tended = new TokenAmount[](2);
         tended[0] = TokenAmount(want, 0);
-        tended[1] = TokenAmount(BADGER, 0);
+        tended[1] = TokenAmount(reward, 0);
         return tended;
     }
 
@@ -141,7 +141,7 @@ contract DemoStrategy is BaseStrategy {
         // Rewards are 0
         rewards = new TokenAmount[](2);
         rewards[0] = TokenAmount(want, 0);
-        rewards[1] = TokenAmount(BADGER, 0);
+        rewards[1] = TokenAmount(reward, 0);
         return rewards;
     }
 }

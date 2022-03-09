@@ -1,10 +1,9 @@
 import time
 
 from brownie import (
-    DemoStrategy,
+    MockStrategy,
     Vault,
     MockToken,
-    AdminUpgradeabilityProxy,
     TestVipCappedGuestListBbtcUpgradeable,
     accounts,
 )
@@ -35,11 +34,15 @@ def deployed():
     badgerTree = accounts[7]
     randomUser = accounts[8]
 
-    token = MockToken.deploy({"from": deployer})
-    token.initialize(
+    want = MockToken.deploy({"from": deployer})
+    want.initialize(
         [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
     )
-    want = token
+
+    badger = MockToken.deploy({"from": deployer})
+    badger.initialize(
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
+    )
 
     performanceFeeGovernance = 1000
     performanceFeeStrategist = 1000
@@ -48,7 +51,7 @@ def deployed():
 
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-        token,
+        want,
         governance,
         keeper,
         guardian,
@@ -66,8 +69,8 @@ def deployed():
     )
     # NOTE: Vault starts unpaused
 
-    strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(vault, [token])
+    strategy = MockStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [want, badger])
     # NOTE: Strategy starts unpaused
 
     vault.setStrategy(strategy, {"from": governance})
@@ -77,6 +80,7 @@ def deployed():
         vault=vault,
         strategy=strategy,
         want=want,
+        badger=badger,
         governance=governance,
         proxyAdmin=proxyAdmin,
         randomUser=randomUser,
@@ -128,27 +132,12 @@ def deployed_gueslist(deployed):
 
 
 def deploy_guestlist(dev, proxyAdmin, vaultAddr):
+    guestlist = TestVipCappedGuestListBbtcUpgradeable.deploy({"from": dev})
+    guestlist.initialize(vaultAddr, {"from": dev})
 
-    guestlist_logic = TestVipCappedGuestListBbtcUpgradeable.deploy({"from": dev})
+    console.print("[green]Guestlist was deployed at: [/green]", guestlist.address)
 
-    # Initializing arguments
-    args = [vaultAddr]
-
-    guestlist_proxy = AdminUpgradeabilityProxy.deploy(
-        guestlist_logic,
-        proxyAdmin,
-        guestlist_logic.initialize.encode_input(*args),
-        {"from": dev},
-    )
-    time.sleep(1)
-
-    ## We delete from deploy and then fetch again so we can interact
-    AdminUpgradeabilityProxy.remove(guestlist_proxy)
-    guestlist_proxy = TestVipCappedGuestListBbtcUpgradeable.at(guestlist_proxy.address)
-
-    console.print("[green]Guestlist was deployed at: [/green]", guestlist_proxy.address)
-
-    return guestlist_proxy
+    return guestlist
 
 
 ## Contracts ##
@@ -178,9 +167,15 @@ def want(deployed):
     return deployed.want
 
 
+## Tokens ##
+@pytest.fixture
+def badger(deployed):
+    return deployed.badger
+
+
 @pytest.fixture
 def tokens(deployed):
-    return [deployed.want]
+    return [deployed.want, deployed.badger]
 
 
 ## Accounts ##
@@ -260,9 +255,9 @@ def setup_share_math(deployer, vault, want, governance):
 
 
 @pytest.fixture
-def strategy_two(deployer, vault, want):
-    strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(vault, [want])
+def strategy_two(deployer, vault, want, badger):
+    strategy = MockStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [want, badger])
 
     return strategy
 

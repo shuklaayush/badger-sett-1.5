@@ -1,10 +1,9 @@
 import time
 
 from brownie import (
-    DemoStrategy,
+    MockStrategy,
     Vault,
     MockToken,
-    AdminUpgradeabilityProxy,
     TestVipCappedGuestListBbtcUpgradeable,
     accounts,
 )
@@ -26,10 +25,17 @@ managementFee = 50
 
 
 @pytest.fixture
-def token(badger, deployer):
+def token(dev, deployer):
     token = MockToken.deploy({"from": deployer})
-    token.initialize([badger.address], [1000 * 10**18])
+    token.initialize([dev.address], [1000 * 10**18])
     return token
+
+
+@pytest.fixture
+def badger(dev, deployer):
+    badger = MockToken.deploy({"from": deployer})
+    badger.initialize([dev.address], [1000 * 10**18])
+    return badger
 
 
 #########################################
@@ -38,7 +44,7 @@ def token(badger, deployer):
 
 # Initializer and giver of tokens
 @pytest.fixture
-def badger():
+def dev():
     yield accounts[0]
 
 
@@ -110,16 +116,20 @@ def deploy_complete(
     deployer, governance, keeper, guardian, randomUser, badgerTree, strategist
 ):
 
-    token = MockToken.deploy({"from": deployer})
-    token.initialize(
+    want = MockToken.deploy({"from": deployer})
+    want.initialize(
         [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
     )
-    want = token
+
+    badger = MockToken.deploy({"from": deployer})
+    badger.initialize(
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
+    )
 
     # NOTE: change strategist
     vault = Vault.deploy({"from": deployer})
     vault.initialize(
-        token,
+        want,
         governance,
         keeper,
         guardian,
@@ -139,8 +149,8 @@ def deploy_complete(
     vault.setToEarnBps(10_000, {"from": governance})  ## Max earn bps so math is simpler
     # NOTE: Vault starts unpaused
 
-    strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(vault, [token])
+    strategy = MockStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [want, badger])
     # NOTE: Strategy starts unpaused
 
     vault.setStrategy(strategy, {"from": governance})
@@ -149,6 +159,7 @@ def deploy_complete(
         vault=vault,
         strategy=strategy,
         want=want,
+        badger=badger,
         performanceFeeGovernance=performanceFeeGovernance,
         performanceFeeStrategist=performanceFeeStrategist,
         withdrawalFee=withdrawalFee,
@@ -165,6 +176,7 @@ def deployed_gueslist(
     guardian,
     strategist,
     token,
+    badger,
 ):
     """
     Deploys TestVipCappedGuestListBbtcUpgradeable.sol for testing Guest List functionality
@@ -210,8 +222,8 @@ def deployed_gueslist(
     performanceFeeStrategist = 1000
     withdrawalFee = 50
 
-    strategy = DemoStrategy.deploy({"from": deployer})
-    strategy.initialize(vault, [token])
+    strategy = MockStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [token, badger])
     # NOTE: Strategy starts unpaused
 
     vault.setStrategy(strategy, {"from": governance})
@@ -220,28 +232,14 @@ def deployed_gueslist(
 
 
 def deploy_guestlist(dev, proxyAdmin, vaultAddr):
+    guestlist = TestVipCappedGuestListBbtcUpgradeable.deploy({"from": dev})
 
-    guestlist_logic = TestVipCappedGuestListBbtcUpgradeable.deploy({"from": dev})
-
-    # Initializing arguments
-    args = [vaultAddr]
-
-    guestlist_proxy = AdminUpgradeabilityProxy.deploy(
-        guestlist_logic,
-        proxyAdmin,
-        guestlist_logic.initialize.encode_input(*args),
-        {"from": dev},
-    )
-    time.sleep(1)
-
-    ## We delete from deploy and then fetch again so we can interact
-    AdminUpgradeabilityProxy.remove(guestlist_proxy)
-    guestlist_proxy = TestVipCappedGuestListBbtcUpgradeable.at(guestlist_proxy.address)
+    guestlist.initialize(vaultAddr, {"from": dev})
 
     # console.print("[green] Using Guestlist in conftest.py/functional")
-    console.print("[green]Guestlist was deployed at: [/green]", guestlist_proxy.address)
+    console.print("[green]Guestlist was deployed at: [/green]", guestlist.address)
 
-    return guestlist_proxy
+    return guestlist
 
 
 #############################################
