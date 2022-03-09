@@ -99,7 +99,7 @@ def test_performance_fees_are_issued_as_shares(
     )
 
     ## Run the actual operation
-    strategy.test_harvest(
+    strategy.mockHarvest(
         mint_amount, {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
@@ -179,7 +179,7 @@ def test_performance_fees_are_issued_to_treasury_and_strategist(
     )
 
     ## Run the actual operation
-    strategy.test_harvest(
+    strategy.mockHarvest(
         mint_amount, {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 
@@ -244,7 +244,7 @@ def test_zero_fee(setup_share_math, strategy, want, governance, vault, mint_amou
     vault.setStrategist(AddressZero, {"from": governance})
 
     ## Run the actual operation
-    strategy.test_harvest(
+    strategy.mockHarvest(
         mint_amount, {"from": governance}
     )  # test_harvest to report harvest value to vault which will take respective fees
 

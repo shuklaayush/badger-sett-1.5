@@ -24,7 +24,7 @@ def test_report_an_extra_token(
     ## Send the gift and report it
     amount = 1e18
     extra_token.transfer(strategy, amount, {"from": deployer})
-    strategy.test_harvest_only_emit(extra_token, amount, {"from": keeper})
+    strategy.mockHarvestEmitOnly(extra_token, amount, {"from": keeper})
 
     ## There was a net positive balance increase
     assert extra_token.balanceOf(badgerTree) > initial_tree_balance
