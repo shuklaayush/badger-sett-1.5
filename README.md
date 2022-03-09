@@ -3,7 +3,7 @@
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
 
-## Video Introduction
+## Video Introduction
 
 Quick Developer Overview: https://youtu.be/NELwk2yrA_8
 
