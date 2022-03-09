@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.12;
 
-import "@openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import {IVault} from "../../interfaces/badger/IVault.sol";
 
