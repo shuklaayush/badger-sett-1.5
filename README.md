@@ -1,7 +1,13 @@
-# Badger Vaults 1.5 - WARNING - NON FIELD TESTED - SEE AUDITS
+# Badger Vaults 1.5
 
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
+
+## Video Introduction
+
+Quick Developer Overview: https://youtu.be/NELwk2yrA_8
+
+Code Deep Dive: https://youtu.be/u__v-J7KTNM
 
 
 # Badger Vaults 1.5
