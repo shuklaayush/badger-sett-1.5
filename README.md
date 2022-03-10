@@ -9,6 +9,9 @@ Quick Developer Overview: https://youtu.be/NELwk2yrA_8
 
 Code Deep Dive: https://youtu.be/u__v-J7KTNM
 
+## Developer Documentation
+https://docs.badger.com/badger-finance/wip-vaults-1.5
+
 
 # Badger Vaults 1.5
 
