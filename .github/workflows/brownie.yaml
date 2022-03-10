@@ -1,0 +1,44 @@
+name: brownie
+
+on:
+    pull_request:
+    workflow_dispatch:
+    push:
+        branches: [main]
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  submodules: "recursive"
+
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: "16"
+                  cache: "npm"
+
+            - name: Install ganache
+              run: npm install -g ganache-cli
+
+            - uses: actions/setup-python@v2
+              with:
+                  python-version: "3.10"
+                  cache: "pip"
+
+            - name: Install python dependencies
+              run: pip install -r requirements.txt
+
+            - name: Cache compiler installations
+              uses: actions/cache@v2
+              with:
+                  path: |
+                      ~/.solcx
+                      ~/.vvm
+                  key: ${{ runner.os }}-compiler-cache
+
+            - name: Run Tests
+              env:
+              run: brownie test
