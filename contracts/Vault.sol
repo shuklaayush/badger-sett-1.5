@@ -464,7 +464,7 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @param _fees The new maximum cap for performance fee.
     function setMaxPerformanceFee(uint256 _fees) external {
         _onlyGovernance();
-        require(_fees <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeStrategist too high");
+        require(_fees <= PERFORMANCE_FEE_HARD_CAP, "performanceFee too high");
 
         maxPerformanceFee = _fees;
         emit SetMaxPerformanceFee(_fees);

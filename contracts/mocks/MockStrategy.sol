@@ -76,7 +76,7 @@ contract MockStrategy is BaseStrategy {
         return _amount;
     }
 
-    function _harvest() internal override returns (TokenAmount[] memory harvested) {
+    function _harvest() internal view override returns (TokenAmount[] memory harvested) {
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, 0);
         harvested[1] = TokenAmount(reward, 0);
@@ -125,7 +125,7 @@ contract MockStrategy is BaseStrategy {
     }
 
     // Example tend is a no-op which returns the values, could also just revert
-    function _tend() internal override returns (TokenAmount[] memory tended) {
+    function _tend() internal view override returns (TokenAmount[] memory tended) {
         // Nothing tended
         tended = new TokenAmount[](2);
         tended[0] = TokenAmount(want, 0);
@@ -133,7 +133,7 @@ contract MockStrategy is BaseStrategy {
         return tended;
     }
 
-    function balanceOfPool() public view override returns (uint256) {
+    function balanceOfPool() public pure override returns (uint256) {
         return 0;
     }
 
