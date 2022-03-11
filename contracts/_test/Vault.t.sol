@@ -154,6 +154,14 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         assertEq(address(vault.guestList()), address(this));
     }
 
+    function testSetGuestListFailsWhenPaused() public {
+        vm.startPrank(governance);
+        vault.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.setGuestList(address(this));
+    }
+
     function testSetGuardianIsProtected() public {
         vm.expectRevert("onlyGovernance");
         vault.setGuardian(address(this));
@@ -197,212 +205,283 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         vault.setToEarnBps(100_000);
     }
 
+    function testSetToEarnBpsFailsWhenPaused() public {
+        vm.startPrank(governance);
+        vault.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.setToEarnBps(100_000);
+    }
+
+    function testSetMaxPerformanceFeeIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        vault.setMaxPerformanceFee(1_000);
+    }
+
+    function testGovernanceCanSetMaxPerformanceFee() public {
+        vm.prank(governance);
+        vault.setMaxPerformanceFee(1_000);
+
+        assertEq(vault.maxPerformanceFee(), 1_000);
+    }
+
+    function testSetMaxPerformanceFeeFailsWhenMoreThanMax() public {
+        vm.prank(governance);
+        vm.expectRevert("performanceFee too high");
+        vault.setMaxPerformanceFee(100_000);
+    }
+
+    function testSetMaxWithdrawalFeeIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        vault.setMaxWithdrawalFee(1_000);
+    }
+
+    function testGovernanceCanSetMaxWithdrawalFee() public {
+        vm.prank(governance);
+        vault.setMaxWithdrawalFee(200);
+
+        assertEq(vault.maxWithdrawalFee(), 200);
+    }
+
+    function testSetMaxWithdrawalFeeFailsWhenMoreThanMax() public {
+        vm.prank(governance);
+        vm.expectRevert("withdrawalFee too high");
+        vault.setMaxWithdrawalFee(100_000);
+    }
+
+    function testSetMaxManagementFeeIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        vault.setMaxManagementFee(1_000);
+    }
+
+    function testGovernanceCanSetMaxManagementFee() public {
+        vm.prank(governance);
+        vault.setMaxManagementFee(100);
+
+        assertEq(vault.maxManagementFee(), 100);
+    }
+
+    function testSetMaxManagementFeeFailsWhenMoreThanMax() public {
+        vm.prank(governance);
+        vm.expectRevert("managementFee too high");
+        vault.setMaxManagementFee(100_000);
+    }
+
+    function testSetPerformanceFeeStrategistIsProtected() public {
+        vm.expectRevert("onlyGovernanceOrStrategist");
+        vault.setPerformanceFeeStrategist(1_000);
+    }
+
+    function testGovernanceCanSetPerformanceFeeStrategist() public {
+        vm.prank(governance);
+        vault.setPerformanceFeeStrategist(100);
+
+        assertEq(vault.performanceFeeStrategist(), 100);
+    }
+
+    function testStrategistCanSetPerformanceFeeStrategist() public {
+        vm.prank(strategist);
+        vault.setPerformanceFeeStrategist(100);
+
+        assertEq(vault.performanceFeeStrategist(), 100);
+    }
+
+    function testSetPerformanceFeeStrategistFailsWhenMoreThanMax() public {
+        uint256 maxPerformanceFee = vault.maxPerformanceFee();
+
+        vm.prank(governance);
+        vm.expectRevert("Excessive strategist performance fee");
+        vault.setPerformanceFeeStrategist(maxPerformanceFee + 1);
+    }
+
+    function testSetPerformanceFeeStrategistFailsWhenPaused() public {
+        vm.startPrank(governance);
+        vault.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.setPerformanceFeeStrategist(100);
+    }
+
+    function testSetPerformanceFeeGovernanceIsProtected() public {
+        vm.expectRevert("onlyGovernanceOrStrategist");
+        vault.setPerformanceFeeGovernance(1_000);
+    }
+
+    function testGovernanceCanSetPerformanceFeeGovernance() public {
+        vm.prank(governance);
+        vault.setPerformanceFeeGovernance(100);
+
+        assertEq(vault.performanceFeeGovernance(), 100);
+    }
+
+    function testStrategistCanSetPerformanceFeeGovernance() public {
+        vm.prank(strategist);
+        vault.setPerformanceFeeGovernance(100);
+
+        assertEq(vault.performanceFeeGovernance(), 100);
+    }
+
+    function testSetPerformanceFeeGovernanceFailsWhenMoreThanMax() public {
+        uint256 maxPerformanceFee = vault.maxPerformanceFee();
+
+        vm.prank(governance);
+        vm.expectRevert("Excessive governance performance fee");
+        vault.setPerformanceFeeGovernance(maxPerformanceFee + 1);
+    }
+
+    function testSetPerformanceFeeGovernanceFailsWhenPaused() public {
+        vm.startPrank(governance);
+        vault.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.setPerformanceFeeGovernance(100);
+    }
+
+    function testSetWithdrawalFeeIsProtected() public {
+        vm.expectRevert("onlyGovernanceOrStrategist");
+        vault.setWithdrawalFee(1_000);
+    }
+
+    function testGovernanceCanSetWithdrawalFee() public {
+        vm.prank(governance);
+        vault.setWithdrawalFee(100);
+
+        assertEq(vault.withdrawalFee(), 100);
+    }
+
+    function testStrategistCanSetWithdrawalFee() public {
+        vm.prank(strategist);
+        vault.setWithdrawalFee(100);
+
+        assertEq(vault.withdrawalFee(), 100);
+    }
+
+    function testSetWithdrawalFeeFailsWhenMoreThanMax() public {
+        uint256 maxWithdrawalFee = vault.maxWithdrawalFee();
+
+        vm.prank(governance);
+        vm.expectRevert("Excessive withdrawal fee");
+        vault.setWithdrawalFee(maxWithdrawalFee + 1);
+    }
+
+    function testSetWithdrawalFeeFailsWhenPaused() public {
+        vm.startPrank(governance);
+        vault.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.setWithdrawalFee(100);
+    }
+
+    function testSetManagementFeeIsProtected() public {
+        vm.expectRevert("onlyGovernanceOrStrategist");
+        vault.setManagementFee(1_000);
+    }
+
+    function testGovernanceCanSetManagementFee() public {
+        vm.prank(governance);
+        vault.setManagementFee(100);
+
+        assertEq(vault.managementFee(), 100);
+    }
+
+    function testStrategistCanSetManagementFee() public {
+        vm.prank(strategist);
+        vault.setManagementFee(100);
+
+        assertEq(vault.managementFee(), 100);
+    }
+
+    function testSetManagementFeeFailsWhenMoreThanMax() public {
+        uint256 maxManagementFee = vault.maxManagementFee();
+
+        vm.prank(governance);
+        vm.expectRevert("Excessive management fee");
+        vault.setManagementFee(maxManagementFee + 1);
+    }
+
+    function testSetManagementFeeFailsWhenPaused() public {
+        vm.startPrank(governance);
+        vault.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.setManagementFee(100);
+    }
+
     /*
-def test_setMaxPerformanceFee(deployed_vault, governance, strategist, randomUser):
-
-    # setting maxPeformanceFees > MAX should fail
-    with brownie.reverts("performanceFeeStrategist too high"):
-        deployed_vault.setMaxPerformanceFee(
-            deployed_vault.MAX_BPS() + 1_000, {"from": governance}
-        )
-
-    # setting min
-    deployed_vault.setMaxPerformanceFee(3_000, {"from": governance})
-
-    assert deployed_vault.maxPerformanceFee() == 3_000
-
-    # setting maxPeformanceFees from randomUser user / strategist should fail
-    with brownie.reverts("onlyGovernance"):
-        deployed_vault.setMaxPerformanceFee(1_000, {"from": randomUser})
-
-    with brownie.reverts("onlyGovernance"):
-        deployed_vault.setMaxPerformanceFee(1_000, {"from": strategist})
-
-
-def test_setMaxWithdrawalFee(deployed_vault, governance, strategist, randomUser):
-
-    # setting maxWithdrawalFee > MAX should fail
-    with brownie.reverts("withdrawalFee too high"):
-        deployed_vault.setMaxWithdrawalFee(
-            deployed_vault.MAX_BPS() + 1_000, {"from": governance}
-        )
-
-    # setting setMaxWithdrawalFee
-    deployed_vault.setMaxWithdrawalFee(100, {"from": governance})
-
-    assert deployed_vault.maxWithdrawalFee() == 100
-
-    # setting setMaxWithdrawalFee from randomUser user / strategist should fail
-    with brownie.reverts("onlyGovernance"):
-        deployed_vault.setMaxWithdrawalFee(100, {"from": randomUser})
-
-    with brownie.reverts("onlyGovernance"):
-        deployed_vault.setMaxWithdrawalFee(100, {"from": strategist})
-
-
-def test_setMaxManagementFee(deployed_vault, governance, strategist, randomUser):
-
-    # setting maxManagementFee > MAX should fail
-    with brownie.reverts("managementFee too high"):
-        deployed_vault.setMaxManagementFee(
-            deployed_vault.MAX_BPS() + 1_000, {"from": governance}
-        )
-
-    # setting setMaxWithdrawalFee
-    deployed_vault.setMaxManagementFee(150, {"from": governance})
-
-    assert deployed_vault.maxManagementFee() == 150
-
-    # setting setMaxWithdrawalFee from randomUser user / strategist should fail
-    with brownie.reverts("onlyGovernance"):
-        deployed_vault.setMaxManagementFee(200, {"from": randomUser})
-
-    with brownie.reverts("onlyGovernance"):
-        deployed_vault.setMaxManagementFee(200, {"from": strategist})
-
-
-def test_setManagementFee(deployed_vault, governance, strategist, randomUser):
-
-    # setting managementFee
-    deployed_vault.setManagementFee(100, {"from": governance})
-
-    assert deployed_vault.managementFee() == 100
-
-    # setting managementFee from random user should fail
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        deployed_vault.setManagementFee(5_000, {"from": randomUser})
-
-    # setting more that maxManagementFee should fail
-    with brownie.reverts("Excessive management fee"):
-        deployed_vault.setManagementFee(
-            2 * deployed_vault.maxManagementFee(), {"from": strategist}
-        )
-
-
-def test_setWithdrawalFee(deployed_vault, governance, strategist, randomUser):
-
-    withdrawalFee = 100
-
-    # withdrawalFee from random user should fail
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        deployed_vault.setWithdrawalFee(withdrawalFee, {"from": randomUser})
-
-    # setting withdrawalFee
-    deployed_vault.setWithdrawalFee(withdrawalFee, {"from": governance})
-
-    assert deployed_vault.withdrawalFee() == withdrawalFee
-
-    # setting more that maxWithdrawalFee should fail
-    with brownie.reverts("Excessive withdrawal fee"):
-        deployed_vault.setWithdrawalFee(
-            2 * deployed_vault.maxWithdrawalFee(), {"from": strategist}
-        )
-
-
-def test_setPerformanceFeeStrategist(
-    deployed_vault, governance, strategist, randomUser
+def test_vault_deployment(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
 ):
-
-    performanceFeeStrategist = 2_000  # increasing fees to compensate good strategist.
-
-    # setPerformanceFeeStrategist from random user should fail
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        deployed_vault.setPerformanceFeeStrategist(
-            performanceFeeStrategist, {"from": randomUser}
-        )
-
-    # setPerformanceFeeStrategist from governance
-    deployed_vault.setPerformanceFeeStrategist(
-        performanceFeeStrategist, {"from": governance}
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        badgerTree,
+        "",
+        "",
+        [
+            performanceFeeGovernance,
+            performanceFeeStrategist,
+            withdrawalFee,
+            managementFee,
+        ],
     )
 
-    # setPerformanceFeeStrategist from strategist
-    deployed_vault.setPerformanceFeeStrategist(
-        performanceFeeStrategist, {"from": strategist}
-    )
+    # Addresses
+    assert vault.governance() == governance
+    assert vault.keeper() == keeper
+    assert vault.guardian() == guardian
+    assert vault.token() == token
+    assert vault.treasury() == governance
 
-    assert deployed_vault.performanceFeeStrategist() == performanceFeeStrategist
+    # Params
+    assert vault.toEarnBps() == 9_500
+    assert vault.performanceFeeGovernance() == performanceFeeGovernance
+    assert vault.performanceFeeStrategist() == performanceFeeStrategist
+    assert vault.withdrawalFee() == withdrawalFee
+    assert vault.managementFee() == managementFee
+    assert vault.MAX_BPS() == 10_000
+    assert vault.maxPerformanceFee() == 3_000
+    assert vault.maxWithdrawalFee() == 200
+    assert vault.maxManagementFee() == 200
 
-    # setting more that maxPerformanceFee should fail
-    with brownie.reverts("Excessive strategist performance fee"):
-        deployed_vault.setPerformanceFeeStrategist(
-            2 * deployed_vault.maxPerformanceFee(), {"from": strategist}
-        )
 
-
-def test_setPerformanceFeeGovernance(
-    deployed_vault, governance, strategist, randomUser
+def test_vault_deployment_badArgument(
+    deployer, governance, keeper, guardian, strategist, badgerTree, token
 ):
+    vault = Vault.deploy({"from": deployer})
+    default_address_args = [
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        badgerTree,
+    ]
 
-    performanceFeeGovernance = 2_000
+    for i in range(len(default_address_args)):
+        address_args = [
+            default_address_args[j] if j != i else AddressZero
+            for j in range(len(default_address_args))
+        ]
 
-    # setPerformanceFeeGovernance from random user should fail
-    with brownie.reverts("onlyGovernanceOrStrategist"):
-        deployed_vault.setPerformanceFeeGovernance(
-            performanceFeeGovernance, {"from": randomUser}
-        )
+        with brownie.reverts():
+            vault.initialize(
+                *address_args,
+                "",
+                "",
+                [
+                    performanceFeeGovernance,
+                    performanceFeeStrategist,
+                    withdrawalFee,
+                    managementFee,
+                ],
+            )
 
-    # setPerformanceFeeGovernance from governance
-    deployed_vault.setPerformanceFeeGovernance(
-        performanceFeeGovernance, {"from": governance}
-    )
-
-    # setPerformanceFeeGovernance from strategist
-    deployed_vault.setPerformanceFeeGovernance(
-        performanceFeeGovernance, {"from": strategist}
-    )
-
-    assert deployed_vault.performanceFeeGovernance() == performanceFeeGovernance
-
-    # setting more that maxPerformanceFee should fail
-    with brownie.reverts("Excessive governance performance fee"):
-        deployed_vault.setPerformanceFeeGovernance(
-            2 * deployed_vault.maxPerformanceFee(), {"from": strategist}
-        )
-
-
-def test_config_pause_unpause(deployed_vault, governance, strategist, randomUser):
-
-    # Pause Vault
-    deployed_vault.pause({"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
-        deployed_vault.setStrategy(randomUser, {"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
-        deployed_vault.setGuestList(randomUser, {"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
-        deployed_vault.setToEarnBps(100, {"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
-        deployed_vault.setManagementFee(1_000, {"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
-        deployed_vault.setPerformanceFeeGovernance(2_000, {"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
-        deployed_vault.setPerformanceFeeStrategist(2_000, {"from": governance})
-
-    with brownie.reverts("Pausable: paused"):
-        deployed_vault.setWithdrawalFee(100, {"from": governance})
-
-    # unpause Vault, now we should be able to set everything
-    deployed_vault.unpause({"from": governance})
-    deployed_vault.setStrategy(randomUser, {"from": governance})
-    deployed_vault.setGuestList(randomUser, {"from": governance})
-    deployed_vault.setToEarnBps(100, {"from": governance})
-    deployed_vault.setGuardian(randomUser, {"from": governance})
-    deployed_vault.setMaxPerformanceFee(2_000, {"from": governance})
-    deployed_vault.setMaxWithdrawalFee(50, {"from": governance})
-    deployed_vault.setMaxManagementFee(150, {"from": governance})
-    deployed_vault.setManagementFee(150, {"from": strategist})
-    deployed_vault.setPerformanceFeeGovernance(2_000, {"from": strategist})
-    deployed_vault.setPerformanceFeeStrategist(2_000, {"from": strategist})
-    deployed_vault.setWithdrawalFee(50, {"from": strategist})
-
-    with brownie.reverts("Pausable: not paused"):
-        deployed_vault.unpause({"from": governance})
 */
 }
 
