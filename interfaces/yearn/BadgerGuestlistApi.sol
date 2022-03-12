@@ -8,5 +8,6 @@ interface BadgerGuestListAPI {
         bytes32[] calldata merkleProof
     ) external view returns (bool);
 
-    function setGuests(address[] calldata _guests, bool[] calldata _invited) external;
+    function setGuests(address[] calldata _guests, bool[] calldata _invited)
+        external;
 }

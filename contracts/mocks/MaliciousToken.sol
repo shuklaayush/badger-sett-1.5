@@ -9,9 +9,15 @@ import {IVault} from "../../interfaces/badger/IVault.sol";
 contract MaliciousToken is ERC20Upgradeable {
     bool private hit;
 
-    function initialize(address[] memory holders, uint256[] memory balances) public initializer {
+    function initialize(address[] memory holders, uint256[] memory balances)
+        public
+        initializer
+    {
         __ERC20_init("badger.finance Malicious Token", "MALT");
-        require(holders.length == balances.length, "Constructor array size mismatch");
+        require(
+            holders.length == balances.length,
+            "Constructor array size mismatch"
+        );
         for (uint256 i = 0; i < holders.length; i++) {
             _mint(holders[i], balances[i]);
         }

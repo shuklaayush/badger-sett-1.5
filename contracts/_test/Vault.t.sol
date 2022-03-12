@@ -5,6 +5,7 @@ import {DSTest} from "ds-test/test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {MulticallUtils} from "./utils/MulticallUtils.sol";
@@ -27,7 +28,11 @@ abstract contract Config is MulticallUtils {
 }
 
 abstract contract Utils {
-    function getAddress(string memory _name) internal pure returns (address addr_) {
+    function getAddress(string memory _name)
+        internal
+        pure
+        returns (address addr_)
+    {
         addr_ = address(uint160(uint256(keccak256(bytes(_name)))));
     }
 }
@@ -71,7 +76,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
 
     event Harvest(uint256 harvested, uint256 indexed blockNumber);
 
-    event TreeDistribution(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
+    event TreeDistribution(
+        address indexed token,
+        uint256 amount,
+        uint256 indexed blockNumber,
+        uint256 timestamp
+    );
     event PerformanceFeeGovernance(
         address indexed destination,
         address indexed token,
@@ -102,7 +112,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             badgerTree,
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
 
         uint256 numRewards = EMITS.length;
@@ -491,7 +506,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             badgerTree,
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
     }
 
@@ -508,7 +528,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             badgerTree,
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
     }
 
@@ -525,7 +550,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             badgerTree,
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
     }
 
@@ -542,7 +572,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             badgerTree,
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
     }
 
@@ -559,7 +594,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             badgerTree,
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
     }
 
@@ -576,7 +616,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             badgerTree,
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
     }
 
@@ -593,7 +638,12 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             address(0),
             "",
             "",
-            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
         );
     }
 
@@ -744,12 +794,28 @@ def test_nonreentrant(
     /// ===== Internal helpers =====
     /// ============================
 
-    function depositCheckedFrom(address _from, uint256 _amount) internal returns (uint256 shares_) {
-        comparator.addCall("want.balanceOf(from)", WANT, abi.encodeWithSignature("balanceOf(address)", _from));
-        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
-        comparator.addCall("vault.balanceOf(from)", address(vault), abi.encodeWithSignature("balanceOf(address)", _from));
+    function depositCheckedFrom(address _from, uint256 _amount)
+        internal
+        returns (uint256 shares_)
+    {
+        comparator.addCall(
+            "want.balanceOf(from)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", _from)
+        );
+        comparator.addCall(
+            "want.balanceOf(vault)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", address(vault))
+        );
+        comparator.addCall(
+            "vault.balanceOf(from)",
+            address(vault),
+            abi.encodeWithSignature("balanceOf(address)", _from)
+        );
 
-        uint256 expectedShares = (_amount * 1e18) / vault.getPricePerFullShare();
+        uint256 expectedShares = (_amount * 1e18) /
+            vault.getPricePerFullShare();
 
         comparator.snapPrev();
         vm.startPrank(_from, _from);
@@ -767,15 +833,27 @@ def test_nonreentrant(
         shares_ = comparator.diff("vault.balanceOf(from)");
     }
 
-    function depositChecked(uint256 _amount) internal returns (uint256 shares_) {
+    function depositChecked(uint256 _amount)
+        internal
+        returns (uint256 shares_)
+    {
         shares_ = depositCheckedFrom(address(this), _amount);
     }
 
     function earnChecked() internal {
-        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
-        comparator.addCall("strategy.balanceOfPool()", address(strategy), abi.encodeWithSignature("balanceOfPool()"));
+        comparator.addCall(
+            "want.balanceOf(vault)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", address(vault))
+        );
+        comparator.addCall(
+            "strategy.balanceOfPool()",
+            address(strategy),
+            abi.encodeWithSignature("balanceOfPool()")
+        );
 
-        uint256 expectedEarn = (IERC20(WANT).balanceOf(address(vault)) * vault.toEarnBps()) / MAX_BPS;
+        uint256 expectedEarn = (IERC20(WANT).balanceOf(address(vault)) *
+            vault.toEarnBps()) / MAX_BPS;
 
         comparator.snapPrev();
         vm.prank(keeper);
@@ -788,15 +866,43 @@ def test_nonreentrant(
         comparator.assertDiff("strategy.balanceOfPool()", expectedEarn);
     }
 
-    function withdrawCheckedFrom(address _from, uint256 _shares) internal returns (uint256 amount_) {
-        comparator.addCall("vault.balanceOf(from)", address(vault), abi.encodeWithSignature("balanceOf(address)", _from));
-        comparator.addCall("want.balanceOf(from)", WANT, abi.encodeWithSignature("balanceOf(address)", _from));
-        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
-        comparator.addCall("want.balanceOf(strategy)", WANT, abi.encodeWithSignature("balanceOf(address)", address(strategy)));
-        comparator.addCall("want.balanceOf(treasury)", WANT, abi.encodeWithSignature("balanceOf(address)", treasury));
-        comparator.addCall("strategy.balanceOfPool()", address(strategy), abi.encodeWithSignature("balanceOfPool()"));
+    function withdrawCheckedFrom(address _from, uint256 _shares)
+        internal
+        returns (uint256 amount_)
+    {
+        comparator.addCall(
+            "vault.balanceOf(from)",
+            address(vault),
+            abi.encodeWithSignature("balanceOf(address)", _from)
+        );
+        comparator.addCall(
+            "want.balanceOf(from)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", _from)
+        );
+        comparator.addCall(
+            "want.balanceOf(vault)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", address(vault))
+        );
+        comparator.addCall(
+            "want.balanceOf(strategy)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", address(strategy))
+        );
+        comparator.addCall(
+            "want.balanceOf(treasury)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", treasury)
+        );
+        comparator.addCall(
+            "strategy.balanceOfPool()",
+            address(strategy),
+            abi.encodeWithSignature("balanceOfPool()")
+        );
 
-        uint256 expectedAmount = (_shares * vault.getPricePerFullShare()) / 1e18;
+        uint256 expectedAmount = (_shares * vault.getPricePerFullShare()) /
+            1e18;
 
         comparator.snapPrev();
         vm.prank(_from, _from);
@@ -811,14 +917,17 @@ def test_nonreentrant(
             comparator.assertNegDiff("want.balanceOf(vault)", expectedAmount);
             comparator.assertDiff("want.balanceOf(from)", expectedAmount);
         } else {
-            uint256 required = expectedAmount - comparator.prev("want.balanceOf(vault)");
+            uint256 required = expectedAmount -
+                comparator.prev("want.balanceOf(vault)");
             uint256 fee = (required * vault.withdrawalFee()) / MAX_BPS;
 
             if (required <= comparator.prev("want.balanceOf(strategy)")) {
                 assertEq(comparator.curr("want.balanceOf(vault)"), 0);
                 comparator.assertNegDiff("want.balanceOf(strategy)", required);
             } else {
-                required = required - comparator.prev("want.balanceOf(strategy)");
+                required =
+                    required -
+                    comparator.prev("want.balanceOf(strategy)");
 
                 assertEq(comparator.curr("want.balanceOf(vault)"), 0);
                 assertEq(comparator.curr("want.balanceOf(strategy)"), 0);
@@ -832,7 +941,10 @@ def test_nonreentrant(
         amount_ = comparator.diff("want.balanceOf(from)");
     }
 
-    function withdrawChecked(uint256 _shares) internal returns (uint256 amount_) {
+    function withdrawChecked(uint256 _shares)
+        internal
+        returns (uint256 amount_)
+    {
         amount_ = withdrawCheckedFrom(address(this), _shares);
     }
 
@@ -842,13 +954,34 @@ def test_nonreentrant(
         uint256 performanceFeeStrategist = vault.performanceFeeStrategist();
 
         // TODO: There has to be a better way to do this
-        comparator.addCall("vault.getPricePerFullShare()", address(vault), abi.encodeWithSignature("getPricePerFullShare()"));
-        comparator.addCall("strategy.balanceOf()", address(strategy), abi.encodeWithSignature("balanceOf()"));
+        comparator.addCall(
+            "vault.getPricePerFullShare()",
+            address(vault),
+            abi.encodeWithSignature("getPricePerFullShare()")
+        );
+        comparator.addCall(
+            "strategy.balanceOf()",
+            address(strategy),
+            abi.encodeWithSignature("balanceOf()")
+        );
 
         for (uint256 i; i < numRewards; ++i) {
-            comparator.addCall("bSexWftm.balanceOf(treasury)", address(EMITS[i]), abi.encodeWithSignature("balanceOf(address)", treasury));
-            comparator.addCall("bSexWftm.balanceOf(strategist)", address(EMITS[i]), abi.encodeWithSignature("balanceOf(address)", strategist));
-            comparator.addCall("bSexWftm.balanceOf(badgerTree)", address(EMITS[i]), abi.encodeWithSignature("balanceOf(address)", badgerTree));
+            string memory name = IERC20Metadata(EMITS[i]).name();
+            comparator.addCall(
+                string.concat(name, ".balanceOf(treasury)"),
+                address(EMITS[i]),
+                abi.encodeWithSignature("balanceOf(address)", treasury)
+            );
+            comparator.addCall(
+                string.concat(name, ".balanceOf(strategist)"),
+                address(EMITS[i]),
+                abi.encodeWithSignature("balanceOf(address)", strategist)
+            );
+            comparator.addCall(
+                string.concat(name, ".balanceOf(badgerTree)"),
+                address(EMITS[i]),
+                abi.encodeWithSignature("balanceOf(address)", badgerTree)
+            );
         }
 
         comparator.snapPrev();
@@ -894,24 +1027,46 @@ def test_nonreentrant(
         comparator.assertEq("strategy.balanceOf()");
 
         for (uint256 i; i < numRewards; ++i) {
-            uint256 deltaBSexWftmBalanceOfTreasury = comparator.diff("bSexWftm.balanceOf(treasury)");
-            uint256 deltaBSexWftmBalanceOfStrategist = comparator.diff("bSexWftm.balanceOf(strategist)");
-            uint256 deltaBSexWftmBalanceOfBadgerTree = comparator.diff("bSexWftm.balanceOf(badgerTree)");
+            string memory name = IERC20Metadata(EMITS[i]).name();
+            uint256 deltaBSexWftmBalanceOfTreasury = comparator.diff(
+                string.concat(name, ".balanceOf(treasury)")
+            );
+            uint256 deltaBSexWftmBalanceOfStrategist = comparator.diff(
+                string.concat(name, ".balanceOf(strategist)")
+            );
+            uint256 deltaBSexWftmBalanceOfBadgerTree = comparator.diff(
+                string.concat(name, ".balanceOf(badgerTree)")
+            );
 
-            uint256 bSexWftmEmitted = deltaBSexWftmBalanceOfTreasury + deltaBSexWftmBalanceOfStrategist + deltaBSexWftmBalanceOfBadgerTree;
+            uint256 bSexWftmEmitted = deltaBSexWftmBalanceOfTreasury +
+                deltaBSexWftmBalanceOfStrategist +
+                deltaBSexWftmBalanceOfBadgerTree;
 
-            uint256 bSexWftmGovernanceFee = (bSexWftmEmitted * performanceFeeGovernance) / MAX_BPS;
-            uint256 bSexWftmStrategistFee = (bSexWftmEmitted * performanceFeeStrategist) / MAX_BPS;
+            uint256 bSexWftmGovernanceFee = (bSexWftmEmitted *
+                performanceFeeGovernance) / MAX_BPS;
+            uint256 bSexWftmStrategistFee = (bSexWftmEmitted *
+                performanceFeeStrategist) / MAX_BPS;
 
             assertEq(deltaBSexWftmBalanceOfTreasury, bSexWftmGovernanceFee);
             assertEq(deltaBSexWftmBalanceOfStrategist, bSexWftmStrategistFee);
-            assertEq(deltaBSexWftmBalanceOfBadgerTree, bSexWftmEmitted - bSexWftmGovernanceFee - bSexWftmStrategistFee);
+            assertEq(
+                deltaBSexWftmBalanceOfBadgerTree,
+                bSexWftmEmitted - bSexWftmGovernanceFee - bSexWftmStrategistFee
+            );
         }
     }
 
     function withdrawToVaultChecked() internal {
-        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
-        comparator.addCall("want.balanceOf(strategy)", WANT, abi.encodeWithSignature("balanceOf(address)", address(strategy)));
+        comparator.addCall(
+            "want.balanceOf(vault)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", address(vault))
+        );
+        comparator.addCall(
+            "want.balanceOf(strategy)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", address(strategy))
+        );
 
         comparator.snapPrev();
         vm.prank(governance);
@@ -921,7 +1076,10 @@ def test_nonreentrant(
         comparator.snapCurr();
 
         assertEq(comparator.curr("want.balanceOf(strategy)"), 0);
-        comparator.assertDiff("want.balanceOf(vault)", comparator.prev("want.balanceOf(strategy)"));
+        comparator.assertDiff(
+            "want.balanceOf(vault)",
+            comparator.prev("want.balanceOf(strategy)")
+        );
     }
 }
 

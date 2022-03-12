@@ -1,45 +1,45 @@
 name: lint
 
 on:
-    pull_request:
-    push:
-        branches: [main]
+  pull_request:
+  push:
+    branches: [main]
 
 jobs:
-    solidity:
-        runs-on: ubuntu-latest
+  solidity:
+    runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                  fetch-depth: 1
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
 
-            - uses: actions/setup-node@v2
-              with:
-                  node-version: "16"
-                  cache: "yarn"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+          cache: "yarn"
 
-            - name: Install node dependencies
-              run: yarn install --frozen-lockfile
+      - name: Install node dependencies
+        run: yarn install --frozen-lockfile
 
-            - name: Run prettier
-              run: yarn prettier:check
+      - name: Run prettier
+        run: yarn prettier:check
 
-    python:
-        runs-on: ubuntu-latest
+  python:
+    runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                  fetch-depth: 1
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
 
-            - uses: actions/setup-python@v2
-              with:
-                  python-version: 3.9
-                  cache: "pip"
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+          cache: "pip"
 
-            - name: Install python dependencies
-              run: pip install -r requirements.txt
+      - name: Install python dependencies
+        run: pip install -r requirements.txt
 
-            - name: Run black
-              run: black --check --include "(tests|scripts)" .
+      - name: Run black
+        run: black --check --include "(tests|scripts)" .

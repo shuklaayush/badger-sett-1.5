@@ -87,13 +87,19 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// @notice Checks whether a call is from strategist or governance.
     /// @dev For functions that only known benign entities should call
     function _onlyGovernanceOrStrategist() internal view {
-        require(msg.sender == strategist() || msg.sender == governance(), "onlyGovernanceOrStrategist");
+        require(
+            msg.sender == strategist() || msg.sender == governance(),
+            "onlyGovernanceOrStrategist"
+        );
     }
 
     /// @notice Checks whether a call is from keeper or governance.
     /// @dev For functions that only known benign entities should call
     function _onlyAuthorizedActors() internal view {
-        require(msg.sender == keeper() || msg.sender == governance(), "onlyAuthorizedActors");
+        require(
+            msg.sender == keeper() || msg.sender == governance(),
+            "onlyAuthorizedActors"
+        );
     }
 
     /// @notice Checks whether a call is from the vault.
@@ -105,13 +111,21 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// @notice Checks whether a call is from keeper, governance or the vault.
     /// @dev Modifier used to check if the function is being called by a benign entity
     function _onlyAuthorizedActorsOrVault() internal view {
-        require(msg.sender == keeper() || msg.sender == governance() || msg.sender == vault, "onlyAuthorizedActorsOrVault");
+        require(
+            msg.sender == keeper() ||
+                msg.sender == governance() ||
+                msg.sender == vault,
+            "onlyAuthorizedActorsOrVault"
+        );
     }
 
     /// @notice Checks whether a call is from guardian or governance.
     /// @dev Modifier used exclusively for pausing
     function _onlyAuthorizedPausers() internal view {
-        require(msg.sender == guardian() || msg.sender == governance(), "onlyPausers");
+        require(
+            msg.sender == guardian() || msg.sender == governance(),
+            "onlyPausers"
+        );
     }
 
     /// ===== View Functions =====
@@ -246,7 +260,9 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
         // Withdraw from strategy positions, typically taking from any idle want first.
         _withdrawSome(_amount);
-        uint256 _postWithdraw = IERC20Upgradeable(want).balanceOf(address(this));
+        uint256 _postWithdraw = IERC20Upgradeable(want).balanceOf(
+            address(this)
+        );
 
         // Sanity check: Ensure we were able to retrieve sufficient want from strategy positions
         // If we end up with less than the amount requested, make sure it does not deviate beyond a maximum threshold
@@ -254,7 +270,10 @@ abstract contract BaseStrategy is PausableUpgradeable {
             uint256 diff = _amount - _postWithdraw;
 
             // Require that difference between expected and actual values is less than the deviation threshold percentage
-            require(diff <= (_amount * withdrawalMaxDeviationThreshold) / MAX_BPS, "withdraw-exceed-max-deviation-threshold");
+            require(
+                diff <= (_amount * withdrawalMaxDeviationThreshold) / MAX_BPS,
+                "withdraw-exceed-max-deviation-threshold"
+            );
         }
 
         // Return the amount actually withdrawn if less than amount requested
@@ -277,7 +296,10 @@ abstract contract BaseStrategy is PausableUpgradeable {
     function emitNonProtectedToken(address _token) external {
         _onlyVault();
         _onlyNotProtectedTokens(_token);
-        IERC20Upgradeable(_token).safeTransfer(vault, IERC20Upgradeable(_token).balanceOf(address(this)));
+        IERC20Upgradeable(_token).safeTransfer(
+            vault,
+            IERC20Upgradeable(_token).balanceOf(address(this))
+        );
         IVault(vault).reportAdditionalToken(_token);
     }
 
@@ -290,7 +312,10 @@ abstract contract BaseStrategy is PausableUpgradeable {
     function withdrawOther(address _asset) external {
         _onlyVault();
         _onlyNotProtectedTokens(_asset);
-        IERC20Upgradeable(_asset).safeTransfer(vault, IERC20Upgradeable(_asset).balanceOf(address(this)));
+        IERC20Upgradeable(_asset).safeTransfer(
+            vault,
+            IERC20Upgradeable(_asset).balanceOf(address(this))
+        );
     }
 
     /// ===== Permissioned Actions: Authorized Contract Pausers =====
@@ -360,7 +385,11 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
     /// @notice Gives the list of protected tokens.
     /// @return Array of protected tokens.
-    function getProtectedTokens() public view virtual returns (address[] memory);
+    function getProtectedTokens()
+        public
+        view
+        virtual
+        returns (address[] memory);
 
     /// @dev Internal logic for strategy migration. Should exit positions as efficiently as possible.
     function _withdrawAll() internal virtual;
@@ -376,7 +405,11 @@ abstract contract BaseStrategy is PausableUpgradeable {
     ///         Note that harvests don't work when the strategy is paused.
     /// @dev Returns can be reinvested into positions, or distributed in another fashion.
     /// @return harvested An array of `TokenAmount` containing the address and amount harvested for each token.
-    function harvest() external whenNotPaused returns (TokenAmount[] memory harvested) {
+    function harvest()
+        external
+        whenNotPaused
+        returns (TokenAmount[] memory harvested)
+    {
         _onlyAuthorizedActors();
         return _harvest();
     }
@@ -384,14 +417,21 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// @dev Virtual function that should be overridden with the logic for harvest.
     ///      Should report any want or non-want gains to the vault.
     ///      Also see `harvest`.
-    function _harvest() internal virtual returns (TokenAmount[] memory harvested);
+    function _harvest()
+        internal
+        virtual
+        returns (TokenAmount[] memory harvested);
 
     /// @notice Tend strategy positions as needed to maximize returns.
     ///         This can only be called by keeper or governance.
     ///         Note that tend doesn't work when the strategy is paused.
     /// @dev Is only called by the keeper when `isTendable` is true.
     /// @return tended An array of `TokenAmount` containing the address and amount tended for each token.
-    function tend() external whenNotPaused returns (TokenAmount[] memory tended) {
+    function tend()
+        external
+        whenNotPaused
+        returns (TokenAmount[] memory tended)
+    {
         _onlyAuthorizedActors();
 
         return _tend();
@@ -413,7 +453,11 @@ abstract contract BaseStrategy is PausableUpgradeable {
     /// @notice Gives the total amount of pending rewards accrued for each token.
     /// @dev Should take into account all reward tokens.
     /// @return rewards An array of `TokenAmount` containing the address and amount of each reward token.
-    function balanceOfRewards() external view virtual returns (TokenAmount[] memory rewards);
+    function balanceOfRewards()
+        external
+        view
+        virtual
+        returns (TokenAmount[] memory rewards);
 
     uint256[49] private __gap;
 }

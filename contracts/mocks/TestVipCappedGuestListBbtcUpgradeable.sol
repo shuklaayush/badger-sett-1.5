@@ -52,7 +52,10 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
      * @param _invited A flag for each guest at the matching index, inviting or
      * uninviting the guest.
      */
-    function setGuests(address[] calldata _guests, bool[] calldata _invited) external onlyOwner {
+    function setGuests(address[] calldata _guests, bool[] calldata _invited)
+        external
+        onlyOwner
+    {
         _setGuests(_guests, _invited);
     }
 
@@ -60,7 +63,11 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         return totalDepositCap - IERC20(wrapper).totalSupply();
     }
 
-    function remainingUserDepositAllowed(address user) public view returns (uint256) {
+    function remainingUserDepositAllowed(address user)
+        public
+        view
+        returns (uint256)
+    {
         return userDepositCap - IERC20(wrapper).balanceOf(user);
     }
 
@@ -69,7 +76,9 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
      * @notice Note that the list is designed to ONLY EXPAND in future instances
      * @notice The admin does retain the ability to ban individual addresses
      */
-    function proveInvitation(address account, bytes32[] calldata merkleProof) public {
+    function proveInvitation(address account, bytes32[] calldata merkleProof)
+        public
+    {
         // Verify Merkle Proof
         require(_verifyInvitationProof(account, merkleProof));
 
@@ -123,14 +132,20 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         bool invited = guests[_guest];
 
         // If the user was previously invited, or proved invitiation via list, verify if the amount to deposit keeps them under the cap
-        if (invited && remainingUserDepositAllowed(_guest) >= _amount && remainingTotalDepositAllowed() >= _amount) {
+        if (
+            invited &&
+            remainingUserDepositAllowed(_guest) >= _amount &&
+            remainingTotalDepositAllowed() >= _amount
+        ) {
             return true;
         } else {
             return false;
         }
     }
 
-    function _setGuests(address[] memory _guests, bool[] memory _invited) internal {
+    function _setGuests(address[] memory _guests, bool[] memory _invited)
+        internal
+    {
         require(_guests.length == _invited.length);
         for (uint256 i = 0; i < _guests.length; i++) {
             if (_guests[i] == address(0)) {
@@ -140,7 +155,10 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
         }
     }
 
-    function _verifyInvitationProof(address account, bytes32[] calldata merkleProof) internal view returns (bool) {
+    function _verifyInvitationProof(
+        address account,
+        bytes32[] calldata merkleProof
+    ) internal view returns (bool) {
         bytes32 node = keccak256(abi.encodePacked(account));
         return MerkleProofUpgradeable.verify(merkleProof, guestRoot, node);
     }
