@@ -87,7 +87,9 @@ struct Call {
 }
 
 interface IMulticall {
-    function aggregate(Call[] memory calls) external returns (uint256 blockNumber, bytes[] memory returnData);
+    function aggregate(Call[] memory calls)
+        external
+        returns (uint256 blockNumber, bytes[] memory returnData);
 }
 
 contract SnapshotManager {

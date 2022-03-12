@@ -56,7 +56,12 @@ import {BadgerGuestListAPI} from "../interfaces/yearn/BadgerGuestlistApi.sol";
     * All governance related fees goes to treasury
 */
 
-contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, ReentrancyGuardUpgradeable {
+contract Vault is
+    ERC20Upgradeable,
+    SettAccessControl,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
 
@@ -113,10 +118,20 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// ===== Events ====
 
     // Emitted when a token is sent to the badgerTree for emissions
-    event TreeDistribution(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
+    event TreeDistribution(
+        address indexed token,
+        uint256 amount,
+        uint256 indexed blockNumber,
+        uint256 timestamp
+    );
 
     // Emitted during a report, when there has been an increase in pricePerFullShare (ppfs)
-    event Harvested(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
+    event Harvested(
+        address indexed token,
+        uint256 amount,
+        uint256 indexed blockNumber,
+        uint256 timestamp
+    );
 
     event SetTreasury(address indexed newTreasury);
     event SetStrategy(address indexed newStrategy);
@@ -168,10 +183,22 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         require(_badgerTree != address(0)); // dev: _badgerTree address should not be zero
 
         // Check for fees being reasonable (see below for interpretation)
-        require(_feeConfig[0] <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeGovernance too high");
-        require(_feeConfig[1] <= PERFORMANCE_FEE_HARD_CAP, "performanceFeeStrategist too high");
-        require(_feeConfig[2] <= WITHDRAWAL_FEE_HARD_CAP, "withdrawalFee too high");
-        require(_feeConfig[3] <= MANAGEMENT_FEE_HARD_CAP, "managementFee too high");
+        require(
+            _feeConfig[0] <= PERFORMANCE_FEE_HARD_CAP,
+            "performanceFeeGovernance too high"
+        );
+        require(
+            _feeConfig[1] <= PERFORMANCE_FEE_HARD_CAP,
+            "performanceFeeStrategist too high"
+        );
+        require(
+            _feeConfig[2] <= WITHDRAWAL_FEE_HARD_CAP,
+            "withdrawalFee too high"
+        );
+        require(
+            _feeConfig[3] <= MANAGEMENT_FEE_HARD_CAP,
+            "managementFee too high"
+        );
 
         string memory name;
         string memory symbol;
@@ -183,13 +210,17 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         if (keccak256(abi.encodePacked(_name)) != keccak256("")) {
             name = _name;
         } else {
-            name = string(abi.encodePacked(_defaultNamePrefix, namedToken.name()));
+            name = string(
+                abi.encodePacked(_defaultNamePrefix, namedToken.name())
+            );
         }
 
         if (keccak256(abi.encodePacked(_symbol)) != keccak256("")) {
             symbol = _symbol;
         } else {
-            symbol = string(abi.encodePacked(_symbolSymbolPrefix, namedToken.symbol()));
+            symbol = string(
+                abi.encodePacked(_symbolSymbolPrefix, namedToken.symbol())
+            );
         }
 
         // Initializing the lpcomponent token
@@ -223,7 +254,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
     /// @notice Checks whether a call is from guardian or governance.
     function _onlyAuthorizedPausers() internal view {
-        require(msg.sender == guardian || msg.sender == governance, "onlyPausers");
+        require(
+            msg.sender == guardian || msg.sender == governance,
+            "onlyPausers"
+        );
     }
 
     /// @notice Checks whether a call is from the strategy.
@@ -277,7 +311,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev See `_depositForWithAuthorization` for details on guestlist authorization.
     /// @param _amount Quantity of tokens to deposit.
     /// @param proof Merkle proof to validate in the guestlist.
-    function deposit(uint256 _amount, bytes32[] memory proof) external whenNotPaused {
+    function deposit(uint256 _amount, bytes32[] memory proof)
+        external
+        whenNotPaused
+    {
         _depositWithAuthorization(_amount, proof);
     }
 
@@ -285,7 +322,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     ///         Note that deposits are not accepted when the Sett is paused or when `pausedDeposit` is true.
     /// @dev See `_depositFor` for details on how deposit is implemented.
     function depositAll() external whenNotPaused {
-        _depositWithAuthorization(token.balanceOf(msg.sender), new bytes32[](0));
+        _depositWithAuthorization(
+            token.balanceOf(msg.sender),
+            new bytes32[](0)
+        );
     }
 
     /// @notice Deposits all tokens, issuing shares.
@@ -302,7 +342,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev See `_depositFor` for details on how deposit is implemented.
     /// @param _recipient Address to issue the Sett shares to.
     /// @param _amount Quantity of tokens to deposit.
-    function depositFor(address _recipient, uint256 _amount) external whenNotPaused {
+    function depositFor(address _recipient, uint256 _amount)
+        external
+        whenNotPaused
+    {
         _depositForWithAuthorization(_recipient, _amount, new bytes32[](0));
     }
 
@@ -372,7 +415,12 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         // Update time either way
         lastHarvestedAt = harvestTime;
 
-        emit Harvested(address(token), _harvestedAmount, block.number, block.timestamp);
+        emit Harvested(
+            address(token),
+            _harvestedAmount,
+            block.number,
+            block.timestamp
+        );
     }
 
     /// @notice Used by the strategy to report harvest of additional tokens to the sett.
@@ -386,22 +434,40 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     function reportAdditionalToken(address _token) external nonReentrant {
         _onlyStrategy();
         require(address(token) != _token, "No want");
-        uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(address(this));
+        uint256 tokenBalance = IERC20Upgradeable(_token).balanceOf(
+            address(this)
+        );
 
-        additionalTokensEarned[_token] = additionalTokensEarned[_token] + tokenBalance;
+        additionalTokensEarned[_token] =
+            additionalTokensEarned[_token] +
+            tokenBalance;
         lastAdditionalTokenAmount[_token] = tokenBalance;
 
         // We may have more, but we still report only what the strat sent
-        uint256 governanceRewardsFee = _calculateFee(tokenBalance, performanceFeeGovernance);
-        uint256 strategistRewardsFee = _calculateFee(tokenBalance, performanceFeeStrategist);
+        uint256 governanceRewardsFee = _calculateFee(
+            tokenBalance,
+            performanceFeeGovernance
+        );
+        uint256 strategistRewardsFee = _calculateFee(
+            tokenBalance,
+            performanceFeeStrategist
+        );
 
         IERC20Upgradeable(_token).safeTransfer(treasury, governanceRewardsFee);
-        IERC20Upgradeable(_token).safeTransfer(strategist, strategistRewardsFee);
+        IERC20Upgradeable(_token).safeTransfer(
+            strategist,
+            strategistRewardsFee
+        );
 
         // Send rest to tree
         uint256 newBalance = IERC20Upgradeable(_token).balanceOf(address(this));
         IERC20Upgradeable(_token).safeTransfer(badgerTree, newBalance);
-        emit TreeDistribution(_token, newBalance, block.number, block.timestamp);
+        emit TreeDistribution(
+            _token,
+            newBalance,
+            block.number,
+            block.timestamp
+        );
     }
 
     /// ===== Permissioned Actions: Governance =====
@@ -432,7 +498,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         /// NOTE: Migrate funds if settings strategy when already existing one
         if (strategy != address(0)) {
-            require(IStrategy(strategy).balanceOf() == 0, "Please withdrawToVault before changing strat");
+            require(
+                IStrategy(strategy).balanceOf() == 0,
+                "Please withdrawToVault before changing strat"
+            );
         }
         strategy = _strategy;
         emit SetStrategy(_strategy);
@@ -533,9 +602,15 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     ///         This can be called by either governance or strategist.
     /// @dev See `reportHarvest` and `reportAdditionalToken` to see how performance fees are charged.
     /// @param _performanceFeeStrategist The new performance fee.
-    function setPerformanceFeeStrategist(uint256 _performanceFeeStrategist) external whenNotPaused {
+    function setPerformanceFeeStrategist(uint256 _performanceFeeStrategist)
+        external
+        whenNotPaused
+    {
         _onlyGovernanceOrStrategist();
-        require(_performanceFeeStrategist <= maxPerformanceFee, "Excessive strategist performance fee");
+        require(
+            _performanceFeeStrategist <= maxPerformanceFee,
+            "Excessive strategist performance fee"
+        );
         performanceFeeStrategist = _performanceFeeStrategist;
         emit SetPerformanceFeeStrategist(_performanceFeeStrategist);
     }
@@ -547,9 +622,15 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     ///         This can be called by either governance or strategist.
     /// @dev See `reportHarvest` and `reportAdditionalToken` to see how performance fees are charged.
     /// @param _performanceFeeGovernance The new performance fee.
-    function setPerformanceFeeGovernance(uint256 _performanceFeeGovernance) external whenNotPaused {
+    function setPerformanceFeeGovernance(uint256 _performanceFeeGovernance)
+        external
+        whenNotPaused
+    {
         _onlyGovernanceOrStrategist();
-        require(_performanceFeeGovernance <= maxPerformanceFee, "Excessive governance performance fee");
+        require(
+            _performanceFeeGovernance <= maxPerformanceFee,
+            "Excessive governance performance fee"
+        );
         performanceFeeGovernance = _performanceFeeGovernance;
         emit SetPerformanceFeeGovernance(_performanceFeeGovernance);
     }
@@ -602,7 +683,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         // Send all `_token` we have
         // Safe because `withdrawOther` will revert on protected tokens
         // Done this way works for both a donation to strategy or to vault
-        IERC20Upgradeable(_token).safeTransfer(governance, IERC20Upgradeable(_token).balanceOf(address(this)));
+        IERC20Upgradeable(_token).safeTransfer(
+            governance,
+            IERC20Upgradeable(_token).balanceOf(address(this))
+        );
     }
 
     /// @notice Deposits the available balance of the underlying token into the strategy.
@@ -657,7 +741,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     ///      Deposits are based on the realized value of underlying assets between Sett & associated Strategy
     /// @param _recipient Address to issue the Sett shares to.
     /// @param _amount Quantity of tokens to deposit.
-    function _depositFor(address _recipient, uint256 _amount) internal nonReentrant {
+    function _depositFor(address _recipient, uint256 _amount)
+        internal
+        nonReentrant
+    {
         require(_recipient != address(0), "Address 0");
         require(_amount != 0, "Amount 0");
         require(!pausedDeposit, "pausedDeposit"); // dev: deposits are paused
@@ -670,7 +757,9 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     }
 
     /// @dev See `_depositWithAuthorization`
-    function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof) internal {
+    function _depositWithAuthorization(uint256 _amount, bytes32[] memory proof)
+        internal
+    {
         _depositForWithAuthorization(msg.sender, _amount, proof);
     }
 
@@ -682,7 +771,10 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         bytes32[] memory proof
     ) internal {
         if (address(guestList) != address(0)) {
-            require(guestList.authorized(_recipient, _amount, proof), "GuestList: Not Authorized");
+            require(
+                guestList.authorized(_recipient, _amount, proof),
+                "GuestList: Not Authorized"
+            );
         }
         _depositFor(_recipient, _amount);
     }
@@ -724,7 +816,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @param amount Amount to calculate fee on.
     /// @param feeBps The fee to be charged in basis points.
     /// @return Amount of fees to take.
-    function _calculateFee(uint256 amount, uint256 feeBps) internal pure returns (uint256) {
+    function _calculateFee(uint256 amount, uint256 feeBps)
+        internal
+        pure
+        returns (uint256)
+    {
         if (feeBps == 0) {
             return 0;
         }
@@ -735,10 +831,20 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev Helper function to calculate governance and strategist performance fees. Make sure to use it to get paid!
     /// @param _amount Amount to calculate fee on.
     /// @return Tuple containing amount of (governance, strategist) fees to take.
-    function _calculatePerformanceFee(uint256 _amount) internal view returns (uint256, uint256) {
-        uint256 governancePerformanceFee = _calculateFee(_amount, performanceFeeGovernance);
+    function _calculatePerformanceFee(uint256 _amount)
+        internal
+        view
+        returns (uint256, uint256)
+    {
+        uint256 governancePerformanceFee = _calculateFee(
+            _amount,
+            performanceFeeGovernance
+        );
 
-        uint256 strategistPerformanceFee = _calculateFee(_amount, performanceFeeStrategist);
+        uint256 strategistPerformanceFee = _calculateFee(
+            _amount,
+            performanceFeeStrategist
+        );
 
         return (governancePerformanceFee, strategistPerformanceFee);
     }
@@ -764,12 +870,21 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
     /// @dev Helper function that issues shares based on performance and management fee when a harvest is reported.
     /// @param _harvestedAmount The harvested amount to take fee on.
     /// @param harvestTime Time of harvest (block.timestamp).
-    function _handleFees(uint256 _harvestedAmount, uint256 harvestTime) internal {
-        (uint256 feeGovernance, uint256 feeStrategist) = _calculatePerformanceFee(_harvestedAmount);
+    function _handleFees(uint256 _harvestedAmount, uint256 harvestTime)
+        internal
+    {
+        (
+            uint256 feeGovernance,
+            uint256 feeStrategist
+        ) = _calculatePerformanceFee(_harvestedAmount);
         uint256 duration = harvestTime - lastHarvestedAt;
 
         // Management fee is calculated against the assets before harvest, to make it fair to depositors
-        uint256 management_fee = managementFee > 0 ? (managementFee * (balance() - _harvestedAmount) * duration) / SECS_PER_YEAR / MAX_BPS : 0;
+        uint256 management_fee = managementFee > 0
+            ? (managementFee * (balance() - _harvestedAmount) * duration) /
+                SECS_PER_YEAR /
+                MAX_BPS
+            : 0;
         uint256 totalGovernanceFee = feeGovernance + management_fee;
 
         // Pool size is the size of the pool minus the fees, this way
@@ -784,7 +899,11 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
 
         if (feeStrategist != 0 && strategist != address(0)) {
             /// NOTE: adding feeGovernance backed to _pool as shares would have been issued for it.
-            _mintSharesFor(strategist, feeStrategist, _pool + totalGovernanceFee);
+            _mintSharesFor(
+                strategist,
+                feeStrategist,
+                _pool + totalGovernanceFee
+            );
         }
     }
 }

@@ -27,7 +27,10 @@ interface IStrategy {
 
     function tend() external returns (TokenAmount[] memory tended);
 
-    function balanceOfRewards() external view returns (TokenAmount[] memory rewards);
+    function balanceOfRewards()
+        external
+        view
+        returns (TokenAmount[] memory rewards);
 
     function emitNonProtectedToken(address _token) external;
 }

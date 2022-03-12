@@ -22,7 +22,10 @@ contract MockStrategy is BaseStrategy {
     /// @notice Proxies will set any non constant variable you declare as default value
     /// @dev add any extra changeable variable at end of initializer as shown
     /// @notice Dev must implement
-    function initialize(address _vault, address[] calldata _tokenConfig) public initializer {
+    function initialize(address _vault, address[] calldata _tokenConfig)
+        public
+        initializer
+    {
         __BaseStrategy_init(_vault);
         /// @dev Add config here
         reward = _tokenConfig[0];
@@ -43,7 +46,13 @@ contract MockStrategy is BaseStrategy {
         return "MockStrategy";
     }
 
-    function getProtectedTokens() public view virtual override returns (address[] memory) {
+    function getProtectedTokens()
+        public
+        view
+        virtual
+        override
+        returns (address[] memory)
+    {
         address[] memory protectedTokens = new address[](2);
         protectedTokens[0] = want;
         protectedTokens[1] = reward;
@@ -68,14 +77,26 @@ contract MockStrategy is BaseStrategy {
         // No-op as we don't deposit
     }
 
-    function _withdrawSome(uint256 _amount) internal override returns (uint256) {
+    function _withdrawSome(uint256 _amount)
+        internal
+        override
+        returns (uint256)
+    {
         if (lossBps > 0) {
-            IERC20Upgradeable(want).transfer(want, (_amount * lossBps) / MAX_BPS);
+            IERC20Upgradeable(want).transfer(
+                want,
+                (_amount * lossBps) / MAX_BPS
+            );
         }
         return _amount;
     }
 
-    function _harvest() internal view override returns (TokenAmount[] memory harvested) {
+    function _harvest()
+        internal
+        view
+        override
+        returns (TokenAmount[] memory harvested)
+    {
         harvested = new TokenAmount[](2);
         harvested[0] = TokenAmount(want, 0);
         harvested[1] = TokenAmount(reward, 0);
@@ -85,7 +106,11 @@ contract MockStrategy is BaseStrategy {
     /// @dev function to test harvest -
     // NOTE: want of 1 ether would be minted directly to MockStrategy and this function would be called
     /// @param amount how much was minted to report
-    function mockHarvest(uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
+    function mockHarvest(uint256 amount)
+        external
+        whenNotPaused
+        returns (TokenAmount[] memory harvested)
+    {
         _onlyAuthorizedActors();
 
         // Amount of want autocompounded after harvest in terms of want
@@ -98,7 +123,11 @@ contract MockStrategy is BaseStrategy {
         return harvested;
     }
 
-    function mockEmptyHarvest() external whenNotPaused returns (TokenAmount[] memory harvested) {
+    function mockEmptyHarvest()
+        external
+        whenNotPaused
+        returns (TokenAmount[] memory harvested)
+    {
         _onlyAuthorizedActors();
 
         // Amount of want autocompounded after harvest in terms of want
@@ -111,7 +140,11 @@ contract MockStrategy is BaseStrategy {
         return harvested;
     }
 
-    function mockHarvestEmitOnly(address token, uint256 amount) external whenNotPaused returns (TokenAmount[] memory harvested) {
+    function mockHarvestEmitOnly(address token, uint256 amount)
+        external
+        whenNotPaused
+        returns (TokenAmount[] memory harvested)
+    {
         _onlyAuthorizedActors();
 
         // Note: This breaks if you don't send amount to the strat
@@ -124,7 +157,12 @@ contract MockStrategy is BaseStrategy {
     }
 
     // Example tend is a no-op which returns the values, could also just revert
-    function _tend() internal view override returns (TokenAmount[] memory tended) {
+    function _tend()
+        internal
+        view
+        override
+        returns (TokenAmount[] memory tended)
+    {
         // Nothing tended
         tended = new TokenAmount[](2);
         tended[0] = TokenAmount(want, 0);
@@ -136,7 +174,12 @@ contract MockStrategy is BaseStrategy {
         return 0;
     }
 
-    function balanceOfRewards() external view override returns (TokenAmount[] memory rewards) {
+    function balanceOfRewards()
+        external
+        view
+        override
+        returns (TokenAmount[] memory rewards)
+    {
         // Rewards are 0
         rewards = new TokenAmount[](2);
         rewards[0] = TokenAmount(want, 0);

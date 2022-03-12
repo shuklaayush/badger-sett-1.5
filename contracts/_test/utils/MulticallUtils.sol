@@ -24,7 +24,8 @@ contract MulticallRegistry {
 }
 
 abstract contract MulticallUtils {
-    Vm constant vmUtils = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+    Vm constant vmUtils =
+        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     // TODO: Default to 99?
     function getChainIdOfHead() public returns (uint256 chainId_) {
