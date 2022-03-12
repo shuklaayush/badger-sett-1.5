@@ -745,6 +745,70 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
     // ===== Name Tests =====
     // ======================
 
+    function testInitializeWithNoName() public {
+        assertEq(
+            vault.name(),
+            string.concat("Badger Sett ", IERC20Metadata(WANT).name())
+        );
+    }
+
+    function testInitializeWithName() public {
+        Vault testVault = new Vault();
+        testVault.initialize(
+            WANT,
+            governance,
+            keeper,
+            guardian,
+            treasury,
+            strategist,
+            badgerTree,
+            "Test Vault",
+            "",
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
+        );
+
+        assertEq(testVault.name(), "Test Vault");
+    }
+
+    function testInitializeWithNoSymbol() public {
+        assertEq(
+            vault.symbol(),
+            string.concat("b", IERC20Metadata(WANT).symbol())
+        );
+    }
+
+    function testInitializeWithSymbol() public {
+        Vault testVault = new Vault();
+        testVault.initialize(
+            WANT,
+            governance,
+            keeper,
+            guardian,
+            treasury,
+            strategist,
+            badgerTree,
+            "",
+            "TEST",
+            [
+                PERFORMANCE_FEE_GOVERNANCE,
+                PERFORMANCE_FEE_STRATEGIST,
+                WITHDRAWAL_FEE,
+                MANAGEMENT_FEE
+            ]
+        );
+
+        assertEq(testVault.symbol(), "TEST");
+    }
+
+    function testVersion() public {
+        assertEq(vault.version(), "1.5");
+    }
+
     /// ============================
     /// ===== Internal helpers =====
     /// ============================
