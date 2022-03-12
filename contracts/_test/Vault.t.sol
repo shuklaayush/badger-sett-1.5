@@ -8,14 +8,13 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
-import {MulticallUtils} from "./utils/MulticallUtils.sol";
 import {SnapshotComparator} from "./utils/Snapshot.sol";
 
 import {Vault} from "../Vault.sol";
 import {MockStrategy} from "../mocks/MockStrategy.sol";
 import {MockToken} from "../mocks/MockToken.sol";
 
-abstract contract Config is MulticallUtils {
+abstract contract Config {
     address internal immutable WANT = address(new MockToken());
     address[1] internal EMITS = [address(new MockToken())];
 
@@ -23,8 +22,6 @@ abstract contract Config is MulticallUtils {
     uint256 public constant PERFORMANCE_FEE_STRATEGIST = 0;
     uint256 public constant WITHDRAWAL_FEE = 10;
     uint256 public constant MANAGEMENT_FEE = 2;
-
-    address internal immutable MULTICALL = address(0);
 }
 
 abstract contract Utils {
@@ -132,7 +129,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
 
         erc20utils.forceMint(WANT, AMOUNT_TO_MINT);
 
-        comparator = new SnapshotComparator(MULTICALL);
+        comparator = new SnapshotComparator();
     }
 
     // ======================
@@ -651,153 +648,53 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
     // ===== Deposit Tests =====
     // =========================
 
+    function testDepositOnce() public {
+        uint256 amount = IERC20(WANT).balanceOf(address(this));
+        depositChecked(amount);
+    }
+
+    function testDepositFailsIfAmountIsZero() public {
+        vm.expectRevert("Amount 0");
+        vault.deposit(0);
+    }
+
+    function testDepositFailsWhenPaused() public {
+        vm.prank(governance);
+        vault.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.deposit(1);
+    }
+
+    function testDepositFailsWhenDepositsArePaused() public {
+        vm.prank(governance);
+        vault.pauseDeposits();
+
+        vm.expectRevert("pausedDeposit");
+        vault.deposit(1);
+    }
+
+    function testDepositAll() public {
+        depositAllChecked();
+    }
+
+    function testDepositForOnce() public {
+        uint256 amount = IERC20(WANT).balanceOf(address(this));
+        depositForChecked(amount, rando);
+    }
+
     /*
-
-def test_deposit(deposit_setup, deployer, governance):
-    vault = deposit_setup.deployed_vault
-    want = deposit_setup.want
-    depositAmount = deposit_setup.depositAmount
-
-    # Test basic deposit
-    balance_before_deposit = vault.balance()
-
-    vault.deposit(depositAmount, {"from": deployer})
-
-    balance_after_deposit = vault.balance()
-
-    assert balance_after_deposit - balance_before_deposit == depositAmount
-
-    with brownie.reverts("Amount 0"):
-        vault.deposit(0, {"from": deployer})
-
-    # Test deposit when vault is paused
-    vault.pause({"from": governance})
-
-    assert vault.paused() == True
-
-    with brownie.reverts("Pausable: paused"):
-        vault.deposit(depositAmount, {"from": deployer})
-
-    vault.unpause({"from": governance})
-
-    assert vault.paused() == False
-
-    # Test deposit when deposits are paused
-    vault.pauseDeposits({"from": governance})
-
-    assert vault.pausedDeposit() == True
-
-    with brownie.reverts("pausedDeposit"):
-        vault.deposit(depositAmount, {"from": deployer})
-
-    vault.unpauseDeposits({"from": governance})
-
-
-def test_depositFor(deposit_setup, deployer, governance, randomUser):
-    vault = deposit_setup.deployed_vault
-    want = deposit_setup.want
-    depositAmount = deposit_setup.depositAmount
-
-    # Test depositFor randomUser user
-    balance_before_deposit = vault.balance()
-
-    vault.depositFor(randomUser, depositAmount, {"from": deployer})
-
-    balance_after_deposit = vault.balance()
-
-    assert balance_after_deposit - balance_before_deposit == depositAmount
-    # check if balance is deposited for randomUser
-    assert vault.balanceOf(randomUser) == depositAmount
-
-    with brownie.reverts("Address 0"):
-        vault.depositFor(AddressZero, depositAmount, {"from": deployer})
-
-    # Test deposit when vault is paused
-    vault.pause({"from": governance})
-
-    assert vault.paused() == True
-
-    with brownie.reverts("Pausable: paused"):
-        vault.depositFor(randomUser, depositAmount, {"from": deployer})
-
-
-def test_depositAll(deposit_setup, deployer, governance):
-    vault = deposit_setup.deployed_vault
-    want = deposit_setup.want
-
-    depositAmount = want.balanceOf(deployer)
-
-    # Test depositAll
-    balance_before_deposit = vault.balance()
-
-    vault.depositAll({"from": deployer})
-
-    balance_after_deposit = vault.balance()
-
-    assert balance_after_deposit - balance_before_deposit == depositAmount
-
-    # Test deposit when vault is paused
-    vault.pause({"from": governance})
-
-    assert vault.paused() == True
-
-    with brownie.reverts("Pausable: paused"):
-        vault.depositAll({"from": deployer})
-
-
-def test_nonreentrant(
-    deployer, governance, keeper, guardian, strategist, badgerTree, randomUser
-):
-    token = MaliciousToken.deploy({"from": deployer})
-    token.initialize(
-        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
-    )
-
-    badger = MockToken.deploy({"from": deployer})
-    badger.initialize(
-        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
-    )
-
-    # NOTE: change strategist
-    vault = Vault.deploy({"from": deployer})
-    vault.initialize(
-        token,
-        governance,
-        keeper,
-        guardian,
-        governance,
-        strategist,
-        badgerTree,
-        "",
-        "",
-        [
-            0,
-            0,
-            0,
-            0,
-        ],
-    )
-
-    strategy = MockStrategy.deploy({"from": deployer})
-    strategy.initialize(vault, [token, badger])
-
-    vault.setStrategy(strategy, {"from": governance})
-
-    depositAmount = token.balanceOf(deployer)
-
-    with brownie.reverts("ReentrancyGuard: reentrant call"):
-        vault.deposit(depositAmount, {"from": deployer})
-
      */
 
     /// ============================
     /// ===== Internal helpers =====
     /// ============================
 
-    function depositCheckedFrom(address _from, uint256 _amount)
-        internal
-        returns (uint256 shares_)
-    {
+    function prepareDepositFor(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal returns (uint256 expectedShares_) {
         comparator.addCall(
             "want.balanceOf(from)",
             WANT,
@@ -809,28 +706,41 @@ def test_nonreentrant(
             abi.encodeWithSignature("balanceOf(address)", address(vault))
         );
         comparator.addCall(
-            "vault.balanceOf(from)",
+            "vault.balanceOf(to)",
             address(vault),
-            abi.encodeWithSignature("balanceOf(address)", _from)
+            abi.encodeWithSignature("balanceOf(address)", _to)
         );
 
-        uint256 expectedShares = (_amount * 1e18) /
-            vault.getPricePerFullShare();
+        expectedShares_ = (_amount * 1e18) / vault.getPricePerFullShare();
 
         comparator.snapPrev();
+
         vm.startPrank(_from, _from);
-
         IERC20(WANT).approve(address(vault), _amount);
-        vault.deposit(_amount);
+    }
 
+    function postDeposit(uint256 _amount, uint256 _expectedShares)
+        internal
+        returns (uint256 shares_)
+    {
         vm.stopPrank();
+
         comparator.snapCurr();
 
         comparator.assertNegDiff("want.balanceOf(from)", _amount);
         comparator.assertDiff("want.balanceOf(vault)", _amount);
-        comparator.assertDiff("vault.balanceOf(from)", expectedShares);
+        comparator.assertDiff("vault.balanceOf(to)", _expectedShares);
 
-        shares_ = comparator.diff("vault.balanceOf(from)");
+        shares_ = comparator.diff("vault.balanceOf(to)");
+    }
+
+    function depositCheckedFrom(address _from, uint256 _amount)
+        internal
+        returns (uint256 shares_)
+    {
+        uint256 expectedShares = prepareDepositFor(_from, _from, _amount);
+        vault.deposit(_amount);
+        shares_ = postDeposit(_amount, expectedShares);
     }
 
     function depositChecked(uint256 _amount)
@@ -838,6 +748,37 @@ def test_nonreentrant(
         returns (uint256 shares_)
     {
         shares_ = depositCheckedFrom(address(this), _amount);
+    }
+
+    function depositForCheckedFrom(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal returns (uint256 shares_) {
+        uint256 expectedShares = prepareDepositFor(_from, _to, _amount);
+        vault.depositFor(_to, _amount);
+        shares_ = postDeposit(_amount, expectedShares);
+    }
+
+    function depositForChecked(uint256 _amount, address _to)
+        internal
+        returns (uint256 shares_)
+    {
+        shares_ = depositForCheckedFrom(address(this), _to, _amount);
+    }
+
+    function depositAllCheckedFrom(address _from)
+        internal
+        returns (uint256 shares_)
+    {
+        uint256 amount = IERC20(WANT).balanceOf(_from);
+        uint256 expectedShares = prepareDepositFor(_from, _from, amount);
+        vault.depositAll();
+        shares_ = postDeposit(amount, expectedShares);
+    }
+
+    function depositAllChecked() internal returns (uint256 shares_) {
+        shares_ = depositAllCheckedFrom(address(this));
     }
 
     function earnChecked() internal {
@@ -1091,4 +1032,5 @@ TODO:
 - Add guestlist
 - Add proxy
 - EOA lock
+- Comparator revert ==> test fail
 */

@@ -2,6 +2,8 @@
 pragma solidity >=0.6.0 <0.9.0;
 
 import {DSTest} from "ds-test/test.sol";
+import {Vm} from "forge-std/Vm.sol";
+import {Multicall3} from "multicall/Multicall3.sol";
 
 contract Snapshot {
     mapping(string => uint256) private values;
@@ -81,27 +83,24 @@ contract SnapshotUtils is DSTest {
     }
 }
 
-struct Call {
-    address target;
-    bytes callData;
-}
-
-interface IMulticall {
-    function aggregate(Call[] memory calls)
-        external
-        returns (uint256 blockNumber, bytes[] memory returnData);
-}
-
 contract SnapshotManager {
-    IMulticall multicall;
+    Vm constant vm_snapshot_manager =
+        Vm(address(bytes20(uint160(uint256(keccak256("hevm cheat code"))))));
+    Multicall3 constant MULTICALL =
+        Multicall3(0xcA11bde05977b3631167028862bE2a173976CA11);
 
     string[] private keys;
     mapping(string => bool) public exists;
 
-    Call[] private calls;
+    Multicall3.Call[] private calls;
 
-    constructor(address _multicall) {
-        multicall = IMulticall(_multicall);
+    constructor() {
+        if (address(MULTICALL).code.length == 0) {
+            vm_snapshot_manager.etch(
+                address(MULTICALL),
+                type(Multicall3).runtimeCode
+            );
+        }
     }
 
     function addCall(
@@ -112,12 +111,12 @@ contract SnapshotManager {
         if (!exists[_key]) {
             exists[_key] = true;
             keys.push(_key);
-            calls.push(Call(_target, _callData));
+            calls.push(Multicall3.Call(_target, _callData));
         }
     }
 
     function snap() public returns (Snapshot snap_) {
-        (, bytes[] memory rdata) = multicall.aggregate(calls);
+        (, bytes[] memory rdata) = MULTICALL.aggregate(calls);
         uint256 length = rdata.length;
 
         uint256[] memory vals = new uint256[](length);
@@ -130,10 +129,10 @@ contract SnapshotManager {
 }
 
 contract SnapshotComparator is SnapshotManager, SnapshotUtils {
-    Snapshot private sCurr;
-    Snapshot private sPrev;
+    Snapshot sCurr;
+    Snapshot sPrev;
 
-    constructor(address _multicall) SnapshotManager(_multicall) {}
+    constructor() {}
 
     function snapPrev() public {
         sPrev = snap();
