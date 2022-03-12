@@ -117,6 +117,10 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
     // ===== Unit Tests =====
     // ======================
 
+    // ========================
+    // ===== Config Tests =====
+    // ========================
+
     function testSetTreasuryIsProtected() public {
         vm.expectRevert("onlyGovernance");
         vault.setTreasury(address(this));
@@ -407,82 +411,187 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         vault.setManagementFee(100);
     }
 
+    // ============================
+    // ===== Deployment Tests =====
+    // ============================
+
+    function testGovernanceIsSetProperly() public {
+        assertEq(vault.governance(), governance);
+    }
+
+    function testKeeperIsSetProperly() public {
+        assertEq(vault.keeper(), keeper);
+    }
+
+    function testGuardianIsSetProperly() public {
+        assertEq(vault.guardian(), guardian);
+    }
+
+    function testTokenIsSetProperly() public {
+        assertEq(address(vault.token()), address(WANT));
+    }
+
+    function testTreasuryIsSetProperly() public {
+        assertEq(vault.treasury(), treasury);
+    }
+
+    function testToEarnBpsIsSetProperly() public {
+        assertEq(vault.toEarnBps(), 9_500);
+    }
+
+    function testPerformanceFeeGovernanceIsSetProperly() public {
+        assertEq(vault.performanceFeeGovernance(), PERFORMANCE_FEE_GOVERNANCE);
+    }
+
+    function testPerformanceFeeStrategistIsSetProperly() public {
+        assertEq(vault.performanceFeeStrategist(), PERFORMANCE_FEE_STRATEGIST);
+    }
+
+    function testWithdrawalFeeIsSetProperly() public {
+        assertEq(vault.withdrawalFee(), WITHDRAWAL_FEE);
+    }
+
+    function testManagementFeeIsSetProperly() public {
+        assertEq(vault.managementFee(), MANAGEMENT_FEE);
+    }
+
+    function testMaxBpsIsSetProperly() public {
+        assertEq(vault.MAX_BPS(), 10_000);
+    }
+
+    function testMaxPerformanceFeeIsSetProperly() public {
+        assertEq(vault.maxPerformanceFee(), 3_000);
+    }
+
+    function testMaxWithdrawalFeeIsSetProperly() public {
+        assertEq(vault.maxWithdrawalFee(), 200);
+    }
+
+    function testMaxManagementFeeIsSetProperly() public {
+        assertEq(vault.maxManagementFee(), 200);
+    }
+
+    function testInitializeFailsWhenTokenIsAddressZero() public {
+        Vault testVault = new Vault();
+        vm.expectRevert(bytes(""));
+        testVault.initialize(
+            address(0),
+            governance,
+            keeper,
+            guardian,
+            treasury,
+            strategist,
+            badgerTree,
+            "",
+            "",
+            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+        );
+    }
+
+    function testInitializeFailsWhenGovernanceIsAddressZero() public {
+        Vault testVault = new Vault();
+        vm.expectRevert(bytes(""));
+        testVault.initialize(
+            address(WANT),
+            address(0),
+            keeper,
+            guardian,
+            treasury,
+            strategist,
+            badgerTree,
+            "",
+            "",
+            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+        );
+    }
+
+    function testInitializeFailsWhenKeeperIsAddressZero() public {
+        Vault testVault = new Vault();
+        vm.expectRevert(bytes(""));
+        testVault.initialize(
+            address(WANT),
+            governance,
+            address(0),
+            guardian,
+            treasury,
+            strategist,
+            badgerTree,
+            "",
+            "",
+            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+        );
+    }
+
+    function testInitializeFailsWhenGuardianIsAddressZero() public {
+        Vault testVault = new Vault();
+        vm.expectRevert(bytes(""));
+        testVault.initialize(
+            address(WANT),
+            governance,
+            keeper,
+            address(0),
+            treasury,
+            strategist,
+            badgerTree,
+            "",
+            "",
+            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+        );
+    }
+
+    function testInitializeFailsWhenTreasuryIsAddressZero() public {
+        Vault testVault = new Vault();
+        vm.expectRevert(bytes(""));
+        testVault.initialize(
+            address(WANT),
+            governance,
+            keeper,
+            guardian,
+            address(0),
+            strategist,
+            badgerTree,
+            "",
+            "",
+            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+        );
+    }
+
+    function testInitializeFailsWhenStrategistIsAddressZero() public {
+        Vault testVault = new Vault();
+        vm.expectRevert(bytes(""));
+        testVault.initialize(
+            address(WANT),
+            governance,
+            keeper,
+            guardian,
+            treasury,
+            address(0),
+            badgerTree,
+            "",
+            "",
+            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+        );
+    }
+
+    function testInitializeFailsWhenBadgerTreeIsAddressZero() public {
+        Vault testVault = new Vault();
+        vm.expectRevert(bytes(""));
+        testVault.initialize(
+            address(WANT),
+            governance,
+            keeper,
+            guardian,
+            treasury,
+            strategist,
+            address(0),
+            "",
+            "",
+            [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
+        );
+    }
+
     /*
-def test_vault_deployment(
-    deployer, governance, keeper, guardian, strategist, badgerTree, token
-):
-    vault = Vault.deploy({"from": deployer})
-    vault.initialize(
-        token,
-        governance,
-        keeper,
-        guardian,
-        governance,
-        strategist,
-        badgerTree,
-        "",
-        "",
-        [
-            performanceFeeGovernance,
-            performanceFeeStrategist,
-            withdrawalFee,
-            managementFee,
-        ],
-    )
-
-    # Addresses
-    assert vault.governance() == governance
-    assert vault.keeper() == keeper
-    assert vault.guardian() == guardian
-    assert vault.token() == token
-    assert vault.treasury() == governance
-
-    # Params
-    assert vault.toEarnBps() == 9_500
-    assert vault.performanceFeeGovernance() == performanceFeeGovernance
-    assert vault.performanceFeeStrategist() == performanceFeeStrategist
-    assert vault.withdrawalFee() == withdrawalFee
-    assert vault.managementFee() == managementFee
-    assert vault.MAX_BPS() == 10_000
-    assert vault.maxPerformanceFee() == 3_000
-    assert vault.maxWithdrawalFee() == 200
-    assert vault.maxManagementFee() == 200
-
-
-def test_vault_deployment_badArgument(
-    deployer, governance, keeper, guardian, strategist, badgerTree, token
-):
-    vault = Vault.deploy({"from": deployer})
-    default_address_args = [
-        token,
-        governance,
-        keeper,
-        guardian,
-        governance,
-        strategist,
-        badgerTree,
-    ]
-
-    for i in range(len(default_address_args)):
-        address_args = [
-            default_address_args[j] if j != i else AddressZero
-            for j in range(len(default_address_args))
-        ]
-
-        with brownie.reverts():
-            vault.initialize(
-                *address_args,
-                "",
-                "",
-                [
-                    performanceFeeGovernance,
-                    performanceFeeStrategist,
-                    withdrawalFee,
-                    managementFee,
-                ],
-            )
-
-*/
+     */
 }
 
 /*
