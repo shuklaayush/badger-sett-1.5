@@ -22,11 +22,10 @@ contract MockStrategy is BaseStrategy {
     /// @notice Proxies will set any non constant variable you declare as default value
     /// @dev add any extra changeable variable at end of initializer as shown
     /// @notice Dev must implement
-    function initialize(address _vault, address[2] calldata _tokenConfig) public initializer {
+    function initialize(address _vault, address[] calldata _tokenConfig) public initializer {
         __BaseStrategy_init(_vault);
         /// @dev Add config here
-        want = _tokenConfig[0];
-        reward = _tokenConfig[1];
+        reward = _tokenConfig[0];
 
         autoCompoundRatio = 10_000; // Percentage of reward we reinvest into want
 

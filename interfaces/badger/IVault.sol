@@ -3,6 +3,8 @@
 pragma solidity 0.8.12;
 
 interface IVault {
+    function token() external view returns (address);
+
     function rewards() external view returns (address);
 
     function reportHarvest(uint256 _harvestedAmount) external;

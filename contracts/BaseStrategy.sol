@@ -68,6 +68,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
         __Pausable_init();
 
         vault = _vault;
+        want = IVault(vault).token();
 
         withdrawalMaxDeviationThreshold = 50; // BPS
         // NOTE: See above
