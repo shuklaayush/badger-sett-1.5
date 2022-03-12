@@ -4,6 +4,8 @@ pragma solidity 0.8.12;
 import {DSTest} from "ds-test/test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {MulticallUtils} from "./utils/MulticallUtils.sol";
 import {SnapshotComparator} from "./utils/Snapshot.sol";
@@ -13,8 +15,8 @@ import {MockStrategy} from "../mocks/MockStrategy.sol";
 import {MockToken} from "../mocks/MockToken.sol";
 
 abstract contract Config is MulticallUtils {
-    MockToken internal immutable WANT = new MockToken();
-    MockToken internal immutable EXTRA = new MockToken();
+    address internal immutable WANT = address(new MockToken());
+    address[1] internal EMITS = [address(new MockToken())];
 
     uint256 public constant PERFORMANCE_FEE_GOVERNANCE = 1_500;
     uint256 public constant PERFORMANCE_FEE_STRATEGIST = 0;
@@ -91,7 +93,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
 
     function setUp() public {
         vault.initialize(
-            address(WANT),
+            WANT,
             governance,
             keeper,
             guardian,
@@ -103,12 +105,17 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
             [PERFORMANCE_FEE_GOVERNANCE, PERFORMANCE_FEE_STRATEGIST, WITHDRAWAL_FEE, MANAGEMENT_FEE]
         );
 
-        strategy.initialize(address(vault), [address(WANT), address(EXTRA)]);
+        uint256 numRewards = EMITS.length;
+        address[] memory rewards = new address[](numRewards);
+        for (uint256 i; i < numRewards; ++i) {
+            rewards[i] = EMITS[i];
+        }
+        strategy.initialize(address(vault), rewards);
 
         vm.prank(governance);
         vault.setStrategy(address(strategy));
 
-        erc20utils.forceMint(address(WANT), AMOUNT_TO_MINT);
+        erc20utils.forceMint(WANT, AMOUNT_TO_MINT);
 
         comparator = new SnapshotComparator(MULTICALL);
     }
@@ -428,7 +435,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
     }
 
     function testTokenIsSetProperly() public {
-        assertEq(address(vault.token()), address(WANT));
+        assertEq(address(vault.token()), WANT);
     }
 
     function testTreasuryIsSetProperly() public {
@@ -492,7 +499,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         Vault testVault = new Vault();
         vm.expectRevert(bytes(""));
         testVault.initialize(
-            address(WANT),
+            WANT,
             address(0),
             keeper,
             guardian,
@@ -509,7 +516,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         Vault testVault = new Vault();
         vm.expectRevert(bytes(""));
         testVault.initialize(
-            address(WANT),
+            WANT,
             governance,
             address(0),
             guardian,
@@ -526,7 +533,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         Vault testVault = new Vault();
         vm.expectRevert(bytes(""));
         testVault.initialize(
-            address(WANT),
+            WANT,
             governance,
             keeper,
             address(0),
@@ -543,7 +550,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         Vault testVault = new Vault();
         vm.expectRevert(bytes(""));
         testVault.initialize(
-            address(WANT),
+            WANT,
             governance,
             keeper,
             guardian,
@@ -560,7 +567,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         Vault testVault = new Vault();
         vm.expectRevert(bytes(""));
         testVault.initialize(
-            address(WANT),
+            WANT,
             governance,
             keeper,
             guardian,
@@ -577,7 +584,7 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         Vault testVault = new Vault();
         vm.expectRevert(bytes(""));
         testVault.initialize(
-            address(WANT),
+            WANT,
             governance,
             keeper,
             guardian,
@@ -590,8 +597,332 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         );
     }
 
+    // =========================
+    // ===== Deposit Tests =====
+    // =========================
+
     /*
+
+def test_deposit(deposit_setup, deployer, governance):
+    vault = deposit_setup.deployed_vault
+    want = deposit_setup.want
+    depositAmount = deposit_setup.depositAmount
+
+    # Test basic deposit
+    balance_before_deposit = vault.balance()
+
+    vault.deposit(depositAmount, {"from": deployer})
+
+    balance_after_deposit = vault.balance()
+
+    assert balance_after_deposit - balance_before_deposit == depositAmount
+
+    with brownie.reverts("Amount 0"):
+        vault.deposit(0, {"from": deployer})
+
+    # Test deposit when vault is paused
+    vault.pause({"from": governance})
+
+    assert vault.paused() == True
+
+    with brownie.reverts("Pausable: paused"):
+        vault.deposit(depositAmount, {"from": deployer})
+
+    vault.unpause({"from": governance})
+
+    assert vault.paused() == False
+
+    # Test deposit when deposits are paused
+    vault.pauseDeposits({"from": governance})
+
+    assert vault.pausedDeposit() == True
+
+    with brownie.reverts("pausedDeposit"):
+        vault.deposit(depositAmount, {"from": deployer})
+
+    vault.unpauseDeposits({"from": governance})
+
+
+def test_depositFor(deposit_setup, deployer, governance, randomUser):
+    vault = deposit_setup.deployed_vault
+    want = deposit_setup.want
+    depositAmount = deposit_setup.depositAmount
+
+    # Test depositFor randomUser user
+    balance_before_deposit = vault.balance()
+
+    vault.depositFor(randomUser, depositAmount, {"from": deployer})
+
+    balance_after_deposit = vault.balance()
+
+    assert balance_after_deposit - balance_before_deposit == depositAmount
+    # check if balance is deposited for randomUser
+    assert vault.balanceOf(randomUser) == depositAmount
+
+    with brownie.reverts("Address 0"):
+        vault.depositFor(AddressZero, depositAmount, {"from": deployer})
+
+    # Test deposit when vault is paused
+    vault.pause({"from": governance})
+
+    assert vault.paused() == True
+
+    with brownie.reverts("Pausable: paused"):
+        vault.depositFor(randomUser, depositAmount, {"from": deployer})
+
+
+def test_depositAll(deposit_setup, deployer, governance):
+    vault = deposit_setup.deployed_vault
+    want = deposit_setup.want
+
+    depositAmount = want.balanceOf(deployer)
+
+    # Test depositAll
+    balance_before_deposit = vault.balance()
+
+    vault.depositAll({"from": deployer})
+
+    balance_after_deposit = vault.balance()
+
+    assert balance_after_deposit - balance_before_deposit == depositAmount
+
+    # Test deposit when vault is paused
+    vault.pause({"from": governance})
+
+    assert vault.paused() == True
+
+    with brownie.reverts("Pausable: paused"):
+        vault.depositAll({"from": deployer})
+
+
+def test_nonreentrant(
+    deployer, governance, keeper, guardian, strategist, badgerTree, randomUser
+):
+    token = MaliciousToken.deploy({"from": deployer})
+    token.initialize(
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
+    )
+
+    badger = MockToken.deploy({"from": deployer})
+    badger.initialize(
+        [deployer.address, randomUser.address], [100 * 10**18, 100 * 10**18]
+    )
+
+    # NOTE: change strategist
+    vault = Vault.deploy({"from": deployer})
+    vault.initialize(
+        token,
+        governance,
+        keeper,
+        guardian,
+        governance,
+        strategist,
+        badgerTree,
+        "",
+        "",
+        [
+            0,
+            0,
+            0,
+            0,
+        ],
+    )
+
+    strategy = MockStrategy.deploy({"from": deployer})
+    strategy.initialize(vault, [token, badger])
+
+    vault.setStrategy(strategy, {"from": governance})
+
+    depositAmount = token.balanceOf(deployer)
+
+    with brownie.reverts("ReentrancyGuard: reentrant call"):
+        vault.deposit(depositAmount, {"from": deployer})
+
      */
+
+    /// ============================
+    /// ===== Internal helpers =====
+    /// ============================
+
+    function depositCheckedFrom(address _from, uint256 _amount) internal returns (uint256 shares_) {
+        comparator.addCall("want.balanceOf(from)", WANT, abi.encodeWithSignature("balanceOf(address)", _from));
+        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
+        comparator.addCall("vault.balanceOf(from)", address(vault), abi.encodeWithSignature("balanceOf(address)", _from));
+
+        uint256 expectedShares = (_amount * 1e18) / vault.getPricePerFullShare();
+
+        comparator.snapPrev();
+        vm.startPrank(_from, _from);
+
+        IERC20(WANT).approve(address(vault), _amount);
+        vault.deposit(_amount);
+
+        vm.stopPrank();
+        comparator.snapCurr();
+
+        comparator.assertNegDiff("want.balanceOf(from)", _amount);
+        comparator.assertDiff("want.balanceOf(vault)", _amount);
+        comparator.assertDiff("vault.balanceOf(from)", expectedShares);
+
+        shares_ = comparator.diff("vault.balanceOf(from)");
+    }
+
+    function depositChecked(uint256 _amount) internal returns (uint256 shares_) {
+        shares_ = depositCheckedFrom(address(this), _amount);
+    }
+
+    function earnChecked() internal {
+        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
+        comparator.addCall("strategy.balanceOfPool()", address(strategy), abi.encodeWithSignature("balanceOfPool()"));
+
+        uint256 expectedEarn = (IERC20(WANT).balanceOf(address(vault)) * vault.toEarnBps()) / MAX_BPS;
+
+        comparator.snapPrev();
+        vm.prank(keeper);
+
+        vault.earn();
+
+        comparator.snapCurr();
+
+        comparator.assertNegDiff("want.balanceOf(vault)", expectedEarn);
+        comparator.assertDiff("strategy.balanceOfPool()", expectedEarn);
+    }
+
+    function withdrawCheckedFrom(address _from, uint256 _shares) internal returns (uint256 amount_) {
+        comparator.addCall("vault.balanceOf(from)", address(vault), abi.encodeWithSignature("balanceOf(address)", _from));
+        comparator.addCall("want.balanceOf(from)", WANT, abi.encodeWithSignature("balanceOf(address)", _from));
+        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
+        comparator.addCall("want.balanceOf(strategy)", WANT, abi.encodeWithSignature("balanceOf(address)", address(strategy)));
+        comparator.addCall("want.balanceOf(treasury)", WANT, abi.encodeWithSignature("balanceOf(address)", treasury));
+        comparator.addCall("strategy.balanceOfPool()", address(strategy), abi.encodeWithSignature("balanceOfPool()"));
+
+        uint256 expectedAmount = (_shares * vault.getPricePerFullShare()) / 1e18;
+
+        comparator.snapPrev();
+        vm.prank(_from, _from);
+
+        vault.withdraw(_shares);
+
+        comparator.snapCurr();
+
+        comparator.assertNegDiff("vault.balanceOf(from)", _shares);
+
+        if (expectedAmount <= comparator.prev("want.balanceOf(vault)")) {
+            comparator.assertNegDiff("want.balanceOf(vault)", expectedAmount);
+            comparator.assertDiff("want.balanceOf(from)", expectedAmount);
+        } else {
+            uint256 required = expectedAmount - comparator.prev("want.balanceOf(vault)");
+            uint256 fee = (required * vault.withdrawalFee()) / MAX_BPS;
+
+            if (required <= comparator.prev("want.balanceOf(strategy)")) {
+                assertEq(comparator.curr("want.balanceOf(vault)"), 0);
+                comparator.assertNegDiff("want.balanceOf(strategy)", required);
+            } else {
+                required = required - comparator.prev("want.balanceOf(strategy)");
+
+                assertEq(comparator.curr("want.balanceOf(vault)"), 0);
+                assertEq(comparator.curr("want.balanceOf(strategy)"), 0);
+                comparator.assertNegDiff("strategy.balanceOfPool()", required);
+            }
+
+            comparator.assertDiff("want.balanceOf(from)", expectedAmount - fee);
+            comparator.assertDiff("want.balanceOf(treasury)", fee);
+        }
+
+        amount_ = comparator.diff("want.balanceOf(from)");
+    }
+
+    function withdrawChecked(uint256 _shares) internal returns (uint256 amount_) {
+        amount_ = withdrawCheckedFrom(address(this), _shares);
+    }
+
+    function harvestChecked() internal {
+        uint256 numRewards = EMITS.length;
+        uint256 performanceFeeGovernance = vault.performanceFeeGovernance();
+        uint256 performanceFeeStrategist = vault.performanceFeeStrategist();
+
+        // TODO: There has to be a better way to do this
+        comparator.addCall("vault.getPricePerFullShare()", address(vault), abi.encodeWithSignature("getPricePerFullShare()"));
+        comparator.addCall("strategy.balanceOf()", address(strategy), abi.encodeWithSignature("balanceOf()"));
+
+        for (uint256 i; i < numRewards; ++i) {
+            comparator.addCall("bSexWftm.balanceOf(treasury)", address(EMITS[i]), abi.encodeWithSignature("balanceOf(address)", treasury));
+            comparator.addCall("bSexWftm.balanceOf(strategist)", address(EMITS[i]), abi.encodeWithSignature("balanceOf(address)", strategist));
+            comparator.addCall("bSexWftm.balanceOf(badgerTree)", address(EMITS[i]), abi.encodeWithSignature("balanceOf(address)", badgerTree));
+        }
+
+        comparator.snapPrev();
+        vm.startPrank(keeper);
+
+        for (uint256 i; i < numRewards; ++i) {
+            if (performanceFeeGovernance > 0) {
+                vm.expectEmit(true, true, true, false); // Not checking amount
+                emit PerformanceFeeGovernance(
+                    treasury,
+                    address(EMITS[i]),
+                    0, // dummy
+                    block.number,
+                    block.timestamp
+                );
+            }
+
+            if (performanceFeeStrategist > 0) {
+                vm.expectEmit(true, true, true, false); // Not checking amount
+                emit PerformanceFeeStrategist(
+                    strategist,
+                    address(EMITS[i]),
+                    0, // dummy
+                    block.number,
+                    block.timestamp
+                );
+            }
+        }
+
+        vm.expectEmit(true, false, false, true);
+        emit Harvest(0, block.number);
+
+        // TODO: Return value?
+        strategy.harvest();
+
+        vm.stopPrank();
+
+        comparator.snapCurr();
+
+        // assertEq(harvested, 0);
+
+        comparator.assertEq("vault.getPricePerFullShare()");
+        comparator.assertEq("strategy.balanceOf()");
+
+        for (uint256 i; i < numRewards; ++i) {
+            uint256 deltaBSexWftmBalanceOfTreasury = comparator.diff("bSexWftm.balanceOf(treasury)");
+            uint256 deltaBSexWftmBalanceOfStrategist = comparator.diff("bSexWftm.balanceOf(strategist)");
+            uint256 deltaBSexWftmBalanceOfBadgerTree = comparator.diff("bSexWftm.balanceOf(badgerTree)");
+
+            uint256 bSexWftmEmitted = deltaBSexWftmBalanceOfTreasury + deltaBSexWftmBalanceOfStrategist + deltaBSexWftmBalanceOfBadgerTree;
+
+            uint256 bSexWftmGovernanceFee = (bSexWftmEmitted * performanceFeeGovernance) / MAX_BPS;
+            uint256 bSexWftmStrategistFee = (bSexWftmEmitted * performanceFeeStrategist) / MAX_BPS;
+
+            assertEq(deltaBSexWftmBalanceOfTreasury, bSexWftmGovernanceFee);
+            assertEq(deltaBSexWftmBalanceOfStrategist, bSexWftmStrategistFee);
+            assertEq(deltaBSexWftmBalanceOfBadgerTree, bSexWftmEmitted - bSexWftmGovernanceFee - bSexWftmStrategistFee);
+        }
+    }
+
+    function withdrawToVaultChecked() internal {
+        comparator.addCall("want.balanceOf(vault)", WANT, abi.encodeWithSignature("balanceOf(address)", address(vault)));
+        comparator.addCall("want.balanceOf(strategy)", WANT, abi.encodeWithSignature("balanceOf(address)", address(strategy)));
+
+        comparator.snapPrev();
+        vm.prank(governance);
+
+        vault.withdrawToVault();
+
+        comparator.snapCurr();
+
+        assertEq(comparator.curr("want.balanceOf(strategy)"), 0);
+        comparator.assertDiff("want.balanceOf(vault)", comparator.prev("want.balanceOf(strategy)"));
+    }
 }
 
 /*
