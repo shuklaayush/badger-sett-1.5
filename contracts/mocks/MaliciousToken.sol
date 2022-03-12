@@ -2,26 +2,16 @@
 
 pragma solidity 0.8.12;
 
-import "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 import {IVault} from "../../interfaces/badger/IVault.sol";
 
-contract MaliciousToken is ERC20Upgradeable {
+contract MaliciousToken is ERC20 {
     bool private hit;
 
-    function initialize(address[] memory holders, uint256[] memory balances)
-        public
-        initializer
-    {
-        __ERC20_init("badger.finance Malicious Token", "MALT");
-        require(
-            holders.length == balances.length,
-            "Constructor array size mismatch"
-        );
-        for (uint256 i = 0; i < holders.length; i++) {
-            _mint(holders[i], balances[i]);
-        }
-    }
+    constructor(string memory _name, string memory _symbol)
+        ERC20(_name, _symbol)
+    {}
 
     /// @dev Open minting capabilities
     function mint(address account, uint256 amount) public {

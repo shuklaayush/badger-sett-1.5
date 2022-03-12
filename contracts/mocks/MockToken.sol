@@ -2,22 +2,12 @@
 
 pragma solidity 0.8.12;
 
-import "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
-contract MockToken is ERC20Upgradeable {
-    function initialize(address[] memory holders, uint256[] memory balances)
-        public
-        initializer
-    {
-        __ERC20_init("badger.finance Mock Token", "MOCK");
-        require(
-            holders.length == balances.length,
-            "Constructor array size mismatch"
-        );
-        for (uint256 i = 0; i < holders.length; i++) {
-            _mint(holders[i], balances[i]);
-        }
-    }
+contract MockToken is ERC20 {
+    constructor(string memory _name, string memory _symbol)
+        ERC20(_name, _symbol)
+    {}
 
     /// @dev Open minting capabilities
     function mint(address account, uint256 amount) public {

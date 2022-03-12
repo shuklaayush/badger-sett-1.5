@@ -15,8 +15,8 @@ import {MockStrategy} from "../mocks/MockStrategy.sol";
 import {MockToken} from "../mocks/MockToken.sol";
 
 abstract contract Config {
-    address internal immutable WANT = address(new MockToken());
-    address[1] internal EMITS = [address(new MockToken())];
+    address internal immutable WANT = address(new MockToken("want", "WANT"));
+    address[1] internal EMITS = [address(new MockToken("emit", "EMIT"))];
 
     uint256 public constant PERFORMANCE_FEE_GOVERNANCE = 1_500;
     uint256 public constant PERFORMANCE_FEE_STRATEGIST = 0;
@@ -683,8 +683,67 @@ contract VaultTest is DSTest, stdCheats, Config, Utils {
         depositForChecked(amount, rando);
     }
 
-    /*
-     */
+    // ======================
+    // ===== Earn Tests =====
+    // ======================
+
+    function testGovernanceCanEarn() public {
+        vm.prank(governance);
+        vault.earn();
+    }
+
+    function testKeeperCanEarn() public {
+        vm.prank(keeper);
+        vault.earn();
+    }
+
+    function testEarnIsProtected() public {
+        vm.expectRevert("onlyAuthorizedActors");
+        vault.earn();
+    }
+
+    function testEarn() public {
+        uint256 amount = IERC20(WANT).balanceOf(address(this));
+
+        depositChecked(amount);
+        earnChecked();
+    }
+
+    function testEarnWhenPaused() public {
+        uint256 amount = IERC20(WANT).balanceOf(address(this));
+        depositChecked(amount);
+
+        vm.prank(governance);
+        vault.pause();
+
+        earnChecked();
+    }
+
+    function testEarnFailsWhenStrategyPaused() public {
+        uint256 amount = IERC20(WANT).balanceOf(address(this));
+        depositChecked(amount);
+
+        vm.startPrank(governance);
+        strategy.pause();
+
+        vm.expectRevert("Pausable: paused");
+        vault.earn();
+    }
+
+    function testEarnFailsWhenDepositsArePaused() public {
+        uint256 amount = IERC20(WANT).balanceOf(address(this));
+        depositChecked(amount);
+
+        vm.startPrank(governance);
+        vault.pauseDeposits();
+
+        vm.expectRevert("pausedDeposit");
+        vault.earn();
+    }
+
+    // ======================
+    // ===== Name Tests =====
+    // ======================
 
     /// ============================
     /// ===== Internal helpers =====
