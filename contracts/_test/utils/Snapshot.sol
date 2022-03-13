@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity >=0.6.0 <0.9.0;
 
-import {DSTest} from "ds-test/test.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {Multicall3} from "multicall/Multicall3.sol";
+
+import {ApproxUint256, ApproxUint256Utils} from "./ApproxUint256.sol";
+import {DSTest2} from "./DSTest2.sol";
 
 contract Snapshot {
     mapping(string => uint256) private values;
@@ -24,7 +26,13 @@ contract Snapshot {
     }
 }
 
-contract SnapshotUtils is DSTest {
+contract SnapshotUtils is DSTest2 {
+    using ApproxUint256Utils for ApproxUint256;
+
+    /// ===================
+    /// ===== Asserts =====
+    /// ===================
+
     function diff(
         Snapshot _snap1,
         Snapshot _snap2,
@@ -39,6 +47,31 @@ contract SnapshotUtils is DSTest {
         string calldata _key
     ) public {
         assertEq(_snap1.valOf(_key), _snap2.valOf(_key));
+    }
+
+    function assertApproxEq(
+        Snapshot _snap1,
+        Snapshot _snap2,
+        string calldata _key,
+        uint256 _tol
+    ) public {
+        ApproxUint256 memory a = ApproxUint256(_snap1.valOf(_key), 0);
+        ApproxUint256 memory b = ApproxUint256(_snap2.valOf(_key), _tol);
+        assertEq(a, b);
+    }
+
+    function assertApproxRelEq(
+        Snapshot _snap1,
+        Snapshot _snap2,
+        string calldata _key,
+        uint256 _tolBps
+    ) public {
+        ApproxUint256 memory a = ApproxUint256(_snap1.valOf(_key), 0);
+        ApproxUint256 memory b = ApproxUint256RelBps(
+            _snap2.valOf(_key),
+            _tolBps
+        );
+        assertEq(a, b);
     }
 
     function assertGt(
@@ -78,6 +111,15 @@ contract SnapshotUtils is DSTest {
         Snapshot _snap2,
         string calldata _key,
         uint256 _diff
+    ) public {
+        assertEq(_snap1.valOf(_key) - _snap2.valOf(_key), _diff);
+    }
+
+    function assertDiff(
+        Snapshot _snap1,
+        Snapshot _snap2,
+        string calldata _key,
+        ApproxUint256 memory _diff
     ) public {
         assertEq(_snap1.valOf(_key) - _snap2.valOf(_key), _diff);
     }
@@ -182,7 +224,19 @@ contract SnapshotComparator is SnapshotManager, SnapshotUtils {
         assertDiff(sCurr, sPrev, _key, _diff);
     }
 
+    function assertDiff(string calldata _key, ApproxUint256 memory _diff)
+        public
+    {
+        assertDiff(sCurr, sPrev, _key, _diff);
+    }
+
     function assertNegDiff(string calldata _key, uint256 _diff) public {
+        assertDiff(sPrev, sCurr, _key, _diff);
+    }
+
+    function assertNegDiff(string calldata _key, ApproxUint256 memory _diff)
+        public
+    {
         assertDiff(sPrev, sCurr, _key, _diff);
     }
 }
