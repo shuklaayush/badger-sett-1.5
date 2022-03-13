@@ -69,9 +69,7 @@ contract MockStrategy is BaseStrategy {
         lossBps = _lossBps;
     }
 
-    function _deposit(uint256 _amount) internal override {
-        // No-op as we don't do anything
-    }
+    function _deposit(uint256 _amount) internal override {}
 
     function _withdrawAll() internal override {
         // No-op as we don't deposit
