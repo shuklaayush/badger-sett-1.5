@@ -6,7 +6,7 @@ import {stdCheats} from "forge-std/stdlib.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {ApproxUint256, ApproxUint256Utils} from "./utils/ApproxUint256.sol";
+import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol";
 import {DSTest2} from "./utils/DSTest2.sol";
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {SnapshotComparator} from "./utils/Snapshot.sol";
@@ -35,7 +35,7 @@ abstract contract Utils {
 }
 
 contract VaultTest is DSTest2, stdCheats, Config, Utils {
-    using ApproxUint256Utils for ApproxUint256;
+    using IntervalUint256Utils for IntervalUint256;
 
     // ==============
     // ===== Vm =====
@@ -73,7 +73,12 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
     // ===== Events =====
     // ==================
 
-    event Harvest(uint256 harvested, uint256 indexed blockNumber);
+    event Harvested(
+        address indexed token,
+        uint256 amount,
+        uint256 indexed blockNumber,
+        uint256 timestamp
+    );
 
     event TreeDistribution(
         address indexed token,
@@ -81,6 +86,7 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         uint256 indexed blockNumber,
         uint256 timestamp
     );
+
     event PerformanceFeeGovernance(
         address indexed destination,
         address indexed token,
@@ -88,6 +94,7 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         uint256 indexed blockNumber,
         uint256 timestamp
     );
+
     event PerformanceFeeStrategist(
         address indexed destination,
         address indexed token,
@@ -966,6 +973,33 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         withdrawToVaultChecked();
     }
 
+    /// ========================
+    /// ===== Report Tests =====
+    /// ========================
+
+    function testReportHarvestIsProtected() public {
+        vm.expectRevert("onlyStrategy");
+        vault.reportHarvest(0);
+    }
+
+    function testStrategyCanReportHarvest() public {
+        vm.prank(address(strategy));
+        vault.reportHarvest(0);
+    }
+
+    function testReportHarvest() public {
+        vm.expectEmit(true, true, false, true);
+        emit Harvested(address(WANT), 0, block.number, block.timestamp);
+
+        vm.prank(address(strategy));
+        vault.reportHarvest(0);
+
+        assertEq(vault.lastHarvestAmount(), 0);
+        assertEq(vault.assetsAtLastHarvest(), 0);
+        assertEq(vault.lastHarvestedAt(), block.timestamp);
+        assertEq(vault.lifeTimeEarned(), 0);
+    }
+
     /// ============================
     /// ===== Internal helpers =====
     /// ============================
@@ -1145,22 +1179,24 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
     function postWithdraw(uint256 _shares) internal returns (uint256 amount_) {
         comparator.snapCurr();
 
-        ApproxUint256 memory expectedAmountWithoutFee = ApproxUint256RelBps(
-            (_shares * comparator.prev("vault.getPricePerFullShare()")) / 1e18,
-            10
-        );
+        IntervalUint256 memory expectedAmountWithoutFee = IntervalUint256Utils
+            .fromMaxAndTolBps(
+                (_shares * comparator.prev("vault.getPricePerFullShare()")) /
+                    1e18,
+                10
+            );
 
-        ApproxUint256 memory withdrawalFee = expectedAmountWithoutFee
+        IntervalUint256 memory withdrawalFee = expectedAmountWithoutFee
             .mul(vault.withdrawalFee())
             .div(MAX_BPS);
 
         // TODO: management fee
-        ApproxUint256 memory fee = withdrawalFee;
-        ApproxUint256 memory feeInShares = fee.mul(1e18).div(
+        IntervalUint256 memory fee = withdrawalFee;
+        IntervalUint256 memory feeInShares = fee.mul(1e18).div(
             comparator.prev("vault.getPricePerFullShare()")
         );
 
-        ApproxUint256 memory expectedAmount = expectedAmountWithoutFee.sub(
+        IntervalUint256 memory expectedAmount = expectedAmountWithoutFee.sub(
             fee,
             true
         );
@@ -1176,7 +1212,7 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         ) {
             comparator.assertNegDiff("want.balanceOf(vault)", expectedAmount);
         } else {
-            ApproxUint256 memory required = expectedAmountWithoutFee.sub(
+            IntervalUint256 memory required = expectedAmountWithoutFee.sub(
                 comparator.prev("want.balanceOf(vault)")
             );
             assertEq(comparator.curr("want.balanceOf(vault)"), fee);
@@ -1290,7 +1326,7 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         }
 
         vm.expectEmit(true, false, false, true);
-        emit Harvest(0, block.number);
+        emit Harvested(address(WANT), 0, block.number, block.timestamp);
 
         // TODO: Return value?
         strategy.harvest();
@@ -1372,12 +1408,17 @@ TODO:
 - EOA lock
 - Comparator revert ==> test fail
 - Unchecked deposit in earn tests etc.
+- Helpers: deposit, depositAndEarn, depositAndEarnAndHarvest
+- vm.expectEmit everywhere
 
 - Vault improvements:
  - Way to charge withdrawal fee without transferring want to vault?
  - Less checks/gas improvements
  - Simplify share math if possible
  - Auth instead of access control
+ - Time weight harvest amounts for calculating apr on-chain? (store accumulated vals)
+ - reportHarvest automated? (what if balanceOfPool changes with harvest?)
+ - Remove timestamp/bn from events
 
 - Strategy improvements:
  - Take want from vault
