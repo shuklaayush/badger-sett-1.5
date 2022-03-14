@@ -1,160 +1,24 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.12;
 
-import {Vm} from "forge-std/Vm.sol";
-import {stdCheats} from "forge-std/stdlib.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import {BaseFixture} from "./BaseFixture.sol";
 import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol";
-import {DSTest2} from "./utils/DSTest2.sol";
-import {ERC20Utils} from "./utils/ERC20Utils.sol";
-import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
 import {Vault} from "../Vault.sol";
 import {MockStrategy} from "../mocks/MockStrategy.sol";
 import {MockToken} from "../mocks/MockToken.sol";
 
-abstract contract Config {
-    address internal immutable WANT = address(new MockToken("want", "WANT"));
-    address[1] internal EMITS = [address(new MockToken("emit", "EMIT"))];
-
-    uint256 public constant PERFORMANCE_FEE_GOVERNANCE = 1_500;
-    uint256 public constant PERFORMANCE_FEE_STRATEGIST = 0;
-    uint256 public constant WITHDRAWAL_FEE = 10;
-    uint256 public constant MANAGEMENT_FEE = 2;
-}
-
-abstract contract Utils {
-    function getAddress(string memory _name)
-        internal
-        pure
-        returns (address addr_)
-    {
-        addr_ = address(uint160(uint256(keccak256(bytes(_name)))));
-    }
-}
-
-contract VaultTest is DSTest2, stdCheats, Config, Utils {
+contract VaultTest is BaseFixture {
     using IntervalUint256Utils for IntervalUint256;
-
-    // ==============
-    // ===== Vm =====
-    // ==============
-
-    Vm constant vm = Vm(HEVM_ADDRESS);
-
-    ERC20Utils immutable erc20utils = new ERC20Utils();
-    SnapshotComparator comparator;
-
-    // =====================
-    // ===== Constants =====
-    // =====================
-
-    address immutable governance = getAddress("governance");
-    address immutable strategist = getAddress("strategist");
-    address immutable guardian = getAddress("guardian");
-    address immutable keeper = getAddress("keeper");
-    address immutable treasury = getAddress("treasury");
-    address immutable badgerTree = getAddress("badgerTree");
-
-    address immutable rando = getAddress("rando");
-
-    uint256 constant MAX_BPS = 10_000;
-    uint256 constant AMOUNT_TO_MINT = 10e18;
-
-    // =================
-    // ===== State =====
-    // =================
-
-    Vault vault = new Vault();
-    MockStrategy strategy = new MockStrategy();
-
-    // ==================
-    // ===== Events =====
-    // ==================
-
-    event Harvested(
-        address indexed token,
-        uint256 amount,
-        uint256 indexed blockNumber,
-        uint256 timestamp
-    );
-
-    event TreeDistribution(
-        address indexed token,
-        uint256 amount,
-        uint256 indexed blockNumber,
-        uint256 timestamp
-    );
-
-    event PerformanceFeeGovernance(
-        address indexed destination,
-        address indexed token,
-        uint256 amount,
-        uint256 indexed blockNumber,
-        uint256 timestamp
-    );
-
-    event PerformanceFeeStrategist(
-        address indexed destination,
-        address indexed token,
-        uint256 amount,
-        uint256 indexed blockNumber,
-        uint256 timestamp
-    );
 
     // ==================
     // ===== Set up =====
     // ==================
 
-    function setUp() public {
-        vm.label(address(this), "this");
-
-        vm.label(WANT, IERC20Metadata(WANT).symbol());
-        vm.label(governance, "governance");
-        vm.label(keeper, "keeper");
-        vm.label(guardian, "guardian");
-        vm.label(treasury, "treasury");
-        vm.label(strategist, "strategist");
-        vm.label(badgerTree, "badgerTree");
-
-        vm.label(rando, "rando");
-
-        vm.label(address(vault), "vault");
-        vm.label(address(strategy), "strategy");
-
-        vault.initialize(
-            WANT,
-            governance,
-            keeper,
-            guardian,
-            treasury,
-            strategist,
-            badgerTree,
-            "",
-            "",
-            [
-                PERFORMANCE_FEE_GOVERNANCE,
-                PERFORMANCE_FEE_STRATEGIST,
-                WITHDRAWAL_FEE,
-                MANAGEMENT_FEE
-            ]
-        );
-
-        uint256 numRewards = EMITS.length;
-        address[] memory rewards = new address[](numRewards);
-        for (uint256 i; i < numRewards; ++i) {
-            rewards[i] = EMITS[i];
-            vm.label(EMITS[i], IERC20Metadata(EMITS[i]).symbol());
-        }
-        strategy.initialize(address(vault), rewards);
-
-        vm.prank(governance);
-        vault.setStrategy(address(strategy));
-
-        erc20utils.forceMint(WANT, AMOUNT_TO_MINT);
-
-        comparator = new SnapshotComparator();
+    function setUp() public override {
+        BaseFixture.setUp();
     }
 
     // ======================
@@ -1024,84 +888,6 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         }
     }
 
-    /// ==========================
-    /// ===== Strategy Tests =====
-    /// ==========================
-
-    // ============================
-    // ===== Deployment Tests =====
-    // ============================
-
-    function testStrategyVaultIsSetProperly() public {
-        assertEq(strategy.vault(), address(vault));
-    }
-
-    function testStrategyGovernanceIsSetProperly() public {
-        assertEq(strategy.governance(), governance);
-    }
-
-    function testStrategyKeeperIsSetProperly() public {
-        assertEq(strategy.keeper(), keeper);
-    }
-
-    function testStrategyGuardianIsSetProperly() public {
-        assertEq(strategy.guardian(), guardian);
-    }
-
-    function testWithdrawalMaxDeviationThresholdIsSetProperly() public {
-        assertEq(strategy.withdrawalMaxDeviationThreshold(), 50);
-    }
-
-    function testStrategyMaxBpsIsSetProperly() public {
-        assertEq(strategy.MAX_BPS(), 10_000);
-    }
-
-    function testStrategyInitializeFailsWhenVaultIsAddressZero() public {
-        MockStrategy mockStrategy = new MockStrategy();
-        vm.expectRevert("Address 0");
-        mockStrategy.initialize(address(0), new address[](0));
-    }
-
-    /// ========================
-    /// ===== Config Tests =====
-    /// ========================
-
-    function testSetWithdrawalMaxDeviationThresholdIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        strategy.setWithdrawalMaxDeviationThreshold(0);
-    }
-
-    function testGovernanceCanSetWithdrawalMaxDeviationThreshold() public {
-        vm.prank(governance);
-        strategy.setWithdrawalMaxDeviationThreshold(10);
-
-        assertEq(strategy.withdrawalMaxDeviationThreshold(), 10);
-    }
-
-    function testSetWithdrawalMaxDeviationThresholdFailsWhenMoreThanMax()
-        public
-    {
-        vm.prank(governance);
-        vm.expectRevert("_threshold should be <= MAX_BPS");
-        strategy.setWithdrawalMaxDeviationThreshold(100_000);
-    }
-
-    function testWantIsProtectedToken() public {
-        assertTrue(strategy.isProtectedToken(WANT));
-    }
-
-    function testEmittedIsProtectedToken() public {
-        uint256 numRewards = EMITS.length;
-        for (uint256 i; i < numRewards; ++i) {
-            assertTrue(strategy.isProtectedToken(EMITS[i]));
-        }
-    }
-
-    function testIsProtectedTokenFailsForAddressZero() public {
-        vm.expectRevert("Address 0");
-        strategy.isProtectedToken(address(0));
-    }
-
     /// ============================
     /// ===== Internal helpers =====
     /// ============================
@@ -1669,4 +1455,5 @@ TODO:
 - Strategy improvements:
   - Take want from vault
   - Less asserts/gas improvements
+  - BaseStrategy => Strategy
 */
