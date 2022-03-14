@@ -106,6 +106,14 @@ library IntervalUint256Utils {
         return IntervalUint256(u1.lo - u2, u1.hi - u2);
     }
 
+    function subFrom(IntervalUint256 memory u1, uint256 u2)
+        internal
+        pure
+        returns (IntervalUint256 memory)
+    {
+        return IntervalUint256(u2 - u1.lo, u2 - u1.hi);
+    }
+
     function sub(
         IntervalUint256 memory u1,
         IntervalUint256 memory u2,
