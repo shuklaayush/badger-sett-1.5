@@ -13,13 +13,17 @@ contract DSTest2 is DSTestPlus {
     {
         if (!a.contains(b)) {
             emit log("Error: (b in a) not satisfied [IntervalUint256]");
-            emit log_named_uint("  Expected", b.mean());
-            if (b.size() > 0) {
-                emit log_named_uint("        +-", b.size() / 2);
+            if (b.size() == 0) {
+                emit log_named_uint("       Expected", b.mean());
+            } else {
+                emit log_named_uint("  Expected (lo)", b.lo);
+                emit log_named_uint("           (hi)", b.hi);
             }
-            emit log_named_uint("    Actual", a.mean());
-            if (a.size() > 0) {
-                emit log_named_uint("        +-", a.size() / 2);
+            if (a.size() == 0) {
+                emit log_named_uint("         Actual", a.mean());
+            } else {
+                emit log_named_uint("    Actual (lo)", a.lo);
+                emit log_named_uint("           (hi)", a.hi);
             }
             fail();
         }

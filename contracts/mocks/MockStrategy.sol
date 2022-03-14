@@ -80,13 +80,9 @@ contract MockStrategy is BaseStrategy {
         override
         returns (uint256)
     {
-        if (lossBps > 0) {
-            IERC20Upgradeable(want).transfer(
-                want,
-                (_amount * lossBps) / MAX_BPS
-            );
-        }
-        return _amount;
+        uint256 loss = (_amount * lossBps) / MAX_BPS;
+        IERC20Upgradeable(want).transfer(address(0xdEaD), loss);
+        return _amount - loss;
     }
 
     function _harvest()

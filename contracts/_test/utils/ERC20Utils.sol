@@ -11,8 +11,8 @@ contract ERC20Utils {
     // event Transfer(address indexed from, address indexed to, uint256 value);
 
     function forceMintTo(
-        address token,
         address account,
+        address token,
         uint256 amount
     ) public {
         stdstore
@@ -31,12 +31,12 @@ contract ERC20Utils {
     }
 
     function forceMint(address token, uint256 amount) external {
-        forceMintTo(token, msg.sender, amount);
+        forceMintTo(msg.sender, token, amount);
     }
 
     function forceBurnFrom(
-        address token,
         address account,
+        address token,
         uint256 amount
     ) public {
         stdstore
@@ -55,7 +55,7 @@ contract ERC20Utils {
     }
 
     function forceBurn(address token, uint256 amount) external {
-        forceBurnFrom(token, msg.sender, amount);
+        forceBurnFrom(msg.sender, token, amount);
     }
 
     // ============================
