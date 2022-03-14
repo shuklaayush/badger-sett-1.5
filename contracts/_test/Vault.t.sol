@@ -9,7 +9,7 @@ import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC
 import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol";
 import {DSTest2} from "./utils/DSTest2.sol";
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
-import {SnapshotComparator} from "./utils/Snapshot.sol";
+import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
 import {Vault} from "../Vault.sol";
 import {MockStrategy} from "../mocks/MockStrategy.sol";
 import {MockToken} from "../mocks/MockToken.sol";
@@ -1146,9 +1146,9 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         uint256 expectedShares = (_amount * 1e18) /
             comparator.prev("vault.getPricePerFullShare()");
 
-        comparator.assertNegDiff("want.balanceOf(from)", _amount);
-        comparator.assertDiff("want.balanceOf(vault)", _amount);
-        comparator.assertDiff("vault.balanceOf(to)", expectedShares);
+        assertEq(comparator.negDiff("want.balanceOf(from)"), _amount);
+        assertEq(comparator.diff("want.balanceOf(vault)"), _amount);
+        assertEq(comparator.diff("vault.balanceOf(to)"), expectedShares);
 
         shares_ = comparator.diff("vault.balanceOf(to)");
     }
@@ -1222,7 +1222,7 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
 
         comparator.snapCurr();
 
-        comparator.assertNegDiff("want.balanceOf(vault)", expectedEarn);
+        assertEq(comparator.negDiff("want.balanceOf(vault)"), expectedEarn);
 
         // TODO: Maybe relax this for loss making strategies?
         assertEq(comparator.diff("strategy.balanceOf()"), expectedEarn);
@@ -1270,7 +1270,7 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
         uint256 amountZeroFee = (_shares *
             comparator.prev("vault.getPricePerFullShare()")) / 1e18;
 
-        comparator.assertNegDiff("vault.balanceOf(from)", _shares);
+        assertEq(comparator.negDiff("vault.balanceOf(from)"), _shares);
 
         if (amountZeroFee <= comparator.prev("want.balanceOf(vault)")) {
             uint256 withdrawalFee = (amountZeroFee * WITHDRAWAL_FEE) / MAX_BPS;
@@ -1280,10 +1280,10 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
 
             uint256 amount = amountZeroFee - withdrawalFee;
 
-            comparator.assertNegDiff("want.balanceOf(vault)", amount);
-            comparator.assertDiff("want.balanceOf(from)", amount);
-            comparator.assertDiff(
-                "vault.balanceOf(treasury)",
+            assertEq(comparator.negDiff("want.balanceOf(vault)"), amount);
+            assertEq(comparator.diff("want.balanceOf(from)"), amount);
+            assertEq(
+                comparator.diff("vault.balanceOf(treasury)"),
                 withdrawalFeeInShares
             );
         } else {
@@ -1308,16 +1308,16 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
                 .div(comparator.prev("vault.getPricePerFullShare()"));
 
             assertEq(comparator.curr("want.balanceOf(vault)"), withdrawalFee);
-            comparator.assertDiff(
-                "want.balanceOf(from)",
+            assertEq(
+                comparator.diff("want.balanceOf(from)"),
                 amountZeroFeeInterval.sub(withdrawalFee, true)
             );
-            comparator.assertDiff(
-                "vault.balanceOf(treasury)",
+            assertEq(
+                comparator.diff("vault.balanceOf(treasury)"),
                 withdrawalFeeInShares
             );
-            comparator.assertNegDiff(
-                "strategy.balanceOf()",
+            assertEq(
+                comparator.negDiff("strategy.balanceOf()"),
                 amountFromStrategyInterval
             );
         }
@@ -1376,8 +1376,8 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
 
         assertEq(comparator.curr("strategy.balanceOf()"), 0);
         // TODO: Maybe relax this for loss making strategies?
-        comparator.assertDiff(
-            "want.balanceOf(vault)",
+        assertEq(
+            comparator.diff("want.balanceOf(vault)"),
             comparator.prev("strategy.balanceOf()")
         );
     }
@@ -1603,8 +1603,8 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
 
         // assertEq(harvested, 0);
 
-        comparator.assertEq("vault.getPricePerFullShare()");
-        comparator.assertEq("strategy.balanceOf()");
+        assertZe(comparator.diff("vault.getPricePerFullShare()"));
+        assertZe(comparator.diff("strategy.balanceOf()"));
 
         for (uint256 i; i < numRewards; ++i) {
             string memory name = IERC20Metadata(EMITS[i]).name();
@@ -1652,8 +1652,6 @@ TODO:
 - Helpers: deposit, depositAndEarn, depositAndEarnAndHarvest
 - vm.expectEmit everywhere
 - Vault doesn't care about strategy.balanceOfWant()/strategy.balanceOfPool(). Maybe move that to strat tests?
-- Remove comparator.assertDiff(...) => assertEq(comparator.diff, ...)
-  - No asserts in comparator?
 - More fuzzing? Fuzzing everywhere?
 
 - Vault improvements:

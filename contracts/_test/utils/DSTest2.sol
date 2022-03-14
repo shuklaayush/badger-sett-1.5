@@ -8,6 +8,14 @@ import {IntervalUint256, IntervalUint256Utils} from "./IntervalUint256.sol";
 contract DSTest2 is DSTestPlus {
     using IntervalUint256Utils for IntervalUint256;
 
+    function assertZe(uint256 a) internal {
+        if (a != 0) {
+            emit log("Error: a == 0 not satisfied [uint]");
+            emit log_named_uint("    Value", a);
+            fail();
+        }
+    }
+
     function assertContains(IntervalUint256 memory a, IntervalUint256 memory b)
         internal
     {
@@ -37,3 +45,8 @@ contract DSTest2 is DSTestPlus {
         assertContains(b, IntervalUint256Utils.fromUint256(a));
     }
 }
+
+/*
+TODO:
+- Maybe remove contains syntax
+*/
