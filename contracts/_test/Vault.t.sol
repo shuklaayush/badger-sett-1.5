@@ -1018,10 +1018,88 @@ contract VaultTest is DSTest2, stdCheats, Config, Utils {
     }
 
     function testReportAdditionalToken() public {
-        vm.prank(address(strategy));
-        vault.reportAdditionalToken(EMITS[0]);
+        uint256 numRewards = EMITS.length;
+        for (uint256 i; i < numRewards; ++i) {
+            reportAdditionalTokenChecked(EMITS[i], 1e18);
+        }
+    }
 
-        reportAdditionalTokenChecked(EMITS[0], 1e18);
+    /// ==========================
+    /// ===== Strategy Tests =====
+    /// ==========================
+
+    // ============================
+    // ===== Deployment Tests =====
+    // ============================
+
+    function testStrategyVaultIsSetProperly() public {
+        assertEq(strategy.vault(), address(vault));
+    }
+
+    function testStrategyGovernanceIsSetProperly() public {
+        assertEq(strategy.governance(), governance);
+    }
+
+    function testStrategyKeeperIsSetProperly() public {
+        assertEq(strategy.keeper(), keeper);
+    }
+
+    function testStrategyGuardianIsSetProperly() public {
+        assertEq(strategy.guardian(), guardian);
+    }
+
+    function testWithdrawalMaxDeviationThresholdIsSetProperly() public {
+        assertEq(strategy.withdrawalMaxDeviationThreshold(), 50);
+    }
+
+    function testStrategyMaxBpsIsSetProperly() public {
+        assertEq(strategy.MAX_BPS(), 10_000);
+    }
+
+    function testStrategyInitializeFailsWhenVaultIsAddressZero() public {
+        MockStrategy mockStrategy = new MockStrategy();
+        vm.expectRevert("Address 0");
+        mockStrategy.initialize(address(0), new address[](0));
+    }
+
+    /// ========================
+    /// ===== Config Tests =====
+    /// ========================
+
+    function testSetWithdrawalMaxDeviationThresholdIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        strategy.setWithdrawalMaxDeviationThreshold(0);
+    }
+
+    function testGovernanceCanSetWithdrawalMaxDeviationThreshold() public {
+        vm.prank(governance);
+        strategy.setWithdrawalMaxDeviationThreshold(10);
+
+        assertEq(strategy.withdrawalMaxDeviationThreshold(), 10);
+    }
+
+    function testSetWithdrawalMaxDeviationThresholdFailsWhenMoreThanMax()
+        public
+    {
+        vm.prank(governance);
+        vm.expectRevert("_threshold should be <= MAX_BPS");
+        strategy.setWithdrawalMaxDeviationThreshold(100_000);
+    }
+
+    function testWantIsProtectedToken() public {
+        assertTrue(strategy.isProtectedToken(WANT));
+    }
+
+    function testEmittedIsProtectedToken() public {
+        uint256 numRewards = EMITS.length;
+        for (uint256 i; i < numRewards; ++i) {
+            assertTrue(strategy.isProtectedToken(EMITS[i]));
+        }
+    }
+
+    function testIsProtectedTokenFailsForAddressZero() public {
+        vm.expectRevert("Address 0");
+        strategy.isProtectedToken(address(0));
     }
 
     /// ============================
@@ -1576,10 +1654,11 @@ TODO:
 - Vault doesn't care about strategy.balanceOfWant()/strategy.balanceOfPool(). Maybe move that to strat tests?
 - Remove comparator.assertDiff(...) => assertEq(comparator.diff, ...)
   - No asserts in comparator?
+- More fuzzing? Fuzzing everywhere?
 
 - Vault improvements:
   - Way to charge withdrawal fee without transferring want to vault?
-  - Less checks/gas improvements
+  - Less asserts/gas improvements (maybe not in view funcs?)
   - Simplify share math if possible
   - Auth instead of access control
   - Time weight harvest amounts for calculating apr on-chain? (store accumulated vals)
@@ -1591,4 +1670,5 @@ TODO:
 
 - Strategy improvements:
   - Take want from vault
+  - Less asserts/gas improvements
 */
