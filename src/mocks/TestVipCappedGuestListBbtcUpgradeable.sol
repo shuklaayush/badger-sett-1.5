@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.12;
 
-import "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
-
-import "../../interfaces/erc20/IERC20.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {MerkleProofUpgradeable} from "openzeppelin-contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 
 /**
  * @notice A basic guest list contract for testing.
@@ -124,7 +123,7 @@ contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
     function authorized(
         address _guest,
         uint256 _amount,
-        bytes32[] calldata _merkleProof
+        bytes32[] calldata // TODO: Why isn't this used?
     ) external view returns (bool) {
         // Yes: If the user is on the list, and under the cap
         // Yes: If the user is not on the list, and is under the cap
