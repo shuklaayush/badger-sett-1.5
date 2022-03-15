@@ -13,7 +13,8 @@ contract MockStrategy is BaseStrategy {
     // address public lpComponent; // Token that represents ownership in a pool, not always used
     address public reward; // Token we farm
 
-    uint256 public lossBps;
+    uint256 private lossBps;
+    uint256 private harvestAmount;
 
     /// @notice set using setAutoCompoundRatio()
     // uint256 public autoCompoundRatio = 10_000; // Inherited from BaseStrategy - percentage of rewards converted to want
@@ -64,9 +65,11 @@ contract MockStrategy is BaseStrategy {
     }
 
     function setLossBps(uint256 _lossBps) public {
-        _onlyGovernance();
-
         lossBps = _lossBps;
+    }
+
+    function setHarvestAmount(uint256 _amount) public {
+        harvestAmount = _amount;
     }
 
     function _deposit(uint256 _amount) internal override {}
@@ -87,67 +90,21 @@ contract MockStrategy is BaseStrategy {
 
     function _harvest()
         internal
-        view
         override
         returns (TokenAmount[] memory harvested)
     {
-        harvested = new TokenAmount[](2);
-        harvested[0] = TokenAmount(want, 0);
-        harvested[1] = TokenAmount(reward, 0);
-        return harvested;
-    }
+        uint256 harvestRewardAmount = IERC20Upgradeable(reward).balanceOf(
+            address(this)
+        );
 
-    /// @dev function to test harvest -
-    // NOTE: want of 1 ether would be minted directly to MockStrategy and this function would be called
-    /// @param amount how much was minted to report
-    function mockHarvest(uint256 amount)
-        external
-        whenNotPaused
-        returns (TokenAmount[] memory harvested)
-    {
-        _onlyAuthorizedActors();
-
-        // Amount of want autocompounded after harvest in terms of want
-        // keep this to get paid!
-        _reportToVault(amount);
+        _reportToVault(harvestAmount);
+        if (harvestRewardAmount > 0) {
+            _processExtraToken(reward, harvestRewardAmount);
+        }
 
         harvested = new TokenAmount[](2);
-        harvested[0] = TokenAmount(want, amount);
-        harvested[1] = TokenAmount(reward, 0); // Nothing harvested for reward
-        return harvested;
-    }
-
-    function mockEmptyHarvest()
-        external
-        whenNotPaused
-        returns (TokenAmount[] memory harvested)
-    {
-        _onlyAuthorizedActors();
-
-        // Amount of want autocompounded after harvest in terms of want
-        // keep this to get paid!
-        _reportToVault(0);
-
-        harvested = new TokenAmount[](2);
-        harvested[0] = TokenAmount(want, 0);
-        harvested[1] = TokenAmount(reward, 0); // Nothing harvested for reward
-        return harvested;
-    }
-
-    function mockHarvestEmitOnly(address token, uint256 amount)
-        external
-        whenNotPaused
-        returns (TokenAmount[] memory harvested)
-    {
-        _onlyAuthorizedActors();
-
-        // Note: This breaks if you don't send amount to the strat
-        _processExtraToken(token, amount);
-
-        harvested = new TokenAmount[](2);
-        harvested[0] = TokenAmount(want, 0); // Nothing harvested for want
-        harvested[1] = TokenAmount(reward, amount);
-        return harvested;
+        harvested[0] = TokenAmount(want, harvestAmount);
+        harvested[1] = TokenAmount(reward, harvestRewardAmount);
     }
 
     // Example tend is a no-op which returns the values, could also just revert
