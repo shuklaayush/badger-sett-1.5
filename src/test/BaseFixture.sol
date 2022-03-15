@@ -499,10 +499,9 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         );
     }
 
-    function prepareReportAdditionalTokenChecked(
-        address _token,
-        string memory _name
-    ) internal {
+    function prepareReportAdditionalToken(address _token, string memory _name)
+        internal
+    {
         comparator.addCall(
             string.concat(_name, ".balanceOf(treasury)"),
             _token,
@@ -533,10 +532,9 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         );
     }
 
-    function prepareEventsReportAdditionalTokenChecked(
-        address _token,
-        uint256 _amount
-    ) internal {
+    function prepareEventsReportAdditionalToken(address _token, uint256 _amount)
+        internal
+    {
         uint256 governancePerformanceFee = (_amount *
             PERFORMANCE_FEE_GOVERNANCE) / MAX_BPS;
         uint256 strategistPerformanceFee = (_amount *
@@ -551,10 +549,9 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         );
     }
 
-    function postReportAdditionalTokenChecked(
-        string memory _name,
-        uint256 _amount
-    ) internal {
+    function postReportAdditionalToken(string memory _name, uint256 _amount)
+        internal
+    {
         uint256 governancePerformanceFee = (_amount *
             PERFORMANCE_FEE_GOVERNANCE) / MAX_BPS;
         uint256 strategistPerformanceFee = (_amount *
@@ -591,19 +588,19 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         uint256 _amount,
         string memory _name
     ) internal {
-        prepareReportAdditionalTokenChecked(_token, _name);
+        prepareReportAdditionalToken(_token, _name);
 
         comparator.snapPrev();
 
         erc20utils.forceMintTo(address(vault), _token, _amount);
 
-        prepareEventsReportAdditionalTokenChecked(_token, _amount);
+        prepareEventsReportAdditionalToken(_token, _amount);
         vm.prank(address(strategy));
         vault.reportAdditionalToken(_token);
 
         comparator.snapCurr();
 
-        postReportAdditionalTokenChecked(_name, _amount);
+        postReportAdditionalToken(_name, _amount);
     }
 
     function emitNonProtectedTokenChecked(
@@ -611,19 +608,19 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         uint256 _amount,
         string memory _name
     ) internal {
-        prepareReportAdditionalTokenChecked(_token, _name);
+        prepareReportAdditionalToken(_token, _name);
 
         comparator.snapPrev();
 
         erc20utils.forceMintTo(address(strategy), _token, _amount);
 
-        prepareEventsReportAdditionalTokenChecked(_token, _amount);
+        prepareEventsReportAdditionalToken(_token, _amount);
         vm.prank(governance);
         vault.emitNonProtectedToken(_token);
 
         comparator.snapCurr();
 
-        postReportAdditionalTokenChecked(_name, _amount);
+        postReportAdditionalToken(_name, _amount);
     }
 
     function prepareReportHarvest() internal {
@@ -680,7 +677,7 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         // );
     }
 
-    function prepareEventsHarvestChecked(uint256 _amount) internal {
+    function prepareEventsReportHarvest(uint256 _amount) internal {
         vm.expectEmit(true, true, false, true);
         emit Harvested(WANT, _amount, block.number, block.timestamp);
     }
@@ -747,7 +744,7 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
 
         erc20utils.forceMintTo(address(vault), WANT, _amount);
 
-        prepareEventsHarvestChecked(_amount);
+        prepareEventsReportHarvest(_amount);
         vm.prank(address(strategy));
         vault.reportHarvest(_amount);
 
@@ -767,7 +764,7 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
     ) internal {
         prepareReportHarvest();
         for (uint256 i; i < NUM_EMITS; ++i) {
-            prepareReportAdditionalTokenChecked(EMITS[i], EMITS_NAMES[i]);
+            prepareReportAdditionalToken(EMITS[i], EMITS_NAMES[i]);
         }
 
         comparator.snapPrev();
@@ -783,12 +780,9 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
             );
         }
 
-        prepareEventsHarvestChecked(_wantAmount);
+        prepareEventsReportHarvest(_wantAmount);
         for (uint256 i; i < NUM_EMITS; ++i) {
-            prepareEventsReportAdditionalTokenChecked(
-                EMITS[i],
-                _emitAmounts[i]
-            );
+            prepareEventsReportAdditionalToken(EMITS[i], _emitAmounts[i]);
         }
         vm.prank(keeper);
         strategy.harvest();
@@ -800,7 +794,7 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
 
         postReportHarvest(_wantAmount, _timeSinceLastHarvest);
         for (uint256 i; i < NUM_EMITS; ++i) {
-            postReportAdditionalTokenChecked(EMITS_NAMES[i], _emitAmounts[i]);
+            postReportAdditionalToken(EMITS_NAMES[i], _emitAmounts[i]);
         }
     }
 
