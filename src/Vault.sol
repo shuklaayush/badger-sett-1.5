@@ -2,19 +2,17 @@
 
 pragma solidity 0.8.12;
 
-import "openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "openzeppelin-contracts-upgradeable/security/PausableUpgradeable.sol";
-import "openzeppelin-contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {IERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {AddressUpgradeable} from "openzeppelin-contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {SafeERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/security/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "openzeppelin-contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-import "./lib/SettAccessControl.sol";
-
-import {IVault} from "../interfaces/badger/IVault.sol";
-import {IStrategy} from "../interfaces/badger/IStrategy.sol";
-import {IERC20Detailed} from "../interfaces/erc20/IERC20Detailed.sol";
-import {BadgerGuestListAPI} from "../interfaces/yearn/BadgerGuestlistApi.sol";
+import {SettAccessControl} from "./SettAccessControl.sol";
+import {IStrategy} from "./interfaces/IStrategy.sol";
+import {BadgerGuestListAPI} from "./interfaces/BadgerGuestlistApi.sol";
 
 /*
     Source: https://github.com/iearn-finance/yearn-protocol/blob/develop/contracts/vaults/yVault.sol
@@ -205,7 +203,7 @@ contract Vault is
 
         // If they are non empty string we'll use the custom names
         // Else just add the default prefix
-        IERC20Detailed namedToken = IERC20Detailed(_token);
+        IERC20Metadata namedToken = IERC20Metadata(_token);
 
         if (keccak256(abi.encodePacked(_name)) != keccak256("")) {
             name = _name;
