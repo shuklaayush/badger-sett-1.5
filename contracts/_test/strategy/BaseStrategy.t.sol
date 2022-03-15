@@ -3,9 +3,9 @@ pragma solidity 0.8.12;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
-import {BaseFixture} from "./BaseFixture.sol";
-import {MockStrategy} from "../mocks/MockStrategy.sol";
-import {MockToken} from "../mocks/MockToken.sol";
+import {BaseFixture} from "../BaseFixture.sol";
+import {MockStrategy} from "../../mocks/MockStrategy.sol";
+import {MockToken} from "../../mocks/MockToken.sol";
 
 contract BaseStrategyTest is BaseFixture {
     // ==================
@@ -54,11 +54,6 @@ contract BaseStrategyTest is BaseFixture {
     /// ===== Config Tests =====
     /// ========================
 
-    function testSetWithdrawalMaxDeviationThresholdIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        strategy.setWithdrawalMaxDeviationThreshold(0);
-    }
-
     function testGovernanceCanSetWithdrawalMaxDeviationThreshold() public {
         vm.prank(governance);
         strategy.setWithdrawalMaxDeviationThreshold(10);
@@ -93,9 +88,24 @@ contract BaseStrategyTest is BaseFixture {
     /// ===== Permission Tests =====
     /// ============================
 
-    function testDepositIsProtected() public {
-        vm.expectRevert("onlyAuthorizedActorsOrVault");
-        strategy.deposit();
+    function testGovernanceCanPause() public {
+        vm.prank(governance);
+        strategy.pause();
+
+        assertTrue(strategy.paused());
+    }
+
+    function testGuardianCanPause() public {
+        vm.prank(governance);
+        strategy.pause();
+    }
+
+    function testGovernanceCanUnpause() public {
+        vm.startPrank(governance);
+        strategy.pause();
+        strategy.unpause();
+
+        assertFalse(strategy.paused());
     }
 
     function testGovernanceCanDeposit() public {
@@ -111,19 +121,6 @@ contract BaseStrategyTest is BaseFixture {
     function testVaultCanDeposit() public {
         vm.prank(address(vault));
         strategy.deposit();
-    }
-
-    function testHarvestIsProtected() public {
-        vm.expectRevert("onlyAuthorizedActors");
-        strategy.harvest();
-    }
-
-    function testHarvestFailsWhenPaused() public {
-        vm.prank(governance);
-        strategy.pause();
-
-        vm.expectRevert("Pausable: paused");
-        strategy.harvest();
     }
 
     function testGovernanceCanHarvest() public {
@@ -147,20 +144,10 @@ contract BaseStrategyTest is BaseFixture {
         harvestChecked(1e18, emitAmounts);
     }
 
-    function testWithdrawToVaultIsProtected() public {
-        vm.expectRevert("onlyVault");
-        strategy.withdrawToVault();
-    }
-
     // TODO: Checked from Vault.t.sol
     function testVaultCanWithdrawToVault() public {
         vm.prank(address(vault));
         strategy.withdrawToVault();
-    }
-
-    function testWithdrawOtherIsProtected() public {
-        vm.expectRevert("onlyVault");
-        strategy.withdrawOther(address(0));
     }
 
     function testWithdrawOtherFailsForProtectedTokens() public {
@@ -178,11 +165,6 @@ contract BaseStrategyTest is BaseFixture {
         strategy.withdrawOther(address(extra));
     }
 
-    function testWithdrawIsProtected() public {
-        vm.expectRevert("onlyVault");
-        strategy.withdraw(1);
-    }
-
     function testCantWithdrawZeroAmount() public {
         vm.prank(address(vault));
         vm.expectRevert("Amount 0");
@@ -198,43 +180,6 @@ contract BaseStrategyTest is BaseFixture {
 
         assertEq(IERC20(WANT).balanceOf(address(strategy)), 0);
         assertEq(IERC20(WANT).balanceOf(address(vault)), 1);
-    }
-
-    /// =========================
-    /// ===== Pausing Tests =====
-    /// =========================
-
-    function testPauseIsProtected() public {
-        vm.expectRevert("onlyPausers");
-        strategy.pause();
-    }
-
-    function testGovernanceCanPause() public {
-        vm.prank(governance);
-        strategy.pause();
-
-        assertTrue(strategy.paused());
-    }
-
-    function testGuardianCanPause() public {
-        vm.prank(governance);
-        strategy.pause();
-    }
-
-    function testUnpauseIsProtected() public {
-        vm.prank(governance);
-        strategy.pause();
-
-        vm.expectRevert("onlyGovernance");
-        strategy.unpause();
-    }
-
-    function testGovernanceCanUnpause() public {
-        vm.startPrank(governance);
-        strategy.pause();
-        strategy.unpause();
-
-        assertFalse(strategy.paused());
     }
 }
 

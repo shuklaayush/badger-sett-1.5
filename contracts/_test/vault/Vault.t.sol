@@ -4,9 +4,9 @@ pragma solidity 0.8.12;
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {BaseFixture} from "./BaseFixture.sol";
-import {Vault} from "../Vault.sol";
-import {MockToken} from "../mocks/MockToken.sol";
+import {BaseFixture} from "../BaseFixture.sol";
+import {Vault} from "../../Vault.sol";
+import {MockToken} from "../../mocks/MockToken.sol";
 
 contract VaultTest is BaseFixture {
     // ==================
@@ -25,11 +25,6 @@ contract VaultTest is BaseFixture {
     // ===== Config Tests =====
     // ========================
 
-    function testSetTreasuryIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setTreasury(address(this));
-    }
-
     function testGovernanceCanSetTreasury() public {
         vm.prank(governance);
         vault.setTreasury(address(this));
@@ -41,11 +36,6 @@ contract VaultTest is BaseFixture {
         vm.prank(governance);
         vm.expectRevert("Address 0");
         vault.setTreasury(address(0));
-    }
-
-    function testSetGuestListIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.setGuestList(address(this));
     }
 
     function testGovernanceCanSetGuestList() public {
@@ -62,19 +52,6 @@ contract VaultTest is BaseFixture {
         assertEq(address(vault.guestList()), address(this));
     }
 
-    function testSetGuestListFailsWhenPaused() public {
-        vm.startPrank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.setGuestList(address(this));
-    }
-
-    function testSetGuardianIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setGuardian(address(this));
-    }
-
     function testGovernanceCanSetGuardian() public {
         vm.prank(governance);
         vault.setGuardian(address(this));
@@ -86,11 +63,6 @@ contract VaultTest is BaseFixture {
         vm.prank(governance);
         vm.expectRevert("Address cannot be 0x0");
         vault.setGuardian(address(0));
-    }
-
-    function testSetToEarnIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.setToEarnBps(1_000);
     }
 
     function testGovernanceCanSetToEarnBps() public {
@@ -113,19 +85,6 @@ contract VaultTest is BaseFixture {
         vault.setToEarnBps(100_000);
     }
 
-    function testSetToEarnBpsFailsWhenPaused() public {
-        vm.startPrank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.setToEarnBps(100_000);
-    }
-
-    function testSetMaxPerformanceFeeIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setMaxPerformanceFee(1_000);
-    }
-
     function testGovernanceCanSetMaxPerformanceFee() public {
         vm.prank(governance);
         vault.setMaxPerformanceFee(1_000);
@@ -137,11 +96,6 @@ contract VaultTest is BaseFixture {
         vm.prank(governance);
         vm.expectRevert("performanceFee too high");
         vault.setMaxPerformanceFee(100_000);
-    }
-
-    function testSetMaxWithdrawalFeeIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setMaxWithdrawalFee(1_000);
     }
 
     function testGovernanceCanSetMaxWithdrawalFee() public {
@@ -157,11 +111,6 @@ contract VaultTest is BaseFixture {
         vault.setMaxWithdrawalFee(100_000);
     }
 
-    function testSetMaxManagementFeeIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setMaxManagementFee(1_000);
-    }
-
     function testGovernanceCanSetMaxManagementFee() public {
         vm.prank(governance);
         vault.setMaxManagementFee(100);
@@ -173,11 +122,6 @@ contract VaultTest is BaseFixture {
         vm.prank(governance);
         vm.expectRevert("managementFee too high");
         vault.setMaxManagementFee(100_000);
-    }
-
-    function testSetPerformanceFeeStrategistIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.setPerformanceFeeStrategist(1_000);
     }
 
     function testGovernanceCanSetPerformanceFeeStrategist() public {
@@ -202,19 +146,6 @@ contract VaultTest is BaseFixture {
         vault.setPerformanceFeeStrategist(maxPerformanceFee + 1);
     }
 
-    function testSetPerformanceFeeStrategistFailsWhenPaused() public {
-        vm.startPrank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.setPerformanceFeeStrategist(100);
-    }
-
-    function testSetPerformanceFeeGovernanceIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.setPerformanceFeeGovernance(1_000);
-    }
-
     function testGovernanceCanSetPerformanceFeeGovernance() public {
         vm.prank(governance);
         vault.setPerformanceFeeGovernance(100);
@@ -235,19 +166,6 @@ contract VaultTest is BaseFixture {
         vm.prank(governance);
         vm.expectRevert("Excessive governance performance fee");
         vault.setPerformanceFeeGovernance(maxPerformanceFee + 1);
-    }
-
-    function testSetPerformanceFeeGovernanceFailsWhenPaused() public {
-        vm.startPrank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.setPerformanceFeeGovernance(100);
-    }
-
-    function testSetWithdrawalFeeIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.setWithdrawalFee(1_000);
     }
 
     function testGovernanceCanSetWithdrawalFee() public {
@@ -272,19 +190,6 @@ contract VaultTest is BaseFixture {
         vault.setWithdrawalFee(maxWithdrawalFee + 1);
     }
 
-    function testSetWithdrawalFeeFailsWhenPaused() public {
-        vm.startPrank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.setWithdrawalFee(100);
-    }
-
-    function testSetManagementFeeIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.setManagementFee(1_000);
-    }
-
     function testGovernanceCanSetManagementFee() public {
         vm.prank(governance);
         vault.setManagementFee(100);
@@ -307,31 +212,11 @@ contract VaultTest is BaseFixture {
         vault.setManagementFee(maxManagementFee + 1);
     }
 
-    function testSetManagementFeeFailsWhenPaused() public {
-        vm.startPrank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.setManagementFee(100);
-    }
-
-    // TODO: Maybe move to SettAccessControlsTest
-
-    function testSetStrategistIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setStrategist(address(this));
-    }
-
     function testGovernanceCanSetStrategist() public {
         vm.prank(governance);
         vault.setStrategist(address(this));
 
         assertEq(vault.strategist(), address(this));
-    }
-
-    function testSetKeeperIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setKeeper(address(this));
     }
 
     function testGovernanceCanSetKeeper() public {
@@ -341,21 +226,11 @@ contract VaultTest is BaseFixture {
         assertEq(vault.keeper(), address(this));
     }
 
-    function testSetGovernanceIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setGovernance(address(this));
-    }
-
     function testGovernanceCanSetGovernance() public {
         vm.prank(governance);
         vault.setGovernance(address(this));
 
         assertEq(vault.governance(), address(this));
-    }
-
-    function testSetStrategyIsProtected() public {
-        vm.expectRevert("onlyGovernance");
-        vault.setStrategy(address(this));
     }
 
     function testSetStrategyFailsWithAddressZero() public {
@@ -678,22 +553,6 @@ contract VaultTest is BaseFixture {
         vault.deposit(0);
     }
 
-    function testDepositFailsWhenPaused() public {
-        vm.prank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.deposit(1);
-    }
-
-    function testDepositFailsWhenDepositsArePaused() public {
-        vm.prank(governance);
-        vault.pauseDeposits();
-
-        vm.expectRevert("pausedDeposit");
-        vault.deposit(1);
-    }
-
     function testDepositAll() public {
         depositAllChecked();
     }
@@ -717,55 +576,14 @@ contract VaultTest is BaseFixture {
         vault.earn();
     }
 
-    function testEarnIsProtected() public {
-        vm.expectRevert("onlyAuthorizedActors");
-        vault.earn();
-    }
-
     function testEarn() public {
         depositAllChecked();
         earnChecked();
     }
 
-    function testEarnFailsWhenStrategyPaused() public {
-        depositAllChecked();
-
-        vm.startPrank(governance);
-        strategy.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.earn();
-    }
-
-    function testEarnFailsWhenDepositsArePaused() public {
-        depositAllChecked();
-
-        vm.startPrank(governance);
-        vault.pauseDeposits();
-
-        vm.expectRevert("pausedDeposit");
-        vault.earn();
-    }
-
     /// ==========================
     /// ===== Withdraw Tests =====
     /// ==========================
-
-    function testWithdrawFailsWhenPaused() public {
-        vm.prank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.withdraw(1);
-    }
-
-    function testWithdrawAllFailsWhenPaused() public {
-        vm.prank(governance);
-        vault.pause();
-
-        vm.expectRevert("Pausable: paused");
-        vault.withdraw(1);
-    }
 
     function testWithdrawFailsIfAmountIsZero() public {
         vm.expectRevert("0 Shares");
@@ -842,11 +660,6 @@ contract VaultTest is BaseFixture {
     /// ===== SweepExtraToken Tests =====
     /// =================================
 
-    function testSweepExtraTokenIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.sweepExtraToken(address(0));
-    }
-
     function testGovernanceCanSweepExtraToken() public {
         address extra = address(new MockToken("extra", "EXTR"));
         vm.prank(governance);
@@ -888,11 +701,6 @@ contract VaultTest is BaseFixture {
     /// ===== emitNonProtectedToken Tests =====
     /// =======================================
 
-    function testEmitNonProtectedTokenIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.emitNonProtectedToken(address(0));
-    }
-
     function testGovernanceCanEmitNonProtectedToken() public {
         address extra = address(new MockToken("extra", "EXTR"));
         vm.prank(governance);
@@ -928,11 +736,6 @@ contract VaultTest is BaseFixture {
     /// ===== WithdrawToVault Tests =====
     /// =================================
 
-    function testWithdrawToVaultIsProtected() public {
-        vm.expectRevert("onlyGovernanceOrStrategist");
-        vault.withdrawToVault();
-    }
-
     function testGovernanceCanWithdrawToVault() public {
         vm.prank(governance);
         vault.withdrawToVault();
@@ -956,11 +759,6 @@ contract VaultTest is BaseFixture {
     /// ===== Report Tests =====
     /// ========================
 
-    function testReportHarvestIsProtected() public {
-        vm.expectRevert("onlyStrategy");
-        vault.reportHarvest(0);
-    }
-
     function testStrategyCanReportHarvest() public {
         vm.prank(address(strategy));
         vault.reportHarvest(0);
@@ -971,11 +769,6 @@ contract VaultTest is BaseFixture {
         depositChecked(amount);
 
         reportHarvestChecked(1e18);
-    }
-
-    function testReportAdditionalTokenIsProtected() public {
-        vm.expectRevert("onlyStrategy");
-        vault.reportAdditionalToken(EMITS[0]);
     }
 
     function testCantReportWant() public {
@@ -994,11 +787,6 @@ contract VaultTest is BaseFixture {
     /// ===== Pausing Tests =====
     /// =========================
 
-    function testPauseIsProtected() public {
-        vm.expectRevert("onlyPausers");
-        vault.pause();
-    }
-
     function testGovernanceCanPause() public {
         vm.prank(governance);
         vault.pause();
@@ -1011,14 +799,6 @@ contract VaultTest is BaseFixture {
         vault.pause();
 
         assertTrue(vault.paused());
-    }
-
-    function testUnpauseIsProtected() public {
-        vm.prank(governance);
-        vault.pause();
-
-        vm.expectRevert("onlyGovernance");
-        vault.unpause();
     }
 
     function testGovernanceCanUnpause() public {
