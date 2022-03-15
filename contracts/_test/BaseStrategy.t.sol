@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.12;
 
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+
 import {BaseFixture} from "./BaseFixture.sol";
 import {MockStrategy} from "../mocks/MockStrategy.sol";
+import {MockToken} from "../mocks/MockToken.sol";
 
 contract BaseStrategyTest is BaseFixture {
     // ==================
@@ -76,8 +79,7 @@ contract BaseStrategyTest is BaseFixture {
     }
 
     function testEmittedIsProtectedToken() public {
-        uint256 numRewards = EMITS.length;
-        for (uint256 i; i < numRewards; ++i) {
+        for (uint256 i; i < NUM_EMITS; ++i) {
             assertTrue(strategy.isProtectedToken(EMITS[i]));
         }
     }
@@ -86,10 +88,157 @@ contract BaseStrategyTest is BaseFixture {
         vm.expectRevert("Address 0");
         strategy.isProtectedToken(address(0));
     }
+
+    /// ============================
+    /// ===== Permission Tests =====
+    /// ============================
+
+    function testDepositIsProtected() public {
+        vm.expectRevert("onlyAuthorizedActorsOrVault");
+        strategy.deposit();
+    }
+
+    function testGovernanceCanDeposit() public {
+        vm.prank(governance);
+        strategy.deposit();
+    }
+
+    function testKeeperCanDeposit() public {
+        vm.prank(keeper);
+        strategy.deposit();
+    }
+
+    function testVaultCanDeposit() public {
+        vm.prank(address(vault));
+        strategy.deposit();
+    }
+
+    function testHarvestIsProtected() public {
+        vm.expectRevert("onlyAuthorizedActors");
+        strategy.harvest();
+    }
+
+    function testHarvestFailsWhenPaused() public {
+        vm.prank(governance);
+        strategy.pause();
+
+        vm.expectRevert("Pausable: paused");
+        strategy.harvest();
+    }
+
+    function testGovernanceCanHarvest() public {
+        vm.prank(governance);
+        strategy.harvest();
+    }
+
+    function testKeeperCanHarvest() public {
+        vm.prank(keeper);
+        strategy.harvest();
+    }
+
+    function testHarvestOnce() public {
+        uint256[] memory emitAmounts = new uint256[](NUM_EMITS);
+        for (uint256 i; i < NUM_EMITS; ++i) {
+            emitAmounts[i] = (i + 2) * 10**18;
+        }
+
+        harvestChecked(1e18, emitAmounts);
+    }
+
+    function testWithdrawToVaultIsProtected() public {
+        vm.expectRevert("onlyVault");
+        strategy.withdrawToVault();
+    }
+
+    // TODO: Checked from Vault.t.sol
+    function testVaultCanWithdrawToVault() public {
+        vm.prank(address(vault));
+        strategy.withdrawToVault();
+    }
+
+    function testWithdrawOtherIsProtected() public {
+        vm.expectRevert("onlyVault");
+        strategy.withdrawOther(address(0));
+    }
+
+    function testWithdrawOtherFailsForProtectedTokens() public {
+        vm.prank(address(vault));
+        vm.expectRevert("_onlyNotProtectedTokens");
+        strategy.withdrawOther(WANT);
+    }
+
+    // TODO: Checked from Vault.t.sol
+    function testVaultCanWithdrawOther() public {
+        MockToken extra = new MockToken("extra", "EXTR");
+        extra.mint(address(vault), 100);
+
+        vm.prank(address(vault));
+        strategy.withdrawOther(address(extra));
+    }
+
+    function testWithdrawIsProtected() public {
+        vm.expectRevert("onlyVault");
+        strategy.withdraw(1);
+    }
+
+    function testCantWithdrawZeroAmount() public {
+        vm.prank(address(vault));
+        vm.expectRevert("Amount 0");
+        strategy.withdraw(0);
+    }
+
+    // TODO: Generalize, checked from Vault.t.sol
+    function testVaultCanWithdraw() public {
+        IERC20(WANT).transfer(address(strategy), 1);
+
+        vm.prank(address(vault));
+        strategy.withdraw(1);
+
+        assertEq(IERC20(WANT).balanceOf(address(strategy)), 0);
+        assertEq(IERC20(WANT).balanceOf(address(vault)), 1);
+    }
+
+    /// =========================
+    /// ===== Pausing Tests =====
+    /// =========================
+
+    function testPauseIsProtected() public {
+        vm.expectRevert("onlyPausers");
+        strategy.pause();
+    }
+
+    function testGovernanceCanPause() public {
+        vm.prank(governance);
+        strategy.pause();
+
+        assertTrue(strategy.paused());
+    }
+
+    function testGuardianCanPause() public {
+        vm.prank(governance);
+        strategy.pause();
+    }
+
+    function testUnpauseIsProtected() public {
+        vm.prank(governance);
+        strategy.pause();
+
+        vm.expectRevert("onlyGovernance");
+        strategy.unpause();
+    }
+
+    function testGovernanceCanUnpause() public {
+        vm.startPrank(governance);
+        strategy.pause();
+        strategy.unpause();
+
+        assertTrue(!strategy.paused());
+    }
 }
 
 /*
 TODO:
+- Tend tests
 - Strategy improvements:
   - Take want from vault
   - Less asserts/gas improvements
