@@ -35,6 +35,14 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
     // ===== Constants =====
     // =====================
 
+    uint256 constant MAX_BPS = 10_000;
+    uint256 constant SECS_IN_YEAR = 31_556_952;
+    uint256 constant AMOUNT_TO_MINT = 10e18;
+
+    // ==================
+    // ===== Actors =====
+    // ==================
+
     address immutable governance = getAddress("governance");
     address immutable strategist = getAddress("strategist");
     address immutable guardian = getAddress("guardian");
@@ -43,9 +51,6 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
     address immutable badgerTree = getAddress("badgerTree");
 
     address immutable rando = getAddress("rando");
-
-    uint256 constant MAX_BPS = 10_000;
-    uint256 constant AMOUNT_TO_MINT = 10e18;
 
     // =================
     // ===== State =====
@@ -178,15 +183,28 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
             abi.encodeWithSignature("balanceOf(address)", _to)
         );
         comparator.addCall(
-            "vault.getPricePerFullShare()",
+            "vault.balance()",
             address(vault),
-            abi.encodeWithSignature("getPricePerFullShare()")
+            abi.encodeWithSignature("balance()")
         );
+        comparator.addCall(
+            "vault.totalSupply()",
+            address(vault),
+            abi.encodeWithSignature("totalSupply()")
+        );
+        // TODO: this?
+        // comparator.addCall(
+        //     "vault.getPricePerFullShare()",
+        //     address(vault),
+        //     abi.encodeWithSignature("getPricePerFullShare()")
+        // );
     }
 
     function postDeposit(uint256 _amount) internal returns (uint256 shares_) {
-        uint256 expectedShares = (_amount * 1e18) /
-            comparator.prev("vault.getPricePerFullShare()");
+        uint256 expectedShares = comparator.prev("vault.balance()") > 0
+            ? (_amount * comparator.prev("vault.totalSupply()")) /
+                comparator.prev("vault.balance()")
+            : _amount;
 
         assertEq(comparator.negDiff("want.balanceOf(from)"), _amount);
         assertEq(comparator.diff("want.balanceOf(vault)"), _amount);
@@ -324,23 +342,34 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
             abi.encodeWithSignature("balanceOf()")
         );
         comparator.addCall(
-            "vault.getPricePerFullShare()",
+            "vault.balance()",
             address(vault),
-            abi.encodeWithSignature("getPricePerFullShare()")
+            abi.encodeWithSignature("balance()")
         );
+        comparator.addCall(
+            "vault.totalSupply()",
+            address(vault),
+            abi.encodeWithSignature("totalSupply()")
+        );
+        // comparator.addCall(
+        //     "vault.getPricePerFullShare()",
+        //     address(vault),
+        //     abi.encodeWithSignature("getPricePerFullShare()")
+        // );
     }
 
     function postWithdraw(uint256 _shares) internal returns (uint256 amount_) {
-        uint256 amountZeroFee = (_shares *
-            comparator.prev("vault.getPricePerFullShare()")) / 1e18;
+        uint256 amountZeroFee = (_shares * comparator.prev("vault.balance()")) /
+            comparator.prev("vault.totalSupply()");
 
         assertEq(comparator.negDiff("vault.balanceOf(from)"), _shares);
 
         if (amountZeroFee <= comparator.prev("want.balanceOf(vault)")) {
             uint256 withdrawalFee = (amountZeroFee * WITHDRAWAL_FEE) / MAX_BPS;
 
-            uint256 withdrawalFeeInShares = (withdrawalFee * 1e18) /
-                comparator.prev("vault.getPricePerFullShare()");
+            uint256 withdrawalFeeInShares = (withdrawalFee *
+                comparator.prev("vault.totalSupply()")) /
+                comparator.prev("vault.balance()");
 
             uint256 amount = amountZeroFee - withdrawalFee;
 
@@ -368,8 +397,8 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
                 .div(MAX_BPS);
 
             IntervalUint256 memory withdrawalFeeInShares = withdrawalFee
-                .mul(1e18)
-                .div(comparator.prev("vault.getPricePerFullShare()"));
+                .mul(comparator.prev("vault.totalSupply()"))
+                .div(comparator.prev("vault.balance()"));
 
             assertEq(comparator.curr("want.balanceOf(vault)"), withdrawalFee);
             assertEq(
@@ -459,116 +488,6 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         );
     }
 
-    function prepareReportHarvest() internal {
-        comparator.addCall(
-            "vault.balance()",
-            address(vault),
-            abi.encodeWithSignature("balance()")
-        );
-        comparator.addCall(
-            "vault.balanceOf(treasury)",
-            address(vault),
-            abi.encodeWithSignature("balanceOf(address)", treasury)
-        );
-        comparator.addCall(
-            "vault.balanceOf(strategist)",
-            address(vault),
-            abi.encodeWithSignature("balanceOf(address)", strategist)
-        );
-        comparator.addCall(
-            "vault.lastHarvestAmount()",
-            address(vault),
-            abi.encodeWithSignature("lastHarvestAmount()")
-        );
-        comparator.addCall(
-            "vault.assetsAtLastHarvest()",
-            address(vault),
-            abi.encodeWithSignature("assetsAtLastHarvest()")
-        );
-        comparator.addCall(
-            "vault.lastHarvestedAt()",
-            address(vault),
-            abi.encodeWithSignature("lastHarvestedAt()")
-        );
-        comparator.addCall(
-            "vault.lifeTimeEarned()",
-            address(vault),
-            abi.encodeWithSignature("lifeTimeEarned()")
-        );
-        comparator.addCall(
-            "vault.getPricePerFullShare()",
-            address(vault),
-            abi.encodeWithSignature("getPricePerFullShare()")
-        );
-        // TODO: Add?
-        //  comparator.addCall(
-        //     "strategy.balanceOf()",
-        //     address(strategy),
-        //     abi.encodeWithSignature("balanceOf()")
-        // );
-    }
-
-    function postReportHarvest(uint256 _amount) internal {
-        // TODO: management fee
-        uint256 governanceFee = (_amount * PERFORMANCE_FEE_GOVERNANCE) /
-            MAX_BPS;
-        uint256 strategistFee = (_amount * PERFORMANCE_FEE_STRATEGIST) /
-            MAX_BPS;
-
-        emit log_uint(_amount);
-        emit log_uint(comparator.diff("vault.balanceOf(treasury)"));
-        emit log_uint(governanceFee);
-        emit log_uint(comparator.prev("vault.getPricePerFullShare()"));
-        emit log_uint(comparator.curr("vault.getPricePerFullShare()"));
-        emit log_uint(
-            (governanceFee * 1e18) /
-                comparator.curr("vault.getPricePerFullShare()")
-        );
-
-        assertEq(comparator.diff("vault.balance()"), _amount);
-        assertEq(
-            comparator.diff("vault.balanceOf(treasury)"),
-            (governanceFee * 1e18) /
-                comparator.curr("vault.getPricePerFullShare()")
-        );
-        assertEq(
-            comparator.diff("vault.balanceOf(strategist)"),
-            (strategistFee * 1e18) /
-                comparator.curr("vault.getPricePerFullShare()")
-        );
-        assertEq(comparator.curr("vault.lastHarvestAmount()"), _amount);
-        assertEq(
-            comparator.curr("vault.assetsAtLastHarvest()"),
-            comparator.prev("vault.balance()")
-        );
-        assertEq(comparator.curr("vault.lastHarvestedAt()"), block.timestamp);
-        assertEq(comparator.diff("vault.lifeTimeEarned()"), _amount);
-
-        // TODO: Add these?
-        // assertZe(comparator.diff("strategy.balanceOf()"));
-    }
-
-    function prepareEventsHarvestChecked(uint256 _amount) internal {
-        vm.expectEmit(true, true, false, true);
-        emit Harvested(WANT, _amount, block.number, block.timestamp);
-    }
-
-    function reportHarvestChecked(uint256 _amount) internal {
-        prepareReportHarvest();
-
-        comparator.snapPrev();
-
-        erc20utils.forceMintTo(address(vault), WANT, _amount);
-
-        prepareEventsHarvestChecked(_amount);
-        vm.prank(address(strategy));
-        vault.reportHarvest(_amount);
-
-        comparator.snapCurr();
-
-        postReportHarvest(_amount);
-    }
-
     function prepareReportAdditionalTokenChecked(
         address _token,
         string memory _name
@@ -607,15 +526,15 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         address _token,
         uint256 _amount
     ) internal {
-        uint256 governanceFee = (_amount * PERFORMANCE_FEE_GOVERNANCE) /
-            MAX_BPS;
-        uint256 strategistFee = (_amount * PERFORMANCE_FEE_STRATEGIST) /
-            MAX_BPS;
+        uint256 governancePerformanceFee = (_amount *
+            PERFORMANCE_FEE_GOVERNANCE) / MAX_BPS;
+        uint256 strategistPerformanceFee = (_amount *
+            PERFORMANCE_FEE_STRATEGIST) / MAX_BPS;
 
         vm.expectEmit(true, true, false, true);
         emit TreeDistribution(
             _token,
-            _amount - governanceFee - strategistFee,
+            _amount - governancePerformanceFee - strategistPerformanceFee,
             block.number,
             block.timestamp
         );
@@ -625,11 +544,10 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         string memory _name,
         uint256 _amount
     ) internal {
-        // TODO: management fee
-        uint256 governanceFee = (_amount * PERFORMANCE_FEE_GOVERNANCE) /
-            MAX_BPS;
-        uint256 strategistFee = (_amount * PERFORMANCE_FEE_STRATEGIST) /
-            MAX_BPS;
+        uint256 governancePerformanceFee = (_amount *
+            PERFORMANCE_FEE_GOVERNANCE) / MAX_BPS;
+        uint256 strategistPerformanceFee = (_amount *
+            PERFORMANCE_FEE_STRATEGIST) / MAX_BPS;
 
         assertEq(
             comparator.curr(
@@ -645,15 +563,15 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         );
         assertEq(
             comparator.diff(string.concat(_name, ".balanceOf(treasury)")),
-            governanceFee
+            governancePerformanceFee
         );
         assertEq(
             comparator.diff(string.concat(_name, ".balanceOf(strategist)")),
-            strategistFee
+            strategistPerformanceFee
         );
         assertEq(
             comparator.diff(string.concat(_name, ".balanceOf(badgerTree)")),
-            _amount - governanceFee - strategistFee
+            _amount - governancePerformanceFee - strategistPerformanceFee
         );
     }
 
@@ -677,9 +595,145 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         postReportAdditionalTokenChecked(_name, _amount);
     }
 
-    function harvestChecked(uint256 _wantAmount, uint256[] memory _emitAmounts)
+    function prepareReportHarvest() internal {
+        comparator.addCall(
+            "vault.balance()",
+            address(vault),
+            abi.encodeWithSignature("balance()")
+        );
+        comparator.addCall(
+            "vault.balanceOf(treasury)",
+            address(vault),
+            abi.encodeWithSignature("balanceOf(address)", treasury)
+        );
+        comparator.addCall(
+            "vault.balanceOf(strategist)",
+            address(vault),
+            abi.encodeWithSignature("balanceOf(address)", strategist)
+        );
+        comparator.addCall(
+            "vault.lastHarvestAmount()",
+            address(vault),
+            abi.encodeWithSignature("lastHarvestAmount()")
+        );
+        comparator.addCall(
+            "vault.assetsAtLastHarvest()",
+            address(vault),
+            abi.encodeWithSignature("assetsAtLastHarvest()")
+        );
+        comparator.addCall(
+            "vault.lastHarvestedAt()",
+            address(vault),
+            abi.encodeWithSignature("lastHarvestedAt()")
+        );
+        comparator.addCall(
+            "vault.lifeTimeEarned()",
+            address(vault),
+            abi.encodeWithSignature("lifeTimeEarned()")
+        );
+        comparator.addCall(
+            "vault.totalSupply()",
+            address(vault),
+            abi.encodeWithSignature("totalSupply()")
+        );
+        // TODO: Add?
+        // comparator.addCall(
+        //     "vault.getPricePerFullShare()",
+        //     address(vault),
+        //     abi.encodeWithSignature("getPricePerFullShare()")
+        // );
+        //  comparator.addCall(
+        //     "strategy.balanceOf()",
+        //     address(strategy),
+        //     abi.encodeWithSignature("balanceOf()")
+        // );
+    }
+
+    function prepareEventsHarvestChecked(uint256 _amount) internal {
+        vm.expectEmit(true, true, false, true);
+        emit Harvested(WANT, _amount, block.number, block.timestamp);
+    }
+
+    function postReportHarvest(uint256 _amount, uint256 _timeSinceLastHarvest)
         internal
     {
+        uint256 strategistPerformanceFee = (_amount *
+            PERFORMANCE_FEE_STRATEGIST) / MAX_BPS;
+        uint256 governancePerformanceFee = (_amount *
+            PERFORMANCE_FEE_GOVERNANCE) / MAX_BPS;
+        uint256 managementFee = (comparator.prev("vault.balance()") *
+            _timeSinceLastHarvest *
+            MANAGEMENT_FEE) /
+            MAX_BPS /
+            SECS_IN_YEAR;
+        uint256 governanceFee = managementFee + governancePerformanceFee;
+
+        assertEq(comparator.diff("vault.balance()"), _amount);
+
+        assertEq(
+            comparator.diff("vault.balanceOf(treasury)"),
+            (governanceFee * comparator.curr("vault.totalSupply()")) /
+                comparator.curr("vault.balance()")
+        );
+        assertEq(
+            comparator.diff("vault.balanceOf(strategist)"),
+            (strategistPerformanceFee *
+                comparator.curr("vault.totalSupply()")) /
+                comparator.curr("vault.balance()")
+        );
+
+        // TODO: Needs to be handled separately
+        // if (comparator.prev("vault.balance()") == 0) {
+        //     assertEq(
+        //         comparator.diff("vault.balanceOf(treasury)"),
+        //         governanceFee
+        //     );
+        //     assertEq(
+        //         comparator.diff("vault.balanceOf(strategist)"),
+        //         strategistPerformanceFee
+        //     );
+        // }
+
+        assertEq(comparator.curr("vault.lastHarvestAmount()"), _amount);
+        assertEq(
+            comparator.curr("vault.assetsAtLastHarvest()"),
+            comparator.prev("vault.balance()")
+        );
+        assertEq(comparator.curr("vault.lastHarvestedAt()"), block.timestamp);
+        assertEq(comparator.diff("vault.lifeTimeEarned()"), _amount);
+
+        // TODO: Add these?
+        // assertZe(comparator.diff("strategy.balanceOf()"));
+    }
+
+    function reportHarvestChecked(
+        uint256 _amount,
+        uint256 _timeSinceLastHarvest
+    ) internal {
+        prepareReportHarvest();
+
+        comparator.snapPrev();
+
+        erc20utils.forceMintTo(address(vault), WANT, _amount);
+
+        prepareEventsHarvestChecked(_amount);
+        vm.prank(address(strategy));
+        vault.reportHarvest(_amount);
+
+        comparator.snapCurr();
+
+        postReportHarvest(_amount, _timeSinceLastHarvest);
+    }
+
+    function reportHarvestChecked(uint256 _amount) internal {
+        reportHarvestChecked(_amount, 0);
+    }
+
+    function harvestChecked(
+        uint256 _wantAmount,
+        uint256[] memory _emitAmounts,
+        uint256 _timeSinceLastHarvest
+    ) internal {
         prepareReportHarvest();
         for (uint256 i; i < NUM_EMITS; ++i) {
             prepareReportAdditionalTokenChecked(EMITS[i], EMITS_NAMES[i]);
@@ -713,10 +767,16 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
 
         // assertEq(harvested, 0);
 
-        postReportHarvest(_wantAmount);
+        postReportHarvest(_wantAmount, _timeSinceLastHarvest);
         for (uint256 i; i < NUM_EMITS; ++i) {
             postReportAdditionalTokenChecked(EMITS_NAMES[i], _emitAmounts[i]);
         }
+    }
+
+    function harvestChecked(uint256 _wantAmount, uint256[] memory _emitAmounts)
+        internal
+    {
+        harvestChecked(_wantAmount, _emitAmounts, 0);
     }
 }
 
@@ -724,4 +784,5 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
 TODO:
 - add a demo staking pool for `balanceOfPool` tests
 - vm.label with .name() instead?
+- fixed point math?
 */

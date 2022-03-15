@@ -24,15 +24,13 @@ contract IntegrationTest is BaseFixture {
         depositAllChecked();
         earnChecked();
 
-        vm.roll(1 weeks);
+        skip(1 days);
 
         uint256[] memory emitAmounts = new uint256[](NUM_EMITS);
         for (uint256 i; i < NUM_EMITS; ++i) {
             emitAmounts[i] = (i + 2) * 10**18;
         }
-        harvestChecked(1e18, emitAmounts);
-
-        vm.roll(1 weeks);
+        harvestChecked(1e18, emitAmounts, 1 days);
 
         withdrawAllChecked();
     }

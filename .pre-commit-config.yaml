@@ -30,4 +30,4 @@ repos:
   - repo: git://github.com/shuklaayush/pre-commit-forge
     rev: v0.0.1
     hooks:
-      - id: forge-snapshot
+      - id: check-forge-snapshot
