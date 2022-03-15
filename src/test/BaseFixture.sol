@@ -12,10 +12,10 @@ import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol
 import {DSTest2} from "./utils/DSTest2.sol";
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
-import {TestVipCappedGuestListBbtcUpgradeable} from "../mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
+import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
 import {Vault} from "../Vault.sol";
-import {MockStrategy} from "../mocks/MockStrategy.sol";
-import {MockToken} from "../mocks/MockToken.sol";
+import {MockStrategy} from "./mocks/MockStrategy.sol";
+import {MockToken} from "./mocks/MockToken.sol";
 
 contract BaseFixture is DSTest2, stdCheats, Config, Utils {
     using IntervalUint256Utils for IntervalUint256;

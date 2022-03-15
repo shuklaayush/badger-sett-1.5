@@ -4,8 +4,8 @@ pragma solidity 0.8.12;
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 import {BaseFixture} from "../BaseFixture.sol";
-import {MockStrategy} from "../../mocks/MockStrategy.sol";
-import {MockToken} from "../../mocks/MockToken.sol";
+import {MockStrategy} from "../mocks/MockStrategy.sol";
+import {MockToken} from "../mocks/MockToken.sol";
 
 contract BaseStrategyTest is BaseFixture {
     // ==================
