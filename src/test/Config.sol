@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.12;
 
-import {MockToken} from "../mocks/MockToken.sol";
+import {MockToken} from "./mocks/MockToken.sol";
 
 abstract contract Config {
     address internal immutable WANT = address(new MockToken("want", "WANT"));

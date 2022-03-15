@@ -6,7 +6,7 @@ import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC
 
 import {BaseFixture} from "../BaseFixture.sol";
 import {Vault} from "../../Vault.sol";
-import {MockToken} from "../../mocks/MockToken.sol";
+import {MockToken} from "../mocks/MockToken.sol";
 
 contract VaultTest is BaseFixture {
     // ==================

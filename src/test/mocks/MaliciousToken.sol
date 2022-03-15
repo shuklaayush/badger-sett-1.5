@@ -4,7 +4,7 @@ pragma solidity 0.8.12;
 
 import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
-import {IVault} from "../interfaces/IVault.sol";
+import {IVault} from "../../interfaces/IVault.sol";
 
 contract MaliciousToken is ERC20 {
     bool private hit;
