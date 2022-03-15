@@ -115,5 +115,6 @@ TODO:
 - Ideally some of this can be a library
 - Errors instead of revert string
 - log table function
-- DSTestSnapshot from git history?
+- DSTestSnapshot from git history? - logs named key on assert fail
+- Maybe merge comparator and manager?
 */
