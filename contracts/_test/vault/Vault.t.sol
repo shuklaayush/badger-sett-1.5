@@ -17,10 +17,6 @@ contract VaultTest is BaseFixture {
         BaseFixture.setUp();
     }
 
-    // ======================
-    // ===== Unit Tests =====
-    // ======================
-
     // ========================
     // ===== Config Tests =====
     // ========================
@@ -560,6 +556,33 @@ contract VaultTest is BaseFixture {
     function testDepositForOnce() public {
         uint256 amount = IERC20(WANT).balanceOf(address(this));
         depositForChecked(amount, rando);
+    }
+
+    // ===========================
+    // ===== Guestlist Tests =====
+    // ===========================
+
+    function testDepositFailsIfNotInGuestlist() public {
+        addGuestlist();
+
+        vm.prank(rando);
+        vm.expectRevert("GuestList: Not Authorized");
+        vault.deposit(1);
+    }
+
+    function testDepositAllFailsIfNotInGuestlist() public {
+        addGuestlist();
+
+        vm.prank(rando);
+        vm.expectRevert("GuestList: Not Authorized");
+        vault.depositAll();
+    }
+
+    function testDepositForFailsIfNotInGuestlist() public {
+        addGuestlist();
+
+        vm.expectRevert("GuestList: Not Authorized");
+        vault.depositFor(rando, 1);
     }
 
     // ======================

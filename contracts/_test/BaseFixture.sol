@@ -12,6 +12,7 @@ import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol
 import {DSTest2} from "./utils/DSTest2.sol";
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
+import {TestVipCappedGuestListBbtcUpgradeable} from "../mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
 import {Vault} from "../Vault.sol";
 import {MockStrategy} from "../mocks/MockStrategy.sol";
 import {MockToken} from "../mocks/MockToken.sol";
@@ -100,10 +101,7 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
     // ==================
 
     function setUp() public virtual {
-        // =================
-        // ===== Label =====
-        // =================
-
+        // Label
         vm.label(address(this), "this");
 
         vm.label(governance, "governance");
@@ -130,10 +128,7 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
             vm.label(token, name);
         }
 
-        // ======================
-        // ===== Initialize =====
-        // ======================
-
+        // Initialize
         vault.initialize(
             WANT,
             governance,
@@ -157,6 +152,7 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         vm.prank(governance);
         vault.setStrategy(address(strategy));
 
+        // Extra
         erc20utils.forceMint(WANT, AMOUNT_TO_MINT);
 
         comparator = new SnapshotComparator();
@@ -165,6 +161,21 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
     /// ============================
     /// ===== Internal helpers =====
     /// ============================
+
+    function addGuestlist() internal {
+        TestVipCappedGuestListBbtcUpgradeable guestlist = new TestVipCappedGuestListBbtcUpgradeable();
+        guestlist.initialize(address(vault));
+
+        guestlist.setGuestRoot(bytes32(uint256(1)));
+        address[] memory guests = new address[](1);
+        bool[] memory invited = new bool[](1);
+        guests[0] = address(this);
+        invited[0] = true;
+        guestlist.setGuests(guests, invited);
+
+        vm.prank(governance);
+        vault.setGuestList(address(guestlist));
+    }
 
     function prepareDepositFor(address _from, address _to) internal {
         comparator.addCall(
@@ -807,4 +818,5 @@ TODO:
 - fixed point math?
 - emitNonProtectedToken ==> reportAdditionTokenManual?
 - Maybe move minting outside checked function?
+- Rename guestlist, make it a modifier? Only on external functions
 */
