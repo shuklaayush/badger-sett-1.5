@@ -5,14 +5,10 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {BaseFixture} from "./BaseFixture.sol";
-import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol";
 import {Vault} from "../Vault.sol";
-import {MockStrategy} from "../mocks/MockStrategy.sol";
 import {MockToken} from "../mocks/MockToken.sol";
 
 contract VaultTest is BaseFixture {
-    using IntervalUint256Utils for IntervalUint256;
-
     // ==================
     // ===== Set up =====
     // ==================
@@ -317,6 +313,73 @@ contract VaultTest is BaseFixture {
 
         vm.expectRevert("Pausable: paused");
         vault.setManagementFee(100);
+    }
+
+    // TODO: Maybe move to SettAccessControlsTest
+
+    function testSetStrategistIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        vault.setStrategist(address(this));
+    }
+
+    function testGovernanceCanSetStrategist() public {
+        vm.prank(governance);
+        vault.setStrategist(address(this));
+
+        assertEq(vault.strategist(), address(this));
+    }
+
+    function testSetKeeperIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        vault.setKeeper(address(this));
+    }
+
+    function testGovernanceCanSetKeeper() public {
+        vm.prank(governance);
+        vault.setKeeper(address(this));
+
+        assertEq(vault.keeper(), address(this));
+    }
+
+    function testSetGovernanceIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        vault.setGovernance(address(this));
+    }
+
+    function testGovernanceCanSetGovernance() public {
+        vm.prank(governance);
+        vault.setGovernance(address(this));
+
+        assertEq(vault.governance(), address(this));
+    }
+
+    function testSetStrategyIsProtected() public {
+        vm.expectRevert("onlyGovernance");
+        vault.setStrategy(address(this));
+    }
+
+    function testSetStrategyFailsWithAddressZero() public {
+        vm.prank(governance);
+        vm.expectRevert("Address 0");
+        vault.setStrategy(address(0));
+    }
+
+    function testSetStrategyFailsWhenNonZeroBalance() public {
+        depositAllChecked();
+        earnChecked();
+
+        vm.prank(governance);
+        vm.expectRevert("Please withdrawToVault before changing strat");
+        vault.setStrategy(address(this));
+    }
+
+    function testGovernanceCanSetStrategy() public {
+        vm.prank(governance);
+        vm.expectEmit(true, false, false, false);
+        emit SetStrategy(address(this));
+        vault.setStrategy(address(this));
+
+        assertEq(vault.strategy(), address(this));
     }
 
     // ============================
@@ -660,15 +723,12 @@ contract VaultTest is BaseFixture {
     }
 
     function testEarn() public {
-        uint256 amount = IERC20(WANT).balanceOf(address(this));
-
-        depositChecked(amount);
+        depositAllChecked();
         earnChecked();
     }
 
     function testEarnFailsWhenStrategyPaused() public {
-        uint256 amount = IERC20(WANT).balanceOf(address(this));
-        depositChecked(amount);
+        depositAllChecked();
 
         vm.startPrank(governance);
         strategy.pause();
@@ -678,8 +738,7 @@ contract VaultTest is BaseFixture {
     }
 
     function testEarnFailsWhenDepositsArePaused() public {
-        uint256 amount = IERC20(WANT).balanceOf(address(this));
-        depositChecked(amount);
+        depositAllChecked();
 
         vm.startPrank(governance);
         vault.pauseDeposits();
@@ -714,8 +773,7 @@ contract VaultTest is BaseFixture {
     }
 
     function testWithdraw(uint256 sharesToWithdraw) public {
-        uint256 amount = IERC20(WANT).balanceOf(address(this));
-        uint256 shares = depositChecked(amount);
+        uint256 shares = depositAllChecked();
         earnChecked();
 
         sharesToWithdraw = bound(sharesToWithdraw, 1, shares);
@@ -723,14 +781,12 @@ contract VaultTest is BaseFixture {
     }
 
     function testWithdrawBeforeEarn() public {
-        uint256 amount = IERC20(WANT).balanceOf(address(this));
-        uint256 shares = depositChecked(amount);
+        uint256 shares = depositAllChecked();
         withdrawChecked(shares);
     }
 
     function testWithdrawTwice() public {
-        uint256 amount = IERC20(WANT).balanceOf(address(this));
-        uint256 shares = depositChecked(amount);
+        uint256 shares = depositAllChecked();
         earnChecked();
 
         withdrawChecked(shares / 2);
@@ -738,8 +794,7 @@ contract VaultTest is BaseFixture {
     }
 
     function testWithdrawAll() public {
-        uint256 amount = IERC20(WANT).balanceOf(address(this));
-        depositChecked(amount);
+        depositAllChecked();
         earnChecked();
 
         withdrawAllChecked();
@@ -884,542 +939,47 @@ contract VaultTest is BaseFixture {
     function testReportAdditionalToken() public {
         uint256 numRewards = EMITS.length;
         for (uint256 i; i < numRewards; ++i) {
-            reportAdditionalTokenChecked(EMITS[i], 1e18);
+            reportAdditionalTokenChecked(EMITS[i], 1e18, "EMITS[i]");
         }
     }
 
-    /// ============================
-    /// ===== Internal helpers =====
-    /// ============================
+    /// =========================
+    /// ===== Pausing Tests =====
+    /// =========================
 
-    function prepareDepositFor(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal {
-        comparator.addCall(
-            "want.balanceOf(from)",
-            WANT,
-            abi.encodeWithSignature("balanceOf(address)", _from)
-        );
-        comparator.addCall(
-            "want.balanceOf(vault)",
-            WANT,
-            abi.encodeWithSignature("balanceOf(address)", address(vault))
-        );
-        comparator.addCall(
-            "vault.balanceOf(to)",
-            address(vault),
-            abi.encodeWithSignature("balanceOf(address)", _to)
-        );
-        comparator.addCall(
-            "vault.getPricePerFullShare()",
-            address(vault),
-            abi.encodeWithSignature("getPricePerFullShare()")
-        );
-
-        comparator.snapPrev();
-
-        vm.startPrank(_from, _from);
-        IERC20(WANT).approve(address(vault), _amount);
+    function testPauseIsProtected() public {
+        vm.expectRevert("onlyPausers");
+        vault.pause();
     }
 
-    function postDeposit(uint256 _amount) internal returns (uint256 shares_) {
-        vm.stopPrank();
-
-        comparator.snapCurr();
-
-        uint256 expectedShares = (_amount * 1e18) /
-            comparator.prev("vault.getPricePerFullShare()");
-
-        assertEq(comparator.negDiff("want.balanceOf(from)"), _amount);
-        assertEq(comparator.diff("want.balanceOf(vault)"), _amount);
-        assertEq(comparator.diff("vault.balanceOf(to)"), expectedShares);
-
-        shares_ = comparator.diff("vault.balanceOf(to)");
-    }
-
-    function depositCheckedFrom(address _from, uint256 _amount)
-        internal
-        returns (uint256 shares_)
-    {
-        prepareDepositFor(_from, _from, _amount);
-        vault.deposit(_amount);
-        shares_ = postDeposit(_amount);
-    }
-
-    function depositChecked(uint256 _amount)
-        internal
-        returns (uint256 shares_)
-    {
-        shares_ = depositCheckedFrom(address(this), _amount);
-    }
-
-    function depositForCheckedFrom(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal returns (uint256 shares_) {
-        prepareDepositFor(_from, _to, _amount);
-        vault.depositFor(_to, _amount);
-        shares_ = postDeposit(_amount);
-    }
-
-    function depositForChecked(uint256 _amount, address _to)
-        internal
-        returns (uint256 shares_)
-    {
-        shares_ = depositForCheckedFrom(address(this), _to, _amount);
-    }
-
-    function depositAllCheckedFrom(address _from)
-        internal
-        returns (uint256 shares_)
-    {
-        uint256 amount = IERC20(WANT).balanceOf(_from);
-        prepareDepositFor(_from, _from, amount);
-        vault.depositAll();
-        shares_ = postDeposit(amount);
-    }
-
-    function depositAllChecked() internal returns (uint256 shares_) {
-        shares_ = depositAllCheckedFrom(address(this));
-    }
-
-    function earnChecked() internal {
-        comparator.addCall(
-            "want.balanceOf(vault)",
-            WANT,
-            abi.encodeWithSignature("balanceOf(address)", address(vault))
-        );
-        comparator.addCall(
-            "strategy.balanceOf()",
-            address(strategy),
-            abi.encodeWithSignature("balanceOf()")
-        );
-
-        uint256 expectedEarn = (IERC20(WANT).balanceOf(address(vault)) *
-            vault.toEarnBps()) / MAX_BPS;
-
-        comparator.snapPrev();
-        vm.prank(keeper);
-
-        vault.earn();
-
-        comparator.snapCurr();
-
-        assertEq(comparator.negDiff("want.balanceOf(vault)"), expectedEarn);
-
-        // TODO: Maybe relax this for loss making strategies?
-        assertEq(comparator.diff("strategy.balanceOf()"), expectedEarn);
-    }
-
-    function prepareWithdraw(address _from) internal {
-        comparator.addCall(
-            "vault.balanceOf(from)",
-            address(vault),
-            abi.encodeWithSignature("balanceOf(address)", _from)
-        );
-        comparator.addCall(
-            "vault.balanceOf(treasury)",
-            address(vault),
-            abi.encodeWithSignature("balanceOf(address)", treasury)
-        );
-        comparator.addCall(
-            "want.balanceOf(from)",
-            WANT,
-            abi.encodeWithSignature("balanceOf(address)", _from)
-        );
-        comparator.addCall(
-            "want.balanceOf(vault)",
-            WANT,
-            abi.encodeWithSignature("balanceOf(address)", address(vault))
-        );
-        comparator.addCall(
-            "strategy.balanceOf()",
-            address(strategy),
-            abi.encodeWithSignature("balanceOf()")
-        );
-        comparator.addCall(
-            "vault.getPricePerFullShare()",
-            address(vault),
-            abi.encodeWithSignature("getPricePerFullShare()")
-        );
-
-        comparator.snapPrev();
-        vm.prank(_from, _from);
-    }
-
-    function postWithdraw(uint256 _shares) internal returns (uint256 amount_) {
-        comparator.snapCurr();
-
-        uint256 amountZeroFee = (_shares *
-            comparator.prev("vault.getPricePerFullShare()")) / 1e18;
-
-        assertEq(comparator.negDiff("vault.balanceOf(from)"), _shares);
-
-        if (amountZeroFee <= comparator.prev("want.balanceOf(vault)")) {
-            uint256 withdrawalFee = (amountZeroFee * WITHDRAWAL_FEE) / MAX_BPS;
-
-            uint256 withdrawalFeeInShares = (withdrawalFee * 1e18) /
-                comparator.prev("vault.getPricePerFullShare()");
-
-            uint256 amount = amountZeroFee - withdrawalFee;
-
-            assertEq(comparator.negDiff("want.balanceOf(vault)"), amount);
-            assertEq(comparator.diff("want.balanceOf(from)"), amount);
-            assertEq(
-                comparator.diff("vault.balanceOf(treasury)"),
-                withdrawalFeeInShares
-            );
-        } else {
-            // TODO: Probably doesn't make sense since loss isn't handled properly in strat
-            IntervalUint256 memory amountFromStrategyInterval = IntervalUint256Utils
-                .fromMaxAndTolBps(
-                    amountZeroFee - comparator.prev("want.balanceOf(vault)"),
-                    10 // TODO: No magic
-                );
-
-            IntervalUint256
-                memory amountZeroFeeInterval = amountFromStrategyInterval.add(
-                    comparator.prev("want.balanceOf(vault)")
-                );
-
-            IntervalUint256 memory withdrawalFee = amountZeroFeeInterval
-                .mul(WITHDRAWAL_FEE)
-                .div(MAX_BPS);
-
-            IntervalUint256 memory withdrawalFeeInShares = withdrawalFee
-                .mul(1e18)
-                .div(comparator.prev("vault.getPricePerFullShare()"));
-
-            assertEq(comparator.curr("want.balanceOf(vault)"), withdrawalFee);
-            assertEq(
-                comparator.diff("want.balanceOf(from)"),
-                amountZeroFeeInterval.sub(withdrawalFee, true)
-            );
-            assertEq(
-                comparator.diff("vault.balanceOf(treasury)"),
-                withdrawalFeeInShares
-            );
-            assertEq(
-                comparator.negDiff("strategy.balanceOf()"),
-                amountFromStrategyInterval
-            );
-        }
-
-        amount_ = comparator.diff("want.balanceOf(from)");
-    }
-
-    function withdrawCheckedFrom(address _from, uint256 _shares)
-        internal
-        returns (uint256 amount_)
-    {
-        prepareWithdraw(_from);
-        vault.withdraw(_shares);
-        amount_ = postWithdraw(_shares);
-    }
-
-    function withdrawChecked(uint256 _shares)
-        internal
-        returns (uint256 amount_)
-    {
-        amount_ = withdrawCheckedFrom(address(this), _shares);
-    }
-
-    function withdrawAllCheckedFrom(address _from)
-        internal
-        returns (uint256 amount_)
-    {
-        prepareWithdraw(_from);
-        uint256 shares = vault.balanceOf(_from);
-        vault.withdrawAll();
-        amount_ = postWithdraw(shares);
-    }
-
-    function withdrawAllChecked() internal returns (uint256 amount_) {
-        amount_ = withdrawAllCheckedFrom(address(this));
-    }
-
-    function withdrawToVaultChecked() internal {
-        comparator.addCall(
-            "want.balanceOf(vault)",
-            WANT,
-            abi.encodeWithSignature("balanceOf(address)", address(vault))
-        );
-        comparator.addCall(
-            "strategy.balanceOf()",
-            address(strategy),
-            abi.encodeWithSignature("balanceOf()")
-        );
-
-        comparator.snapPrev();
+    function testGovernanceCanPause() public {
         vm.prank(governance);
+        vault.pause();
 
-        vault.withdrawToVault();
-
-        comparator.snapCurr();
-
-        assertEq(comparator.curr("strategy.balanceOf()"), 0);
-        // TODO: Maybe relax this for loss making strategies?
-        assertEq(
-            comparator.diff("want.balanceOf(vault)"),
-            comparator.prev("strategy.balanceOf()")
-        );
+        assertTrue(vault.paused());
     }
 
-    function reportHarvestChecked(uint256 _amount) internal {
-        comparator.addCall(
-            "vault.balanceOf(treasury)",
-            address(vault),
-            abi.encodeWithSignature("balanceOf(address)", treasury)
-        );
-        comparator.addCall(
-            "vault.balanceOf(strategist)",
-            address(vault),
-            abi.encodeWithSignature("balanceOf(address)", strategist)
-        );
-        comparator.addCall(
-            "vault.balance()",
-            address(vault),
-            abi.encodeWithSignature("balance()")
-        );
-        comparator.addCall(
-            "vault.lastHarvestAmount()",
-            address(vault),
-            abi.encodeWithSignature("lastHarvestAmount()")
-        );
-        comparator.addCall(
-            "vault.assetsAtLastHarvest()",
-            address(vault),
-            abi.encodeWithSignature("assetsAtLastHarvest()")
-        );
-        comparator.addCall(
-            "vault.lastHarvestedAt()",
-            address(vault),
-            abi.encodeWithSignature("lastHarvestedAt()")
-        );
-        comparator.addCall(
-            "vault.lifeTimeEarned()",
-            address(vault),
-            abi.encodeWithSignature("lifeTimeEarned()")
-        );
+    function testGuardianCanPause() public {
+        vm.prank(governance);
+        vault.pause();
 
-        comparator.snapPrev();
-
-        erc20utils.forceMintTo(address(vault), WANT, _amount);
-
-        vm.expectEmit(true, true, false, true);
-        emit Harvested(WANT, _amount, block.number, block.timestamp);
-
-        vm.prank(address(strategy));
-        vault.reportHarvest(_amount);
-
-        comparator.snapCurr();
-
-        // TODO: management fee
-        uint256 governanceFee = (_amount * PERFORMANCE_FEE_GOVERNANCE) /
-            MAX_BPS;
-        uint256 strategistFee = (_amount * PERFORMANCE_FEE_STRATEGIST) /
-            MAX_BPS;
-
-        assertEq(
-            comparator.diff("vault.balanceOf(treasury)"),
-            (governanceFee * 1e18) /
-                comparator.curr("vault.getPricePerFullShare()")
-        );
-        assertEq(
-            comparator.diff("vault.balanceOf(strategist)"),
-            (strategistFee * 1e18) /
-                comparator.curr("vault.getPricePerFullShare()")
-        );
-        assertEq(comparator.curr("vault.lastHarvestAmount()"), _amount);
-        assertEq(
-            comparator.curr("vault.assetsAtLastHarvest()"),
-            comparator.prev("vault.balance()")
-        );
-        assertEq(comparator.curr("vault.lastHarvestedAt()"), block.timestamp);
-        assertEq(comparator.diff("vault.lifeTimeEarned()"), _amount);
+        assertTrue(vault.paused());
     }
 
-    function reportAdditionalTokenChecked(address _token, uint256 _amount)
-        internal
-    {
-        comparator.addCall(
-            "token.balanceOf(treasury)",
-            _token,
-            abi.encodeWithSignature("balanceOf(address)", treasury)
-        );
-        comparator.addCall(
-            "token.balanceOf(strategist)",
-            _token,
-            abi.encodeWithSignature("balanceOf(address)", strategist)
-        );
-        comparator.addCall(
-            "token.balanceOf(badgerTree)",
-            _token,
-            abi.encodeWithSignature("balanceOf(address)", badgerTree)
-        );
-        comparator.addCall(
-            "vault.additionalTokensEarned(token)",
-            address(vault),
-            abi.encodeWithSignature("additionalTokensEarned(address)", _token)
-        );
-        comparator.addCall(
-            "vault.lastAdditionalTokenAmount(token)",
-            address(vault),
-            abi.encodeWithSignature(
-                "lastAdditionalTokenAmount(address)",
-                _token
-            )
-        );
+    function testUnpauseIsProtected() public {
+        vm.prank(governance);
+        vault.pause();
 
-        // TODO: management fee
-        uint256 governanceFee = (_amount * PERFORMANCE_FEE_GOVERNANCE) /
-            MAX_BPS;
-        uint256 strategistFee = (_amount * PERFORMANCE_FEE_STRATEGIST) /
-            MAX_BPS;
-
-        comparator.snapPrev();
-
-        erc20utils.forceMintTo(address(vault), _token, _amount);
-
-        vm.prank(address(strategy));
-
-        vm.expectEmit(true, true, false, true);
-        emit TreeDistribution(
-            _token,
-            _amount - governanceFee - strategistFee,
-            block.number,
-            block.timestamp
-        );
-        vault.reportAdditionalToken(_token);
-
-        comparator.snapCurr();
-
-        assertEq(
-            comparator.curr("vault.lastAdditionalTokenAmount(token)"),
-            _amount
-        );
-        assertEq(
-            comparator.diff("vault.additionalTokensEarned(token)"),
-            _amount
-        );
-        assertEq(comparator.diff("token.balanceOf(treasury)"), governanceFee);
-        assertEq(comparator.diff("token.balanceOf(strategist)"), strategistFee);
-        assertEq(
-            comparator.diff("token.balanceOf(badgerTree)"),
-            _amount - governanceFee - strategistFee
-        );
+        vm.expectRevert("onlyGovernance");
+        vault.unpause();
     }
 
-    // TODO: Move to strategy tests
-    function harvestChecked() internal {
-        uint256 numRewards = EMITS.length;
-        uint256 performanceFeeGovernance = vault.performanceFeeGovernance();
-        uint256 performanceFeeStrategist = vault.performanceFeeStrategist();
+    function testGovernanceCanUnpause() public {
+        vm.startPrank(governance);
+        vault.pause();
+        vault.unpause();
 
-        // TODO: There has to be a better way to do this
-        comparator.addCall(
-            "vault.getPricePerFullShare()",
-            address(vault),
-            abi.encodeWithSignature("getPricePerFullShare()")
-        );
-        comparator.addCall(
-            "strategy.balanceOf()",
-            address(strategy),
-            abi.encodeWithSignature("balanceOf()")
-        );
-
-        for (uint256 i; i < numRewards; ++i) {
-            string memory name = IERC20Metadata(EMITS[i]).name();
-            comparator.addCall(
-                string.concat(name, ".balanceOf(treasury)"),
-                address(EMITS[i]),
-                abi.encodeWithSignature("balanceOf(address)", treasury)
-            );
-            comparator.addCall(
-                string.concat(name, ".balanceOf(strategist)"),
-                address(EMITS[i]),
-                abi.encodeWithSignature("balanceOf(address)", strategist)
-            );
-            comparator.addCall(
-                string.concat(name, ".balanceOf(badgerTree)"),
-                address(EMITS[i]),
-                abi.encodeWithSignature("balanceOf(address)", badgerTree)
-            );
-        }
-
-        comparator.snapPrev();
-        vm.startPrank(keeper);
-
-        for (uint256 i; i < numRewards; ++i) {
-            if (performanceFeeGovernance > 0) {
-                vm.expectEmit(true, true, true, false); // Not checking amount
-                emit PerformanceFeeGovernance(
-                    treasury,
-                    address(EMITS[i]),
-                    0, // dummy
-                    block.number,
-                    block.timestamp
-                );
-            }
-
-            if (performanceFeeStrategist > 0) {
-                vm.expectEmit(true, true, true, false); // Not checking amount
-                emit PerformanceFeeStrategist(
-                    strategist,
-                    address(EMITS[i]),
-                    0, // dummy
-                    block.number,
-                    block.timestamp
-                );
-            }
-        }
-
-        vm.expectEmit(true, false, false, true);
-        emit Harvested(WANT, 0, block.number, block.timestamp);
-
-        // TODO: Return value?
-        strategy.harvest();
-
-        vm.stopPrank();
-
-        comparator.snapCurr();
-
-        // assertEq(harvested, 0);
-
-        assertZe(comparator.diff("vault.getPricePerFullShare()"));
-        assertZe(comparator.diff("strategy.balanceOf()"));
-
-        for (uint256 i; i < numRewards; ++i) {
-            string memory name = IERC20Metadata(EMITS[i]).name();
-            uint256 deltaRewardBalanceOfTreasury = comparator.diff(
-                string.concat(name, ".balanceOf(treasury)")
-            );
-            uint256 deltaRewardBalanceOfStrategist = comparator.diff(
-                string.concat(name, ".balanceOf(strategist)")
-            );
-            uint256 deltaRewardBalanceOfBadgerTree = comparator.diff(
-                string.concat(name, ".balanceOf(badgerTree)")
-            );
-
-            uint256 rewardEmitted = deltaRewardBalanceOfTreasury +
-                deltaRewardBalanceOfStrategist +
-                deltaRewardBalanceOfBadgerTree;
-
-            uint256 rewardGovernanceFee = (rewardEmitted *
-                performanceFeeGovernance) / MAX_BPS;
-            uint256 rewardStrategistFee = (rewardEmitted *
-                performanceFeeStrategist) / MAX_BPS;
-
-            assertEq(deltaRewardBalanceOfTreasury, rewardGovernanceFee);
-            assertEq(deltaRewardBalanceOfStrategist, rewardStrategistFee);
-            assertEq(
-                deltaRewardBalanceOfBadgerTree,
-                rewardEmitted - rewardGovernanceFee - rewardStrategistFee
-            );
-        }
+        assertTrue(!vault.paused());
     }
 }
 
@@ -1437,8 +997,11 @@ TODO:
 - Unchecked deposit in earn tests etc.
 - Helpers: deposit, depositAndEarn, depositAndEarnAndHarvest
 - vm.expectEmit everywhere
-- Vault doesn't care about strategy.balanceOfWant()/strategy.balanceOfPool(). Maybe move that to strat tests?
+- (no) Vault doesn't care about strategy.balanceOfWant()/strategy.balanceOfPool(). Maybe move that to strat tests?
+- earn should check strategy.balanceOfWant()/strategy.balanceOfPool()
 - More fuzzing? Fuzzing everywhere?
+- Events to setter tests
+- IERC20(WANT).bal... ==> AMOUNT_TO_MINT?
 
 - Vault improvements:
   - Way to charge withdrawal fee without transferring want to vault?
@@ -1451,6 +1014,7 @@ TODO:
   - Loss reporting:
     - https://github.com/yearn/yearn-vaults/blob/main/contracts/Vault.vy#L1120-L1128
     - https://github.com/yearn/yearn-vaults/blob/main/contracts/Vault.vy#L1037-L1063
+  - 2-step governance delegation
 
 - Strategy improvements:
   - Take want from vault
