@@ -2,6 +2,16 @@
 
 A linear improvement from original architecture. No longer using Controller, just Vault and Strategy.
 
+## Video Introduction
+
+Quick Developer Overview: https://youtu.be/NELwk2yrA_8
+
+Code Deep Dive: https://youtu.be/u__v-J7KTNM
+
+## Developer Documentation
+
+https://docs.badger.com/badger-finance/wip-vaults-1.5
+
 # Badger Vaults 1.5
 
 A simplified architecture for Vaults, that uses exclusively:
@@ -96,7 +106,7 @@ Replace by treasury and setTreasury respectively
 
 ## min and setMin are gone
 
-Replaced by min and setToEarnBps respectively
+Replaced by toEarn and setToEarnBps respectively
 
 ## Vault handles report of funds
 
