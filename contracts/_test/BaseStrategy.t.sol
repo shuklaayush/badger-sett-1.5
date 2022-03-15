@@ -137,6 +137,8 @@ contract BaseStrategyTest is BaseFixture {
     }
 
     function testHarvestOnce() public {
+        depositAllChecked();
+
         uint256[] memory emitAmounts = new uint256[](NUM_EMITS);
         for (uint256 i; i < NUM_EMITS; ++i) {
             emitAmounts[i] = (i + 2) * 10**18;
@@ -232,7 +234,7 @@ contract BaseStrategyTest is BaseFixture {
         strategy.pause();
         strategy.unpause();
 
-        assertTrue(!strategy.paused());
+        assertFalse(strategy.paused());
     }
 }
 

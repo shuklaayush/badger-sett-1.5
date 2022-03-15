@@ -979,7 +979,7 @@ contract VaultTest is BaseFixture {
         vault.pause();
         vault.unpause();
 
-        assertTrue(!vault.paused());
+        assertFalse(vault.paused());
     }
 }
 
@@ -1015,6 +1015,9 @@ TODO:
     - https://github.com/yearn/yearn-vaults/blob/main/contracts/Vault.vy#L1120-L1128
     - https://github.com/yearn/yearn-vaults/blob/main/contracts/Vault.vy#L1037-L1063
   - 2-step governance delegation
+  - Fail harvest if balance is 0? Send everything to governance?
+    Weighted split between governance/strategist?
+    Force non-zero balance during deployment?
 
 - Strategy improvements:
   - Take want from vault

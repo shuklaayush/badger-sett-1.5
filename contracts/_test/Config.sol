@@ -8,7 +8,7 @@ abstract contract Config {
     address[1] internal EMITS = [address(new MockToken("emit", "EMIT"))];
 
     uint256 public constant PERFORMANCE_FEE_GOVERNANCE = 1_500;
-    uint256 public constant PERFORMANCE_FEE_STRATEGIST = 0;
+    uint256 public constant PERFORMANCE_FEE_STRATEGIST = 1_000;
     uint256 public constant WITHDRAWAL_FEE = 10;
     uint256 public constant MANAGEMENT_FEE = 2;
 }
