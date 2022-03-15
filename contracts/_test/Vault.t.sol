@@ -838,9 +838,9 @@ contract VaultTest is BaseFixture {
         vault.withdraw(shares);
     }
 
-    /// ===============================
-    /// ===== WithdrawOther Tests =====
-    /// ===============================
+    /// =================================
+    /// ===== SweepExtraToken Tests =====
+    /// =================================
 
     function testSweepExtraTokenIsProtected() public {
         vm.expectRevert("onlyGovernanceOrStrategist");
@@ -865,6 +865,14 @@ contract VaultTest is BaseFixture {
         vault.sweepExtraToken(WANT);
     }
 
+    function testCantProtectedTokens() public {
+        vm.startPrank(governance);
+        for (uint256 i; i < NUM_EMITS; ++i) {
+            vm.expectRevert("_onlyNotProtectedTokens");
+            vault.sweepExtraToken(EMITS[i]);
+        }
+    }
+
     function testSweepExtraToken() public {
         MockToken extra = new MockToken("extra", "EXTR");
         extra.mint(address(vault), 100);
@@ -874,6 +882,46 @@ contract VaultTest is BaseFixture {
 
         assertEq(extra.balanceOf(address(vault)), 0);
         assertEq(extra.balanceOf(governance), 100);
+    }
+
+    /// =======================================
+    /// ===== emitNonProtectedToken Tests =====
+    /// =======================================
+
+    function testEmitNonProtectedTokenIsProtected() public {
+        vm.expectRevert("onlyGovernanceOrStrategist");
+        vault.emitNonProtectedToken(address(0));
+    }
+
+    function testGovernanceCanEmitNonProtectedToken() public {
+        address extra = address(new MockToken("extra", "EXTR"));
+        vm.prank(governance);
+        vault.emitNonProtectedToken(extra);
+    }
+
+    function testStrategistCanEmitNonProtectedToken() public {
+        address extra = address(new MockToken("extra", "EXTR"));
+        vm.prank(strategist);
+        vault.emitNonProtectedToken(extra);
+    }
+
+    function testCantEmitWant() public {
+        vm.prank(governance);
+        vm.expectRevert("_onlyNotProtectedTokens");
+        vault.emitNonProtectedToken(WANT);
+    }
+
+    function testCantEmitProtectedTokens() public {
+        vm.startPrank(governance);
+        for (uint256 i; i < NUM_EMITS; ++i) {
+            vm.expectRevert("_onlyNotProtectedTokens");
+            vault.emitNonProtectedToken(EMITS[i]);
+        }
+    }
+
+    function testEmitNonProtectedToken() public {
+        MockToken extra = new MockToken("extra", "EXTR");
+        emitNonProtectedTokenChecked(address(extra), 100, "EXTR");
     }
 
     /// =================================
@@ -937,8 +985,7 @@ contract VaultTest is BaseFixture {
     }
 
     function testReportAdditionalToken() public {
-        uint256 numRewards = EMITS.length;
-        for (uint256 i; i < numRewards; ++i) {
+        for (uint256 i; i < NUM_EMITS; ++i) {
             reportAdditionalTokenChecked(EMITS[i], 1e18, "EMITS[i]");
         }
     }
@@ -1002,6 +1049,7 @@ TODO:
 - More fuzzing? Fuzzing everywhere?
 - Events to setter tests
 - IERC20(WANT).bal... ==> AMOUNT_TO_MINT?
+- IsProtected => IsPermissioned?
 
 - Vault improvements:
   - Way to charge withdrawal fee without transferring want to vault?

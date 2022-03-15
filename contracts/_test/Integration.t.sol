@@ -35,6 +35,42 @@ contract IntegrationTest is BaseFixture {
         withdrawAllChecked();
     }
 
+    function testHarvestFlowWithdrawTwice() public {
+        uint256 shares = depositAllChecked();
+        earnChecked();
+
+        skip(1 days);
+
+        uint256[] memory emitAmounts = new uint256[](NUM_EMITS);
+        for (uint256 i; i < NUM_EMITS; ++i) {
+            emitAmounts[i] = (i + 2) * 10**18;
+        }
+        harvestChecked(1e18, emitAmounts, 1 days);
+        withdrawChecked(shares / 2);
+
+        skip(2 days);
+
+        harvestChecked(1e18, emitAmounts, 2 days);
+        withdrawAllChecked();
+    }
+
+    function testMigrate() public {
+        depositAllChecked();
+        skip(1 hours);
+
+        earnChecked();
+        skip(2 days);
+
+        uint256[] memory emitAmounts = new uint256[](NUM_EMITS);
+        for (uint256 i; i < NUM_EMITS; ++i) {
+            emitAmounts[i] = (i + 2) * 10**18;
+        }
+        harvestChecked(1e18, emitAmounts, 2 days + 1 hours);
+        skip(1 days);
+
+        withdrawToVaultChecked();
+    }
+
     /// ============================
     /// ===== Internal helpers =====
     /// ============================

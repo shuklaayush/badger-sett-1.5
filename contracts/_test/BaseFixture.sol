@@ -595,6 +595,26 @@ contract BaseFixture is DSTest2, stdCheats, Config, Utils {
         postReportAdditionalTokenChecked(_name, _amount);
     }
 
+    function emitNonProtectedTokenChecked(
+        address _token,
+        uint256 _amount,
+        string memory _name
+    ) internal {
+        prepareReportAdditionalTokenChecked(_token, _name);
+
+        comparator.snapPrev();
+
+        erc20utils.forceMintTo(address(strategy), _token, _amount);
+
+        prepareEventsReportAdditionalTokenChecked(_token, _amount);
+        vm.prank(governance);
+        vault.emitNonProtectedToken(_token);
+
+        comparator.snapCurr();
+
+        postReportAdditionalTokenChecked(_name, _amount);
+    }
+
     function prepareReportHarvest() internal {
         comparator.addCall(
             "vault.balance()",
@@ -785,4 +805,6 @@ TODO:
 - add a demo staking pool for `balanceOfPool` tests
 - vm.label with .name() instead?
 - fixed point math?
+- emitNonProtectedToken ==> reportAdditionTokenManual?
+- Maybe move minting outside checked function?
 */
