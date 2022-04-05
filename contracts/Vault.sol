@@ -405,8 +405,14 @@ contract Vault is ERC20Upgradeable, SettAccessControl, PausableUpgradeable, Reen
         uint256 governanceRewardsFee = _calculateFee(tokenBalance, performanceFeeGovernance);
         uint256 strategistRewardsFee = _calculateFee(tokenBalance, performanceFeeStrategist);
 
-        IERC20Upgradeable(_token).safeTransfer(treasury, governanceRewardsFee);
-        IERC20Upgradeable(_token).safeTransfer(strategist, strategistRewardsFee);
+        if(governanceRewardsFee != 0) {
+            IERC20Upgradeable(_token).safeTransfer(treasury, governanceRewardsFee);
+
+        }
+
+        if(strategistRewardsFee != 0) {
+            IERC20Upgradeable(_token).safeTransfer(strategist, strategistRewardsFee);
+        }
 
         // Send rest to tree
         uint256 newBalance = IERC20Upgradeable(_token).balanceOf(address(this));
