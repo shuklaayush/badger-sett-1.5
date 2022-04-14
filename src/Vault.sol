@@ -451,13 +451,18 @@ contract Vault is
             performanceFeeStrategist
         );
 
-        if(governanceRewardsFee != 0) {
-            IERC20Upgradeable(_token).safeTransfer(treasury, governanceRewardsFee);
-
+        if (governanceRewardsFee != 0) {
+            IERC20Upgradeable(_token).safeTransfer(
+                treasury,
+                governanceRewardsFee
+            );
         }
 
-        if(strategistRewardsFee != 0) {
-            IERC20Upgradeable(_token).safeTransfer(strategist, strategistRewardsFee);
+        if (strategistRewardsFee != 0) {
+            IERC20Upgradeable(_token).safeTransfer(
+                strategist,
+                strategistRewardsFee
+            );
         }
 
         // Send rest to tree
@@ -810,7 +815,7 @@ contract Vault is
 
         // After you burned the shares, and you have sent the funds, adding here is equivalent to depositing
         // Process withdrawal fee
-        if(_fee > 0) {
+        if (_fee > 0) {
             _mintSharesFor(treasury, _fee, balance() - _fee);
         }
     }
@@ -868,7 +873,7 @@ contract Vault is
             shares = (_amount * totalSupply()) / _pool;
         }
 
-        if(shares != 0) {
+        if (shares != 0) {
             _mint(recipient, shares);
         }
     }
