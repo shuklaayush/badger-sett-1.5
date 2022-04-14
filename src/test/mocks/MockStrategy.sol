@@ -17,9 +17,6 @@ contract MockStrategy is BaseStrategy {
     uint256 private lossBps;
     uint256 private harvestAmount;
 
-    /// @notice set using setAutoCompoundRatio()
-    // uint256 public autoCompoundRatio = 10_000; // Inherited from BaseStrategy - percentage of rewards converted to want
-
     /// @dev Initialize the Strategy with security settings as well as tokens
     /// @notice Proxies will set any non constant variable you declare as default value
     /// @dev add any extra changeable variable at end of initializer as shown
@@ -31,8 +28,6 @@ contract MockStrategy is BaseStrategy {
         __BaseStrategy_init(_vault);
         /// @dev Add config here
         reward = _tokenConfig[0];
-
-        autoCompoundRatio = 10_000; // Percentage of reward we reinvest into want
 
         // If you need to set new values that are not constants, set them like so
         // stakingContract = 0x79ba8b76F61Db3e7D994f7E384ba8f7870A043b7;

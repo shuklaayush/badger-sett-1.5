@@ -28,7 +28,6 @@ import {IVault} from "./interfaces/IVault.sol";
     - strategy would take the actors from the vault it is connected to
         - SettAccessControl removed
     - fees calculation for autocompounding rewards moved to vault
-    - autoCompoundRatio param added to keep a track in which ratio harvested rewards are being autocompounded
 */
 
 abstract contract BaseStrategy is PausableUpgradeable {
@@ -40,16 +39,6 @@ abstract contract BaseStrategy is PausableUpgradeable {
     address public want; // Token used for deposits
     address public vault; // address of the vault the strategy is connected to
     uint256 public withdrawalMaxDeviationThreshold; // max allowed slippage when withdrawing
-
-    /// @notice percentage of rewards converted to want
-    /// @dev converting of rewards to want during harvest should take place in this ratio
-    /// @dev change this ratio if rewards are converted in a different percentage
-    /// value ranges from 0 to 10_000
-    /// 0: keeping 100% harvest in reward tokens
-    /// 10_000: converting all rewards tokens to want token
-    uint256 public autoCompoundRatio; // NOTE: I believe this is unused
-
-    // NOTE: You have to set autoCompoundRatio in the initializer of your strategy
 
     event SetWithdrawalMaxDeviationThreshold(uint256 newMaxDeviationThreshold);
 
@@ -70,8 +59,6 @@ abstract contract BaseStrategy is PausableUpgradeable {
         want = IVault(vault).token();
 
         withdrawalMaxDeviationThreshold = 50; // BPS
-        // NOTE: See above
-        autoCompoundRatio = 10_000;
     }
 
     // ===== Modifiers =====
