@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity >=0.6.0 <0.9.0;
 
-import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {IntervalUint256, IntervalUint256Utils} from "./IntervalUint256.sol";
 
-contract DSTest2 is DSTestPlus {
+contract TestPlus is Test {
     using IntervalUint256Utils for IntervalUint256;
 
     function assertZe(uint256 a) internal {

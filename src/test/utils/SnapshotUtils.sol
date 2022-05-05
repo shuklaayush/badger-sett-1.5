@@ -5,7 +5,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {Multicall3} from "multicall/Multicall3.sol";
 
 import {IntervalUint256, IntervalUint256Utils} from "./IntervalUint256.sol";
-import {DSTest2} from "./DSTest2.sol";
+import {TestPlus} from "./TestPlus.sol";
 
 contract Snapshot {
     mapping(string => uint256) private values;

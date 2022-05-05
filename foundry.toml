@@ -1,7 +1,9 @@
 [default]
 remappings = [
-    'openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/',
+    'forge-std/=lib/forge-std/src/',
+    'multicall/=lib/multicall/src/',
     'openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/',
+    'openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/',
 ]
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

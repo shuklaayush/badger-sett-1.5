@@ -2,14 +2,13 @@
 pragma solidity 0.8.12;
 
 import {Vm} from "forge-std/Vm.sol";
-import {stdCheats} from "forge-std/stdlib.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Config} from "./Config.sol";
 import {Utils} from "./utils/Utils.sol";
 import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol";
-import {DSTest2} from "./utils/DSTest2.sol";
+import {TestPlus} from "./utils/TestPlus.sol";
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
 import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
@@ -17,14 +16,12 @@ import {Vault} from "../Vault.sol";
 import {MockStrategy} from "./mocks/MockStrategy.sol";
 import {MockToken} from "./mocks/MockToken.sol";
 
-contract BaseFixture is DSTest2, stdCheats, Config, Utils {
+contract BaseFixture is TestPlus, Config, Utils {
     using IntervalUint256Utils for IntervalUint256;
 
     // ==============
     // ===== Vm =====
     // ==============
-
-    Vm constant vm = Vm(HEVM_ADDRESS);
 
     ERC20Utils immutable erc20utils = new ERC20Utils();
     SnapshotComparator comparator;

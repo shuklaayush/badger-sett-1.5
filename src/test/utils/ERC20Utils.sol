@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.12;
 
-import "forge-std/stdlib.sol";
+import {stdStorage, StdStorage} from "forge-std/Test.sol";
 
 contract ERC20Utils {
     using stdStorage for StdStorage;
@@ -83,4 +83,4 @@ contract ERC20Utils {
 
 // TODO:
 // - events?
-// - add a checked_add to stdlib
+// - use vm.deal instead
