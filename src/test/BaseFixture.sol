@@ -4,12 +4,12 @@ pragma solidity 0.8.12;
 import {Vm} from "forge-std/Vm.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IntervalUint256, IntervalUint256Utils} from "forge-utils/libraries/IntervalUint256.sol";
+import {SnapshotComparator} from "forge-utils/SnapshotUtils.sol";
+import {Strings} from "forge-utils/libraries/Strings.sol";
+import {Test} from "forge-utils/Test.sol";
 
 import {Config} from "./Config.sol";
-import {IntervalUint256, IntervalUint256Utils} from "./utils/libraries/IntervalUint256.sol";
-import {Strings} from "./utils/libraries/Strings.sol";
-import {Test} from "./utils/Test.sol";
-import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
 import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
 import {Vault} from "../Vault.sol";
 import {MockStrategy} from "./mocks/MockStrategy.sol";

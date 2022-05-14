@@ -10,3 +10,6 @@
 [submodule "lib/multicall"]
 	path = lib/multicall
 	url = https://github.com/mds1/multicall
+[submodule "lib/forge-utils"]
+	path = lib/forge-utils
+	url = https://github.com/shuklaayush/forge-utils
