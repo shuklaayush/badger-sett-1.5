@@ -1,11 +1,11 @@
 {
   "scripts": {
-    "prettier": "prettier --write 'src/**/*.sol'",
-    "prettier:list": "prettier --list-different 'src/**/*.sol'",
-    "prettier:check": "prettier --check 'src/**/*.sol'"
+    "prettier": "prettier --write '(src|test)/**/*.sol'",
+    "prettier:list": "prettier --list-different '(src|test)/**/*.sol'",
+    "prettier:check": "prettier --check '(src|test)/**/*.sol'"
   },
   "devDependencies": {
-    "prettier": "^2.5.1",
+    "prettier": "^2.6.2",
     "prettier-plugin-solidity": "^1.0.0-beta.19"
   }
 }
