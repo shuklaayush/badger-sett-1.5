@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity >=0.6.0 <0.9.0;
 
-import {Test} from "forge-std/Test.sol";
+import {Test as TestBase} from "forge-std/Test.sol";
 
-import {IntervalUint256, IntervalUint256Utils} from "./IntervalUint256.sol";
+import {IntervalUint256, IntervalUint256Utils} from "./libraries/IntervalUint256.sol";
 
-contract TestPlus is Test {
+contract Test is TestBase {
     using IntervalUint256Utils for IntervalUint256;
+
+    function getAddress(string memory _name)
+        internal
+        pure
+        returns (address addr_)
+    {
+        addr_ = address(uint160(uint256(keccak256(bytes(_name)))));
+    }
 
     function assertZe(uint256 a) internal {
         if (a != 0) {

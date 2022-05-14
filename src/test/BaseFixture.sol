@@ -6,9 +6,9 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Config} from "./Config.sol";
-import {Utils} from "./utils/Utils.sol";
-import {IntervalUint256, IntervalUint256Utils} from "./utils/IntervalUint256.sol";
-import {TestPlus} from "./utils/TestPlus.sol";
+import {IntervalUint256, IntervalUint256Utils} from "./utils/libraries/IntervalUint256.sol";
+import {Strings} from "./utils/libraries/Strings.sol";
+import {Test} from "./utils/Test.sol";
 import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
 import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
@@ -16,7 +16,11 @@ import {Vault} from "../Vault.sol";
 import {MockStrategy} from "./mocks/MockStrategy.sol";
 import {MockToken} from "./mocks/MockToken.sol";
 
-contract BaseFixture is TestPlus, Config, Utils {
+contract BaseFixture is Test, Config {
+    // =====================
+    // ===== Libraries =====
+    // =====================
+
     using IntervalUint256Utils for IntervalUint256;
 
     // ==============
@@ -119,7 +123,11 @@ contract BaseFixture is TestPlus, Config, Utils {
         EMITS_NAMES = new string[](NUM_EMITS);
         for (uint256 i; i < NUM_EMITS; ++i) {
             address token = EMITS[i];
-            string memory name = string.concat("EMITS[", toString(i), "]");
+            string memory name = string.concat(
+                "EMITS[",
+                Strings.toString(i),
+                "]"
+            );
             emitsd[i] = token;
             EMITS_NAMES[i] = name;
             vm.label(token, name);
