@@ -5,7 +5,7 @@ pragma solidity 0.8.12;
 import {IERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import {BaseStrategy} from "../../BaseStrategy.sol";
+import {BaseStrategy} from "../../src/BaseStrategy.sol";
 
 contract MockStrategy is BaseStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;

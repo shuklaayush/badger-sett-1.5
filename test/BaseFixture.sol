@@ -9,9 +9,10 @@ import {SnapshotComparator} from "forge-utils/SnapshotUtils.sol";
 import {Strings} from "forge-utils/libraries/Strings.sol";
 import {Test} from "forge-utils/Test.sol";
 
+import {Vault} from "../src/Vault.sol";
+
 import {Config} from "./Config.sol";
 import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
-import {Vault} from "../Vault.sol";
 import {MockStrategy} from "./mocks/MockStrategy.sol";
 import {MockToken} from "./mocks/MockToken.sol";
 
