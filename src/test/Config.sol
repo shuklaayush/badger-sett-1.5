@@ -5,7 +5,8 @@ import {MockToken} from "./mocks/MockToken.sol";
 
 abstract contract Config {
     address internal immutable WANT = address(new MockToken("want", "WANT"));
-    address[1] internal EMITS = [address(new MockToken("emit", "EMIT"))];
+
+    address[] internal EMITS = [address(new MockToken("emit", "EMIT"))];
 
     uint256 public constant PERFORMANCE_FEE_GOVERNANCE = 1_500;
     uint256 public constant PERFORMANCE_FEE_STRATEGIST = 1_000;

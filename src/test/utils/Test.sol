@@ -6,7 +6,15 @@ import {Test as TestBase} from "forge-std/Test.sol";
 import {IntervalUint256, IntervalUint256Utils} from "./libraries/IntervalUint256.sol";
 
 contract Test is TestBase {
+    // =====================
+    // ===== Libraries =====
+    // =====================
+
     using IntervalUint256Utils for IntervalUint256;
+
+    // ==========================
+    // ===== Util Functions =====
+    // ==========================
 
     function getAddress(string memory _name)
         internal
@@ -15,6 +23,27 @@ contract Test is TestBase {
     {
         addr_ = address(uint160(uint256(keccak256(bytes(_name)))));
     }
+
+    // ========================
+    // ===== Extra Cheats =====
+    // =========================
+
+    function dealMore(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) public {
+        (, bytes memory rdat) = _token.staticcall(
+            abi.encodeWithSignature("balanceOf(address)", _to)
+        );
+        uint256 balance = abi.decode(rdat, (uint256));
+
+        deal(_token, _to, balance + _amount, true);
+    }
+
+    // =========================
+    // ===== Extra Asserts =====
+    // =========================
 
     function assertZe(uint256 a) internal {
         if (a != 0) {

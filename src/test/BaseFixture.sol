@@ -9,7 +9,6 @@ import {Config} from "./Config.sol";
 import {IntervalUint256, IntervalUint256Utils} from "./utils/libraries/IntervalUint256.sol";
 import {Strings} from "./utils/libraries/Strings.sol";
 import {Test} from "./utils/Test.sol";
-import {ERC20Utils} from "./utils/ERC20Utils.sol";
 import {SnapshotComparator} from "./utils/SnapshotUtils.sol";
 import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
 import {Vault} from "../Vault.sol";
@@ -27,7 +26,6 @@ contract BaseFixture is Test, Config {
     // ===== Vm =====
     // ==============
 
-    ERC20Utils immutable erc20utils = new ERC20Utils();
     SnapshotComparator comparator;
 
     uint256 internal immutable NUM_EMITS = EMITS.length;
@@ -158,7 +156,7 @@ contract BaseFixture is Test, Config {
         vault.setStrategy(address(strategy));
 
         // Extra
-        erc20utils.forceMint(WANT, AMOUNT_TO_MINT);
+        dealMore(WANT, address(this), AMOUNT_TO_MINT);
 
         comparator = new SnapshotComparator();
     }
@@ -597,7 +595,7 @@ contract BaseFixture is Test, Config {
 
         comparator.snapPrev();
 
-        erc20utils.forceMintTo(address(vault), _token, _amount);
+        dealMore(_token, address(vault), _amount);
 
         prepareEventsReportAdditionalToken(_token, _amount);
         vm.prank(address(strategy));
@@ -617,7 +615,7 @@ contract BaseFixture is Test, Config {
 
         comparator.snapPrev();
 
-        erc20utils.forceMintTo(address(strategy), _token, _amount);
+        dealMore(_token, address(strategy), _amount);
 
         prepareEventsReportAdditionalToken(_token, _amount);
         vm.prank(governance);
@@ -747,7 +745,7 @@ contract BaseFixture is Test, Config {
 
         comparator.snapPrev();
 
-        erc20utils.forceMintTo(address(vault), WANT, _amount);
+        dealMore(WANT, address(vault), _amount);
 
         prepareEventsReportHarvest(_amount);
         vm.prank(address(strategy));
@@ -774,15 +772,11 @@ contract BaseFixture is Test, Config {
 
         comparator.snapPrev();
 
-        erc20utils.forceMintTo(address(strategy), WANT, _wantAmount);
+        dealMore(WANT, address(strategy), _wantAmount);
         strategy.setHarvestAmount(_wantAmount);
 
         for (uint256 i; i < NUM_EMITS; ++i) {
-            erc20utils.forceMintTo(
-                address(strategy),
-                EMITS[i],
-                _emitAmounts[i]
-            );
+            dealMore(EMITS[i], address(strategy), _emitAmounts[i]);
         }
 
         prepareEventsReportHarvest(_wantAmount);
