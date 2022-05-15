@@ -30,6 +30,7 @@ jobs:
 
   slither:
     runs-on: ubuntu-latest
+    if: "false" # Disabled
 
     steps:
       - uses: actions/checkout@v3
