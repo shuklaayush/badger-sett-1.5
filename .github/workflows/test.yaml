@@ -2,9 +2,13 @@ name: test
 
 on:
   pull_request:
-  workflow_dispatch:
+    branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
 
 jobs:
   forge:
@@ -16,7 +20,7 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: onbjerg/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
 

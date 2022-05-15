@@ -7,4 +7,5 @@ remappings = [
 ]
 verbosity = 3
 
-# See more config options https://github.com/gakonst/foundry/tree/master/config
+[ci]
+fuzz-runs = 10_000
