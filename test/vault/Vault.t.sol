@@ -605,9 +605,9 @@ contract VaultTest is BaseFixture {
         earnChecked();
     }
 
-    /// ==========================
-    /// ===== Withdraw Tests =====
-    /// ==========================
+    // ==========================
+    // ===== Withdraw Tests =====
+    // ==========================
 
     function testWithdrawFailsIfAmountIsZero() public {
         vm.expectRevert("0 Shares");
@@ -680,9 +680,9 @@ contract VaultTest is BaseFixture {
         vault.withdraw(shares);
     }
 
-    /// =================================
-    /// ===== SweepExtraToken Tests =====
-    /// =================================
+    // =================================
+    // ===== SweepExtraToken Tests =====
+    // =================================
 
     function testGovernanceCanSweepExtraToken() public {
         address extra = address(new MockToken("extra", "EXTR"));
@@ -721,9 +721,9 @@ contract VaultTest is BaseFixture {
         assertEq(extra.balanceOf(governance), 100);
     }
 
-    /// =======================================
-    /// ===== emitNonProtectedToken Tests =====
-    /// =======================================
+    // =======================================
+    // ===== emitNonProtectedToken Tests =====
+    // =======================================
 
     function testGovernanceCanEmitNonProtectedToken() public {
         address extra = address(new MockToken("extra", "EXTR"));
@@ -756,9 +756,9 @@ contract VaultTest is BaseFixture {
         emitNonProtectedTokenChecked(address(extra), 100, "EXTR");
     }
 
-    /// =================================
-    /// ===== WithdrawToVault Tests =====
-    /// =================================
+    // =================================
+    // ===== WithdrawToVault Tests =====
+    // =================================
 
     function testGovernanceCanWithdrawToVault() public {
         vm.prank(governance);
@@ -779,9 +779,9 @@ contract VaultTest is BaseFixture {
         withdrawToVaultChecked();
     }
 
-    /// ========================
-    /// ===== Report Tests =====
-    /// ========================
+    // ========================
+    // ===== Report Tests =====
+    // ========================
 
     function testStrategyCanReportHarvest() public {
         vm.prank(address(strategy));
@@ -807,9 +807,9 @@ contract VaultTest is BaseFixture {
         }
     }
 
-    /// =========================
-    /// ===== Pausing Tests =====
-    /// =========================
+    // =========================
+    // ===== Pausing Tests =====
+    // =========================
 
     function testGovernanceCanPause() public {
         vm.prank(governance);

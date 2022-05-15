@@ -50,9 +50,9 @@ contract BaseStrategyTest is BaseFixture {
         mockStrategy.initialize(address(0), new address[](0));
     }
 
-    /// ========================
-    /// ===== Config Tests =====
-    /// ========================
+    // ========================
+    // ===== Config Tests =====
+    // ========================
 
     function testGovernanceCanSetWithdrawalMaxDeviationThreshold() public {
         vm.prank(governance);
@@ -84,9 +84,9 @@ contract BaseStrategyTest is BaseFixture {
         strategy.isProtectedToken(address(0));
     }
 
-    /// ============================
-    /// ===== Permission Tests =====
-    /// ============================
+    // ============================
+    // ===== Permission Tests =====
+    // ============================
 
     function testGovernanceCanPause() public {
         vm.prank(governance);

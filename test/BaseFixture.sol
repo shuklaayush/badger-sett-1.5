@@ -162,9 +162,9 @@ contract BaseFixture is Test, Config {
         comparator = new SnapshotComparator();
     }
 
-    /// ============================
-    /// ===== Internal helpers =====
-    /// ============================
+    // ============================
+    // ===== Internal helpers =====
+    // ============================
 
     function addGuestlist() internal {
         TestVipCappedGuestListBbtcUpgradeable guestlist = new TestVipCappedGuestListBbtcUpgradeable();

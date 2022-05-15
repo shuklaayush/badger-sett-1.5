@@ -67,7 +67,7 @@ contract IntegrationTest is BaseFixture {
         withdrawToVaultChecked();
     }
 
-    /// ============================
-    /// ===== Internal helpers =====
-    /// ============================
+    // ============================
+    // ===== Internal helpers =====
+    // ============================
 }

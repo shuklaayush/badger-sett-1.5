@@ -12,9 +12,9 @@ contract BaseStrategyPermissionsTest is BaseFixture {
         BaseFixture.setUp();
     }
 
-    /// ============================
-    /// ===== Permission Tests =====
-    /// ============================
+    // ============================
+    // ===== Permission Tests =====
+    // ============================
 
     function testSetWithdrawalMaxDeviationThresholdIsPermissioned() public {
         vm.expectRevert("onlyGovernance");

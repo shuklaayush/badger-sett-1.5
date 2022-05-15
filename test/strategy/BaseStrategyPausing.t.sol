@@ -12,9 +12,9 @@ contract BaseStrategyPausingTest is BaseFixture {
         BaseFixture.setUp();
     }
 
-    /// =========================
-    /// ===== Pausing Tests =====
-    /// =========================
+    // =========================
+    // ===== Pausing Tests =====
+    // =========================
 
     function testHarvestFailsWhenPaused() public {
         vm.prank(governance);
