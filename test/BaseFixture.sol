@@ -4,10 +4,10 @@ pragma solidity 0.8.12;
 import {Vm} from "forge-std/Vm.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IntervalUint256, IntervalUint256Utils} from "forge-utils/libraries/IntervalUint256.sol";
+import {IntervalUint256, IntervalUint256Lib} from "forge-utils/libraries/IntervalUint256.sol";
 import {SnapshotComparator} from "forge-utils/SnapshotUtils.sol";
 import {Strings} from "forge-utils/libraries/Strings.sol";
-import {Test} from "forge-utils/Test.sol";
+import {TestPlus} from "forge-utils/TestPlus.sol";
 
 import {Vault} from "../src/Vault.sol";
 
@@ -16,12 +16,12 @@ import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestL
 import {MockStrategy} from "./mocks/MockStrategy.sol";
 import {MockToken} from "./mocks/MockToken.sol";
 
-contract BaseFixture is Test, Config {
+contract BaseFixture is TestPlus, Config {
     // =====================
     // ===== Libraries =====
     // =====================
 
-    using IntervalUint256Utils for IntervalUint256;
+    using IntervalUint256Lib for IntervalUint256;
 
     // ==============
     // ===== Vm =====
@@ -403,7 +403,7 @@ contract BaseFixture is Test, Config {
             );
         } else {
             // TODO: Probably doesn't make sense since loss isn't handled properly in strat
-            IntervalUint256 memory amountFromStrategyInterval = IntervalUint256Utils
+            IntervalUint256 memory amountFromStrategyInterval = IntervalUint256Lib
                 .fromMaxAndTolBps(
                     amountZeroFee - comparator.prev("want.balanceOf(vault)"),
                     10 // TODO: No magic
