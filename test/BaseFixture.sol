@@ -302,7 +302,7 @@ contract BaseFixture is Test, Config {
         shares_ = depositAllCheckedFrom(address(this));
     }
 
-    function earnChecked() internal {
+    function prepareEarn() internal {
         comparator.addCall(
             "want.balanceOf(vault)",
             WANT,
@@ -313,9 +313,19 @@ contract BaseFixture is Test, Config {
             address(strategy),
             abi.encodeWithSignature("balanceOf()")
         );
+    }
 
+    function postEarn(uint256 _amount) internal {
+        assertEq(comparator.negDiff("want.balanceOf(vault)"), _amount);
+
+        // TODO: Maybe relax this for loss making strategies?
+        assertEq(comparator.diff("strategy.balanceOf()"), _amount);
+    }
+
+    function earnChecked() internal {
         uint256 expectedEarn = (IERC20(WANT).balanceOf(address(vault)) *
             vault.toEarnBps()) / MAX_BPS;
+        prepareEarn();
 
         comparator.snapPrev();
 
@@ -324,10 +334,7 @@ contract BaseFixture is Test, Config {
 
         comparator.snapCurr();
 
-        assertEq(comparator.negDiff("want.balanceOf(vault)"), expectedEarn);
-
-        // TODO: Maybe relax this for loss making strategies?
-        assertEq(comparator.diff("strategy.balanceOf()"), expectedEarn);
+        postEarn(expectedEarn);
     }
 
     function prepareWithdraw(address _from) internal {
@@ -476,7 +483,7 @@ contract BaseFixture is Test, Config {
         amount_ = withdrawAllCheckedFrom(address(this));
     }
 
-    function withdrawToVaultChecked() internal {
+    function prepareWithdrawToVault() internal {
         comparator.addCall(
             "want.balanceOf(vault)",
             WANT,
@@ -487,6 +494,19 @@ contract BaseFixture is Test, Config {
             address(strategy),
             abi.encodeWithSignature("balanceOf()")
         );
+    }
+
+    function postWithdrawToVault() internal {
+        assertEq(comparator.curr("strategy.balanceOf()"), 0);
+        // TODO: Maybe relax this for loss making strategies?
+        assertEq(
+            comparator.diff("want.balanceOf(vault)"),
+            comparator.prev("strategy.balanceOf()")
+        );
+    }
+
+    function withdrawToVaultChecked() internal {
+        prepareWithdrawToVault();
 
         comparator.snapPrev();
 
@@ -495,12 +515,7 @@ contract BaseFixture is Test, Config {
 
         comparator.snapCurr();
 
-        assertEq(comparator.curr("strategy.balanceOf()"), 0);
-        // TODO: Maybe relax this for loss making strategies?
-        assertEq(
-            comparator.diff("want.balanceOf(vault)"),
-            comparator.prev("strategy.balanceOf()")
-        );
+        postWithdrawToVault();
     }
 
     function prepareReportAdditionalToken(address _token, string memory _name)
