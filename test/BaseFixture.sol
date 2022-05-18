@@ -425,7 +425,7 @@ contract BaseFixture is TestPlus, Config {
             assertEq(comparator.curr("want.balanceOf(vault)"), withdrawalFee);
             assertEq(
                 comparator.diff("want.balanceOf(from)"),
-                amountZeroFeeInterval.sub(withdrawalFee, true)
+                amountZeroFeeInterval.subDependent(withdrawalFee)
             );
             assertEq(
                 comparator.diff("vault.balanceOf(treasury)"),
