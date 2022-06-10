@@ -12,7 +12,7 @@ import {ReentrancyGuardUpgradeable} from "openzeppelin-contracts-upgradeable/sec
 
 import {SettAccessControl} from "./SettAccessControl.sol";
 import {IStrategy} from "./interfaces/IStrategy.sol";
-import {BadgerGuestListAPI} from "./interfaces/BadgerGuestlistApi.sol";
+import {IGuestlist} from "./interfaces/IGuestlist.sol";
 
 /*
     Source: https://github.com/iearn-finance/yearn-protocol/blob/develop/contracts/vaults/yVault.sol
@@ -68,7 +68,7 @@ contract Vault is
     /// ===== Storage Variables ====
 
     IERC20Upgradeable public token; // Token used for deposits
-    BadgerGuestListAPI public guestList; // guestlist when vault is in experiment/ guarded state
+    IGuestlist public guestList; // guestlist when vault is in experiment/ guarded state
 
     bool public pausedDeposit; // false by default Allows to only block deposits, use pause for the normal pause state
 
@@ -584,7 +584,7 @@ contract Vault is
     /// @param _guestList Address of the new guestlist.
     function setGuestList(address _guestList) external whenNotPaused {
         _onlyGovernanceOrStrategist();
-        guestList = BadgerGuestListAPI(_guestList);
+        guestList = IGuestlist(_guestList);
         emit SetGuestList(_guestList);
     }
 
@@ -918,3 +918,8 @@ contract Vault is
         }
     }
 }
+
+/*
+TODO:
+- Replace interfaces with contracts
+*/

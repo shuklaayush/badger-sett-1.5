@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-interface BadgerGuestListAPI {
+interface IGuestlist {
     function authorized(
         address guest,
         uint256 amount,

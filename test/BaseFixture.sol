@@ -10,9 +10,9 @@ import {Strings} from "forge-utils/libraries/Strings.sol";
 import {TestPlus} from "forge-utils/TestPlus.sol";
 
 import {Vault} from "../src/Vault.sol";
+import {Guestlist} from "../src/Guestlist.sol";
 
 import {Config} from "./Config.sol";
-import {TestVipCappedGuestListBbtcUpgradeable} from "./mocks/TestVipCappedGuestListBbtcUpgradeable.sol";
 import {MockStrategy} from "./mocks/MockStrategy.sol";
 import {MockToken} from "./mocks/MockToken.sol";
 
@@ -167,7 +167,7 @@ contract BaseFixture is TestPlus, Config {
     // ============================
 
     function addGuestlist() internal {
-        TestVipCappedGuestListBbtcUpgradeable guestlist = new TestVipCappedGuestListBbtcUpgradeable();
+        Guestlist guestlist = new Guestlist();
         guestlist.initialize(address(vault));
 
         guestlist.setGuestRoot(bytes32(uint256(1)));

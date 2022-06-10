@@ -20,7 +20,7 @@ import {MerkleProofUpgradeable} from "openzeppelin-contracts-upgradeable/utils/c
  * A guest list that gates access by merkle root and a TVL cap
  * @notice authorized function to ignore merkle proof for testing, inspiration from yearn's approach to testing guestlist https://github.com/yearn/yearn-devdocs/blob/4664fdef7d10f3a767fa651975059c44cf1cdb37/docs/developers/v2/smart-contracts/test/TestGuestList.md
  */
-contract TestVipCappedGuestListBbtcUpgradeable is OwnableUpgradeable {
+contract Guestlist is OwnableUpgradeable {
     address public wrapper;
 
     bytes32 public guestRoot;
