@@ -4,6 +4,7 @@ pragma solidity 0.8.12;
 import {MockToken} from "./mocks/MockToken.sol";
 
 abstract contract Config {
+    // TODO: Maybe use constant address and etch code later?
     address internal immutable WANT = address(new MockToken("want", "WANT"));
 
     address[] internal EMITS = [address(new MockToken("emit", "EMIT"))];
