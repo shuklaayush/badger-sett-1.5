@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.12;
 
-import {MockToken} from "./mocks/MockToken.sol";
+import {MockToken} from "./mock/MockToken.sol";
 
 abstract contract Config {
     // TODO: Maybe use constant address and etch code later?

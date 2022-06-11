@@ -31,6 +31,11 @@ contract BaseStrategyPermissionsTest is BaseFixture {
         strategy.harvest();
     }
 
+    function testTendIsPermissioned() public {
+        vm.expectRevert("onlyAuthorizedActors");
+        strategy.tend();
+    }
+
     function testWithdrawToVaultIsPermissioned() public {
         vm.expectRevert("onlyVault");
         strategy.withdrawToVault();

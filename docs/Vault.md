@@ -161,10 +161,10 @@ Sets the fraction of sett balance (in basis points) that the strategy can borrow
 This can be called by either governance or strategist.
 Note that this can only be called when the sett is not paused.
 
-### `setGuestList(address _guestList)` (external)
+### `setGuestList(address _guestlist)` (external)
 
 Changes the guestlist address.
-The guestList is used to gate or limit deposits. If no guestlist is set then anyone can deposit any amount.
+The guestlist is used to gate or limit deposits. If no guestlist is set then anyone can deposit any amount.
 This can be called by either governance or strategist.
 Note that this can only be called when the sett is not paused.
 

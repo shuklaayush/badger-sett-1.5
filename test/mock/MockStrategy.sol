@@ -4,39 +4,32 @@ pragma solidity 0.8.12;
 
 import {IERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import {MathUpgradeable} from "openzeppelin-contracts-upgradeable/utils/math/MathUpgradeable.sol";
 
 import {BaseStrategy} from "../../src/BaseStrategy.sol";
+import {MockStaker} from "./MockStaker.sol";
 
 contract MockStrategy is BaseStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    // address public want; // Inherited from BaseStrategy
-    // address public lpComponent; // Token that represents ownership in a pool, not always used
-    address public reward; // Token we farm
+    address public reward;
 
     uint256 private lossBps;
     uint256 private harvestAmount;
 
-    /// @dev Initialize the Strategy with security settings as well as tokens
-    /// @notice Proxies will set any non constant variable you declare as default value
-    /// @dev add any extra changeable variable at end of initializer as shown
-    /// @notice Dev must implement
+    MockStaker private staker;
+
     function initialize(address _vault, address[] calldata _tokenConfig)
         public
         initializer
     {
         __BaseStrategy_init(_vault);
-        /// @dev Add config here
+
         reward = _tokenConfig[0];
+        staker = new MockStaker();
 
-        // If you need to set new values that are not constants, set them like so
-        // stakingContract = 0x79ba8b76F61Db3e7D994f7E384ba8f7870A043b7;
-
-        // If you need to do one-off approvals do them here like so
-        // IERC20Upgradeable(reward).safeApprove(
-        //     address(DX_SWAP_ROUTER),
-        //     type(uint256).max
-        // );
+        // TODO: Maybe move approvals to a default function?
+        IERC20Upgradeable(want).safeApprove(address(staker), type(uint256).max);
     }
 
     function getName() external pure override returns (string memory) {
@@ -68,10 +61,12 @@ contract MockStrategy is BaseStrategy {
         harvestAmount = _amount;
     }
 
-    function _deposit(uint256 _amount) internal override {}
+    function _deposit(uint256 _amount) internal override {
+        staker.stake(want, _amount);
+    }
 
     function _withdrawAll() internal override {
-        // No-op as we don't deposit
+        staker.unstake(want, balanceOfPool());
     }
 
     function _withdrawSome(uint256 _amount)
@@ -79,9 +74,25 @@ contract MockStrategy is BaseStrategy {
         override
         returns (uint256)
     {
-        uint256 loss = (_amount * lossBps) / MAX_BPS;
+        // TODO: Move to base, will strategies ever have idle want?
+        //       Locker can have idle want if someone kicks after expiry
+        uint256 wantBalance = balanceOfWant();
+        if (wantBalance < _amount) {
+            uint256 toWithdraw = _amount - wantBalance;
+            uint256 poolBalance = balanceOfPool();
+            if (poolBalance < toWithdraw) {
+                staker.unstake(want, poolBalance);
+            } else {
+                staker.unstake(want, toWithdraw);
+            }
+        }
+
+        uint256 amount = MathUpgradeable.min(_amount, balanceOfWant());
+
+        uint256 loss = (amount * lossBps) / MAX_BPS;
         IERC20Upgradeable(want).transfer(address(0xdEaD), loss);
-        return _amount - loss;
+
+        return amount - loss;
     }
 
     function _harvest()
@@ -103,7 +114,6 @@ contract MockStrategy is BaseStrategy {
         harvested[1] = TokenAmount(reward, harvestRewardAmount);
     }
 
-    // Example tend is a no-op which returns the values, could also just revert
     function _tend()
         internal
         view
@@ -117,8 +127,8 @@ contract MockStrategy is BaseStrategy {
         return tended;
     }
 
-    function balanceOfPool() public pure override returns (uint256) {
-        return 0;
+    function balanceOfPool() public view override returns (uint256) {
+        return staker.balanceOf(want, address(this));
     }
 
     function balanceOfRewards()

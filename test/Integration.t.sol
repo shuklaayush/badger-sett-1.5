@@ -26,7 +26,7 @@ contract IntegrationTest is BaseFixture {
         for (uint256 i; i < NUM_EMITS; ++i) {
             emitAmounts[i] = (i + 2) * 10**18;
         }
-        harvestChecked(1e18, emitAmounts, 1 days);
+        harvestCheckedExact(1e18, emitAmounts, 1 days);
 
         withdrawAllChecked();
     }
@@ -41,12 +41,12 @@ contract IntegrationTest is BaseFixture {
         for (uint256 i; i < NUM_EMITS; ++i) {
             emitAmounts[i] = (i + 2) * 10**18;
         }
-        harvestChecked(1e18, emitAmounts, 1 days);
+        harvestCheckedExact(1e18, emitAmounts, 1 days);
         withdrawChecked(shares / 2);
 
         skip(2 days);
 
-        harvestChecked(1e18, emitAmounts, 2 days);
+        harvestCheckedExact(1e18, emitAmounts, 2 days);
         withdrawAllChecked();
     }
 
@@ -61,7 +61,7 @@ contract IntegrationTest is BaseFixture {
         for (uint256 i; i < NUM_EMITS; ++i) {
             emitAmounts[i] = (i + 2) * 10**18;
         }
-        harvestChecked(1e18, emitAmounts, 2 days + 1 hours);
+        harvestCheckedExact(1e18, emitAmounts, 2 days + 1 hours);
         skip(1 days);
 
         withdrawToVaultChecked();

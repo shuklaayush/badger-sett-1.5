@@ -4,7 +4,6 @@ pragma solidity 0.8.12;
 import {Vm} from "forge-std/Vm.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IntervalUint256, IntervalUint256Lib} from "forge-utils/libraries/IntervalUint256.sol";
 import {SnapshotComparator} from "forge-utils/SnapshotUtils.sol";
 import {Strings} from "forge-utils/libraries/Strings.sol";
 import {TestPlus} from "forge-utils/TestPlus.sol";
@@ -13,16 +12,10 @@ import {Vault} from "../src/Vault.sol";
 import {Guestlist} from "../src/Guestlist.sol";
 
 import {Config} from "./Config.sol";
-import {MockStrategy} from "./mocks/MockStrategy.sol";
-import {MockToken} from "./mocks/MockToken.sol";
+import {MockStrategy} from "./mock/MockStrategy.sol";
+import {MockToken} from "./mock/MockToken.sol";
 
 contract BaseFixture is TestPlus, Config {
-    // =====================
-    // ===== Libraries =====
-    // =====================
-
-    using IntervalUint256Lib for IntervalUint256;
-
     // ==============
     // ===== Vm =====
     // ==============
@@ -181,6 +174,10 @@ contract BaseFixture is TestPlus, Config {
         vault.setGuestList(address(guestlist));
     }
 
+    // ===========================
+    // ===== Deposit Helpers =====
+    // ===========================
+
     function prepareDepositFor(address _from, address _to) internal {
         comparator.addCall(
             "want.balanceOf(from)",
@@ -207,12 +204,11 @@ contract BaseFixture is TestPlus, Config {
             address(vault),
             abi.encodeWithSignature("totalSupply()")
         );
-        // TODO: this?
-        // comparator.addCall(
-        //     "vault.getPricePerFullShare()",
-        //     address(vault),
-        //     abi.encodeWithSignature("getPricePerFullShare()")
-        // );
+        comparator.addCall(
+            "vault.getPricePerFullShare()",
+            address(vault),
+            abi.encodeWithSignature("getPricePerFullShare()")
+        );
     }
 
     function postDeposit(uint256 _amount) internal returns (uint256 shares_) {
@@ -224,6 +220,8 @@ contract BaseFixture is TestPlus, Config {
         assertEq(comparator.negDiff("want.balanceOf(from)"), _amount);
         assertEq(comparator.diff("want.balanceOf(vault)"), _amount);
         assertEq(comparator.diff("vault.balanceOf(to)"), expectedShares);
+        // PPS might increase slightly due to rounding errors
+        assertGe(comparator.diff("vault.getPricePerFullShare()"), 0);
 
         shares_ = comparator.diff("vault.balanceOf(to)");
     }
@@ -302,6 +300,10 @@ contract BaseFixture is TestPlus, Config {
         shares_ = depositAllCheckedFrom(address(this));
     }
 
+    // ========================
+    // ===== Earn Helpers =====
+    // ========================
+
     function prepareEarn() internal {
         comparator.addCall(
             "want.balanceOf(vault)",
@@ -309,9 +311,9 @@ contract BaseFixture is TestPlus, Config {
             abi.encodeWithSignature("balanceOf(address)", address(vault))
         );
         comparator.addCall(
-            "strategy.balanceOf()",
+            "strategy.balanceOfPool()",
             address(strategy),
-            abi.encodeWithSignature("balanceOf()")
+            abi.encodeWithSignature("balanceOfPool()")
         );
     }
 
@@ -319,7 +321,7 @@ contract BaseFixture is TestPlus, Config {
         assertEq(comparator.negDiff("want.balanceOf(vault)"), _amount);
 
         // TODO: Maybe relax this for loss making strategies?
-        assertEq(comparator.diff("strategy.balanceOf()"), _amount);
+        assertEq(comparator.diff("strategy.balanceOfPool()"), _amount);
     }
 
     function earnChecked() internal {
@@ -336,6 +338,10 @@ contract BaseFixture is TestPlus, Config {
 
         postEarn(expectedEarn);
     }
+
+    // ============================
+    // ===== Withdraw Helpers =====
+    // ============================
 
     function prepareWithdraw(address _from) internal {
         comparator.addCall(
@@ -359,9 +365,14 @@ contract BaseFixture is TestPlus, Config {
             abi.encodeWithSignature("balanceOf(address)", address(vault))
         );
         comparator.addCall(
-            "strategy.balanceOf()",
+            "want.balanceOf(strategy)",
+            WANT,
+            abi.encodeWithSignature("balanceOf(address)", address(strategy))
+        );
+        comparator.addCall(
+            "strategy.balanceOfPool()",
             address(strategy),
-            abi.encodeWithSignature("balanceOf()")
+            abi.encodeWithSignature("balanceOfPool()")
         );
         comparator.addCall(
             "vault.balance()",
@@ -373,68 +384,60 @@ contract BaseFixture is TestPlus, Config {
             address(vault),
             abi.encodeWithSignature("totalSupply()")
         );
-        // comparator.addCall(
-        //     "vault.getPricePerFullShare()",
-        //     address(vault),
-        //     abi.encodeWithSignature("getPricePerFullShare()")
-        // );
+        comparator.addCall(
+            "vault.getPricePerFullShare()",
+            address(vault),
+            abi.encodeWithSignature("getPricePerFullShare()")
+        );
     }
 
     function postWithdraw(uint256 _shares) internal returns (uint256 amount_) {
         uint256 amountZeroFee = (_shares * comparator.prev("vault.balance()")) /
             comparator.prev("vault.totalSupply()");
 
+        uint256 withdrawalFee = (amountZeroFee * WITHDRAWAL_FEE) / MAX_BPS;
+        uint256 withdrawalFeeInShares = (withdrawalFee *
+            comparator.prev("vault.totalSupply()")) /
+            comparator.prev("vault.balance()");
+
+        uint256 amount = amountZeroFee - withdrawalFee;
+
         assertEq(comparator.negDiff("vault.balanceOf(from)"), _shares);
+        assertEq(comparator.diff("want.balanceOf(from)"), amount);
+        assertEq(
+            comparator.diff("vault.balanceOf(treasury)"),
+            withdrawalFeeInShares
+        );
+        // PPS might increase slightly due to rounding errors
+        assertGe(comparator.diff("vault.getPricePerFullShare()"), 0);
 
+        // TODO: Assumes no loss
         if (amountZeroFee <= comparator.prev("want.balanceOf(vault)")) {
-            uint256 withdrawalFee = (amountZeroFee * WITHDRAWAL_FEE) / MAX_BPS;
-
-            uint256 withdrawalFeeInShares = (withdrawalFee *
-                comparator.prev("vault.totalSupply()")) /
-                comparator.prev("vault.balance()");
-
-            uint256 amount = amountZeroFee - withdrawalFee;
-
             assertEq(comparator.negDiff("want.balanceOf(vault)"), amount);
-            assertEq(comparator.diff("want.balanceOf(from)"), amount);
-            assertEq(
-                comparator.diff("vault.balanceOf(treasury)"),
-                withdrawalFeeInShares
-            );
         } else {
-            // TODO: Probably doesn't make sense since loss isn't handled properly in strat
-            IntervalUint256 memory amountFromStrategyInterval = IntervalUint256Lib
-                .fromMaxAndTolBps(
-                    amountZeroFee - comparator.prev("want.balanceOf(vault)"),
-                    10 // TODO: No magic
-                );
-
-            IntervalUint256
-                memory amountZeroFeeInterval = amountFromStrategyInterval.add(
-                    comparator.prev("want.balanceOf(vault)")
-                );
-
-            IntervalUint256 memory withdrawalFee = amountZeroFeeInterval
-                .mul(WITHDRAWAL_FEE)
-                .div(MAX_BPS);
-
-            IntervalUint256 memory withdrawalFeeInShares = withdrawalFee
-                .mul(comparator.prev("vault.totalSupply()"))
-                .div(comparator.prev("vault.balance()"));
+            uint256 amountFromStrategy = amountZeroFee -
+                comparator.prev("want.balanceOf(vault)");
 
             assertEq(comparator.curr("want.balanceOf(vault)"), withdrawalFee);
-            assertEq(
-                comparator.diff("want.balanceOf(from)"),
-                amountZeroFeeInterval.subDependent(withdrawalFee)
-            );
-            assertEq(
-                comparator.diff("vault.balanceOf(treasury)"),
-                withdrawalFeeInShares
-            );
-            assertEq(
-                comparator.negDiff("strategy.balanceOf()"),
-                amountFromStrategyInterval
-            );
+
+            if (
+                amountFromStrategy <=
+                comparator.prev("want.balanceOf(strategy)")
+            ) {
+                assertEq(
+                    comparator.negDiff("want.balanceOf(strategy)"),
+                    amountFromStrategy
+                );
+            } else {
+                uint256 amountFromStrategyPool = amountFromStrategy -
+                    comparator.prev("want.balanceOf(strategy)");
+
+                assertEq(comparator.curr("want.balanceOf(strategy)"), 0);
+                assertEq(
+                    comparator.negDiff("strategy.balanceOfPool()"),
+                    amountFromStrategyPool
+                );
+            }
         }
 
         amount_ = comparator.diff("want.balanceOf(from)");
@@ -518,6 +521,10 @@ contract BaseFixture is TestPlus, Config {
         postWithdrawToVault();
     }
 
+    // ===========================
+    // ===== Harvest Helpers =====
+    // ===========================
+
     function prepareReportAdditionalToken(address _token, string memory _name)
         internal
     {
@@ -551,9 +558,10 @@ contract BaseFixture is TestPlus, Config {
         );
     }
 
-    function prepareEventsReportAdditionalToken(address _token, uint256 _amount)
-        internal
-    {
+    function prepareEventsReportAdditionalTokenExact(
+        address _token,
+        uint256 _amount
+    ) internal {
         uint256 governancePerformanceFee = (_amount *
             PERFORMANCE_FEE_GOVERNANCE) / MAX_BPS;
         uint256 strategistPerformanceFee = (_amount *
@@ -568,9 +576,10 @@ contract BaseFixture is TestPlus, Config {
         );
     }
 
-    function postReportAdditionalToken(string memory _name, uint256 _amount)
-        internal
-    {
+    function postReportAdditionalTokenExact(
+        string memory _name,
+        uint256 _amount
+    ) internal {
         uint256 governancePerformanceFee = (_amount *
             PERFORMANCE_FEE_GOVERNANCE) / MAX_BPS;
         uint256 strategistPerformanceFee = (_amount *
@@ -602,7 +611,7 @@ contract BaseFixture is TestPlus, Config {
         );
     }
 
-    function reportAdditionalTokenChecked(
+    function reportAdditionalTokenCheckedExact(
         address _token,
         uint256 _amount,
         string memory _name
@@ -613,13 +622,13 @@ contract BaseFixture is TestPlus, Config {
 
         dealMore(_token, address(vault), _amount);
 
-        prepareEventsReportAdditionalToken(_token, _amount);
+        prepareEventsReportAdditionalTokenExact(_token, _amount);
         vm.prank(address(strategy));
         vault.reportAdditionalToken(_token);
 
         comparator.snapCurr();
 
-        postReportAdditionalToken(_name, _amount);
+        postReportAdditionalTokenExact(_name, _amount);
     }
 
     function emitNonProtectedTokenChecked(
@@ -633,13 +642,13 @@ contract BaseFixture is TestPlus, Config {
 
         dealMore(_token, address(strategy), _amount);
 
-        prepareEventsReportAdditionalToken(_token, _amount);
+        prepareEventsReportAdditionalTokenExact(_token, _amount);
         vm.prank(governance);
         vault.emitNonProtectedToken(_token);
 
         comparator.snapCurr();
 
-        postReportAdditionalToken(_name, _amount);
+        postReportAdditionalTokenExact(_name, _amount);
     }
 
     function prepareReportHarvest() internal {
@@ -683,27 +692,22 @@ contract BaseFixture is TestPlus, Config {
             address(vault),
             abi.encodeWithSignature("totalSupply()")
         );
-        // TODO: Add?
-        // comparator.addCall(
-        //     "vault.getPricePerFullShare()",
-        //     address(vault),
-        //     abi.encodeWithSignature("getPricePerFullShare()")
-        // );
-        //  comparator.addCall(
-        //     "strategy.balanceOf()",
-        //     address(strategy),
-        //     abi.encodeWithSignature("balanceOf()")
-        // );
+        comparator.addCall(
+            "vault.getPricePerFullShare()",
+            address(vault),
+            abi.encodeWithSignature("getPricePerFullShare()")
+        );
     }
 
-    function prepareEventsReportHarvest(uint256 _amount) internal {
+    function prepareEventsReportHarvestExact(uint256 _amount) internal {
         vm.expectEmit(true, true, false, true);
         emit Harvested(WANT, _amount, block.number, block.timestamp);
     }
 
-    function postReportHarvest(uint256 _amount, uint256 _timeSinceLastHarvest)
-        internal
-    {
+    function postReportHarvestExact(
+        uint256 _amount,
+        uint256 _timeSinceLastHarvest
+    ) internal {
         uint256 strategistPerformanceFee = (_amount *
             PERFORMANCE_FEE_STRATEGIST) / MAX_BPS;
         uint256 governancePerformanceFee = (_amount *
@@ -748,12 +752,10 @@ contract BaseFixture is TestPlus, Config {
         );
         assertEq(comparator.curr("vault.lastHarvestedAt()"), block.timestamp);
         assertEq(comparator.diff("vault.lifeTimeEarned()"), _amount);
-
-        // TODO: Add these?
-        // assertZe(comparator.diff("strategy.balanceOf()"));
+        assertGe(comparator.diff("vault.getPricePerFullShare()"), 0);
     }
 
-    function reportHarvestChecked(
+    function reportHarvestCheckedExact(
         uint256 _amount,
         uint256 _timeSinceLastHarvest
     ) internal {
@@ -763,20 +765,21 @@ contract BaseFixture is TestPlus, Config {
 
         dealMore(WANT, address(vault), _amount);
 
-        prepareEventsReportHarvest(_amount);
+        prepareEventsReportHarvestExact(_amount);
         vm.prank(address(strategy));
         vault.reportHarvest(_amount);
 
         comparator.snapCurr();
 
-        postReportHarvest(_amount, _timeSinceLastHarvest);
+        postReportHarvestExact(_amount, _timeSinceLastHarvest);
     }
 
-    function reportHarvestChecked(uint256 _amount) internal {
-        reportHarvestChecked(_amount, 0);
+    function reportHarvestCheckedExact(uint256 _amount) internal {
+        reportHarvestCheckedExact(_amount, 0);
     }
 
-    function harvestChecked(
+    // TODO: Rename this harvestCheckedExact and add another where harvest amounts are unknown
+    function harvestCheckedExact(
         uint256 _wantAmount,
         uint256[] memory _emitAmounts,
         uint256 _timeSinceLastHarvest
@@ -795,37 +798,45 @@ contract BaseFixture is TestPlus, Config {
             dealMore(EMITS[i], address(strategy), _emitAmounts[i]);
         }
 
-        prepareEventsReportHarvest(_wantAmount);
+        prepareEventsReportHarvestExact(_wantAmount);
         for (uint256 i; i < NUM_EMITS; ++i) {
-            prepareEventsReportAdditionalToken(EMITS[i], _emitAmounts[i]);
+            prepareEventsReportAdditionalTokenExact(EMITS[i], _emitAmounts[i]);
         }
         vm.prank(keeper);
-        strategy.harvest();
-        // TODO: Return value?
+        MockStrategy.TokenAmount[] memory harvestedTokenAmounts = strategy
+            .harvest();
 
         comparator.snapCurr();
 
-        // assertEq(harvested, 0);
+        assertEq(harvestedTokenAmounts.length, NUM_EMITS + 1);
 
-        postReportHarvest(_wantAmount, _timeSinceLastHarvest);
+        assertEq(harvestedTokenAmounts[0].token, WANT);
+        assertEq(harvestedTokenAmounts[0].amount, _wantAmount);
+
+        postReportHarvestExact(_wantAmount, _timeSinceLastHarvest);
         for (uint256 i; i < NUM_EMITS; ++i) {
-            postReportAdditionalToken(EMITS_NAMES[i], _emitAmounts[i]);
+            assertEq(harvestedTokenAmounts[i + 1].token, EMITS[i]);
+            assertEq(harvestedTokenAmounts[i + 1].amount, _emitAmounts[i]);
+
+            postReportAdditionalTokenExact(EMITS_NAMES[i], _emitAmounts[i]);
         }
     }
 
-    function harvestChecked(uint256 _wantAmount, uint256[] memory _emitAmounts)
-        internal
-    {
-        harvestChecked(_wantAmount, _emitAmounts, 0);
+    function harvestCheckedExact(
+        uint256 _wantAmount,
+        uint256[] memory _emitAmounts
+    ) internal {
+        harvestCheckedExact(_wantAmount, _emitAmounts, 0);
     }
 }
 
 /*
 TODO:
-- add a demo staking pool for `balanceOfPool` tests
+- Tend
 - vm.label with .name() instead?
 - fixed point math?
 - emitNonProtectedToken ==> reportAdditionTokenManual?
 - Maybe move minting outside checked function?
 - Rename guestlist, make it a modifier? Only on external functions
+- Strategy reports loss and assert(loss < some value) instead of IntervalUint
 */

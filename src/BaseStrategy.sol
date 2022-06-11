@@ -377,6 +377,7 @@ abstract contract BaseStrategy is PausableUpgradeable {
         virtual
         returns (address[] memory);
 
+    // TODO: Maybe keep default as _withdrawSome(balanceOfPool()) and allow overriding
     /// @dev Internal logic for strategy migration. Should exit positions as efficiently as possible.
     function _withdrawAll() internal virtual;
 
@@ -447,3 +448,10 @@ abstract contract BaseStrategy is PausableUpgradeable {
 
     uint256[49] private __gap;
 }
+
+/*
+TODO:
+- Force harvest before withdrawAll or
+- Emergency withdraw switch where strategy might exit positions without claiming rewards
+- Keeper jobs
+*/

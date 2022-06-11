@@ -4,8 +4,8 @@ pragma solidity 0.8.12;
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 import {BaseFixture} from "../BaseFixture.sol";
-import {MockStrategy} from "../mocks/MockStrategy.sol";
-import {MockToken} from "../mocks/MockToken.sol";
+import {MockStrategy} from "../mock/MockStrategy.sol";
+import {MockToken} from "../mock/MockToken.sol";
 
 contract BaseStrategyTest is BaseFixture {
     // ==================
@@ -141,7 +141,7 @@ contract BaseStrategyTest is BaseFixture {
             emitAmounts[i] = (i + 2) * 10**18;
         }
 
-        harvestChecked(1e18, emitAmounts);
+        harvestCheckedExact(1e18, emitAmounts);
     }
 
     // TODO: Checked from Vault.t.sol
@@ -187,7 +187,6 @@ contract BaseStrategyTest is BaseFixture {
 TODO:
 - Tend tests
 - Strategy improvements:
-  - Take want from vault
   - Less asserts/gas improvements
   - BaseStrategy => Strategy
 */

@@ -7,7 +7,7 @@ import {IERC20Metadata} from "openzeppelin-contracts/token/ERC20/extensions/IERC
 import {Vault} from "../../src/Vault.sol";
 
 import {BaseFixture} from "../BaseFixture.sol";
-import {MockToken} from "../mocks/MockToken.sol";
+import {MockToken} from "../mock/MockToken.sol";
 
 contract VaultTest is BaseFixture {
     // ==================
@@ -39,14 +39,14 @@ contract VaultTest is BaseFixture {
         vm.prank(governance);
         vault.setGuestList(address(this));
 
-        assertEq(address(vault.guestList()), address(this));
+        assertEq(address(vault.guestlist()), address(this));
     }
 
     function testStrategistCanSetGuestList() public {
         vm.prank(strategist);
         vault.setGuestList(address(this));
 
-        assertEq(address(vault.guestList()), address(this));
+        assertEq(address(vault.guestlist()), address(this));
     }
 
     function testGovernanceCanSetGuardian() public {
@@ -643,6 +643,9 @@ contract VaultTest is BaseFixture {
     }
 
     // TODO: Fix this in BaseStrategy
+    //       Loss results in balance of vault becoming 0 while shares aren't 0
+    //       which causes a revert. Ideally, the strategy should report a loss
+    //       to fix this.
     // function testWithdrawWithLossyStrategyFail() public {
     //     uint256 amount = IERC20(WANT).balanceOf(address(this));
     //     uint256 shares = depositChecked(amount);
@@ -792,7 +795,7 @@ contract VaultTest is BaseFixture {
         uint256 amount = IERC20(WANT).balanceOf(address(this));
         depositChecked(amount);
 
-        reportHarvestChecked(1e18);
+        reportHarvestCheckedExact(1e18);
     }
 
     function testCantReportWant() public {
@@ -803,7 +806,7 @@ contract VaultTest is BaseFixture {
 
     function testReportAdditionalToken() public {
         for (uint256 i; i < NUM_EMITS; ++i) {
-            reportAdditionalTokenChecked(EMITS[i], 1e18, "EMITS[i]");
+            reportAdditionalTokenCheckedExact(EMITS[i], 1e18, "EMITS[i]");
         }
     }
 
@@ -837,7 +840,6 @@ contract VaultTest is BaseFixture {
 /*
 TODO:
 - Do infinite approval instead of in prepareDeposit
-- guestList ==> guestlist
 - No upgradeable in test contract
 - Generalize
 - Add guestlist
@@ -853,13 +855,14 @@ TODO:
 - More fuzzing? Fuzzing everywhere?
 - Events to setter tests
 - IERC20(WANT).bal... ==> AMOUNT_TO_MINT?
-- IsProtected => IsPermissioned?
 
 - Vault improvements:
+  - Ensure vault depositors are never diluted because of management fee (management fee only on extra harvest)
   - Way to charge withdrawal fee without transferring want to vault?
   - Less asserts/gas improvements (maybe not in view funcs?)
   - Simplify share math if possible
   - Auth instead of access control
+  - Vault intialization requires a deposit of at least one token?
   - Time weight harvest amounts for calculating apr on-chain? (store accumulated vals)
   - reportHarvest automated? (what if balanceOfPool changes with harvest?)
   - Remove timestamp/bn from events

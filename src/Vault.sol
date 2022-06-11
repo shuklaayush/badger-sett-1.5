@@ -32,7 +32,7 @@ import {IGuestlist} from "./interfaces/IGuestlist.sol";
 
     V1.3
     * Add guest list functionality
-    * All deposits can be optionally gated by external guestList approval logic on set guestList contract
+    * All deposits can be optionally gated by external guestlist approval logic on set guestlist contract
 
     V1.4
     * Add depositFor() to deposit on the half of other users. That user will then be blockLocked.
@@ -68,7 +68,7 @@ contract Vault is
     /// ===== Storage Variables ====
 
     IERC20Upgradeable public token; // Token used for deposits
-    IGuestlist public guestList; // guestlist when vault is in experiment/ guarded state
+    IGuestlist public guestlist; // guestlist when vault is in experiment/ guarded state
 
     bool public pausedDeposit; // false by default Allows to only block deposits, use pause for the normal pause state
 
@@ -578,14 +578,14 @@ contract Vault is
     }
 
     /// @notice Changes the guestlist address.
-    ///         The guestList is used to gate or limit deposits. If no guestlist is set then anyone can deposit any amount.
+    ///         The guestlist is used to gate or limit deposits. If no guestlist is set then anyone can deposit any amount.
     ///         This can be called by either governance or strategist.
     ///         Note that this can only be called when the sett is not paused.
-    /// @param _guestList Address of the new guestlist.
-    function setGuestList(address _guestList) external whenNotPaused {
+    /// @param _guestlist Address of the new guestlist.
+    function setGuestList(address _guestlist) external whenNotPaused {
         _onlyGovernanceOrStrategist();
-        guestList = IGuestlist(_guestList);
-        emit SetGuestList(_guestList);
+        guestlist = IGuestlist(_guestlist);
+        emit SetGuestList(_guestlist);
     }
 
     /// @notice Sets the withdrawal fee charged by the Sett.
@@ -776,9 +776,9 @@ contract Vault is
         uint256 _amount,
         bytes32[] memory proof
     ) internal {
-        if (address(guestList) != address(0)) {
+        if (address(guestlist) != address(0)) {
             require(
-                guestList.authorized(_recipient, _amount, proof),
+                guestlist.authorized(_recipient, _amount, proof),
                 "GuestList: Not Authorized"
             );
         }
